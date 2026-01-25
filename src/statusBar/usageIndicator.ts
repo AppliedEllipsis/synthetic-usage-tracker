@@ -161,10 +161,23 @@ export class UsageIndicator {
   }
 
   private buildTooltip(usage: UsageInfo, timeRemaining: string): string {
-    return `Quota: ${usage.requests.toLocaleString()}/${usage.limit.toLocaleString()}
-Time Remaining: ${timeRemaining}
+    // Design decision: Show comprehensive usage information in tooltip to match message box content.
+    // This provides users with full visibility into their API quota without requiring a click.
+    // VSCode status bar tooltips support markdown formatting, allowing for structured multi-line display.
+    const percentageUsed = usage.percentageUsed.toFixed(1);
+    const percentageRemaining = (100 - usage.percentageUsed).toFixed(1);
 
-Resets in: ${timeRemaining}`;
+    return `**Synthetic.new Usage Details**
+
+Requests Used: ${usage.requests.toLocaleString()}
+Requests Limit: ${usage.limit.toLocaleString()}
+Requests Remaining: ${usage.remaining.toLocaleString()}
+
+Percentage Used: ${percentageUsed}%
+Percentage Remaining: ${percentageRemaining}%
+
+Time Remaining: ${timeRemaining}
+Renews At: ${usage.renewsAtString}`;
   }
 
   private calculateTimeRemaining(renewsAt: Date): string {
