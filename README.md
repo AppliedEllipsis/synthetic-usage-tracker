@@ -1,6 +1,6 @@
-# Synthetic.new Usage Tracker
-
 ![Extension Icon](image/icon/icon_128.png)
+
+# Synthetic.new Usage Tracker
 
 A VSCode extension that monitors your Synthetic.new API usage and quotas directly from the status bar.
 
@@ -57,25 +57,25 @@ A VSCode extension that monitors your Synthetic.new API usage and quotas directl
 
 The extension can be configured through VSCode settings:
 
-| Setting | Type | Default | Description |
-|---------|------|---------|-------------|
-| `syntheticUsageTracker.apiEndpoint` | string | `https://api.synthetic.new/v2` | The Synthetic.new API endpoint |
-| `syntheticUsageTracker.refreshInterval` | number | `60` | Auto-refresh interval in seconds (min: 10) |
-| `syntheticUsageTracker.statusBarPosition` | string | `right` | Position of the usage indicator in the status bar |
-| `syntheticUsageTracker.showPercentage` | boolean | `true` | Show usage as percentage in status bar |
-| `syntheticUsageTracker.showRawNumbers` | boolean | `false` | Show raw request numbers in status bar tooltip |
-| `syntheticUsageTracker.enableNotifications` | boolean | `true` | Show notifications for API errors and quota warnings |
-| `syntheticUsageTracker.warningThreshold` | number | `80` | Usage percentage threshold for warning notifications |
-| `syntheticUsageTracker.criticalThreshold` | number | `90` | Usage percentage threshold for critical notifications |
+| Setting                                     | Type    | Default                        | Description                                           |
+| ------------------------------------------- | ------- | ------------------------------ | ----------------------------------------------------- |
+| `syntheticUsageTracker.apiEndpoint`         | string  | `https://api.synthetic.new/v2` | The Synthetic.new API endpoint                        |
+| `syntheticUsageTracker.refreshInterval`     | number  | `60`                           | Auto-refresh interval in seconds (min: 10)            |
+| `syntheticUsageTracker.statusBarPosition`   | string  | `right`                        | Position of the usage indicator in the status bar     |
+| `syntheticUsageTracker.showPercentage`      | boolean | `true`                         | Show usage as percentage in status bar                |
+| `syntheticUsageTracker.showRawNumbers`      | boolean | `false`                        | Show raw request numbers in status bar tooltip        |
+| `syntheticUsageTracker.enableNotifications` | boolean | `true`                         | Show notifications for API errors and quota warnings  |
+| `syntheticUsageTracker.warningThreshold`    | number  | `80`                           | Usage percentage threshold for warning notifications  |
+| `syntheticUsageTracker.criticalThreshold`   | number  | `90`                           | Usage percentage threshold for critical notifications |
 
 ## Commands
 
-| Command | Description |
-|---------|-------------|
-| `Synthetic Usage Tracker: Refresh Usage` | Manually refresh the usage data |
-| `Synthetic Usage Tracker: Configure API Key` | Configure or update your API key |
-| `Synthetic Usage Tracker: Show Usage Details` | Display detailed usage information |
-| `Synthetic Usage Tracker: Toggle Auto-Refresh` | Enable/disable auto-refresh |
+| Command                                             | Description                                      |
+| --------------------------------------------------- | ------------------------------------------------ |
+| `Synthetic Usage Tracker: Refresh Usage`            | Manually refresh the usage data                  |
+| `Synthetic Usage Tracker: Configure API Key`        | Configure or update your API key                 |
+| `Synthetic Usage Tracker: Show Usage Details`       | Display detailed usage information               |
+| `Synthetic Usage Tracker: Toggle Auto-Refresh`      | Enable/disable auto-refresh                      |
 | `Synthetic Usage Tracker: Open Synthetic Dashboard` | Open the Synthetic.new dashboard in your browser |
 
 ## Development
@@ -127,6 +127,7 @@ MIT License - see [LICENSE](LICENSE) for details.
 ## 🤝 Help Us Grow!
 
 Invite your friends to **Synthetic.new** and both of you will receive:
+
 - **$10.00** for standard signups
 - **$20.00** for pro signups
 
@@ -174,4 +175,4 @@ Thank you for your support! ❤️
 
 ---
 
-*Co-vibe coded with AI - Built with human creativity enhanced by artificial intelligence*
+_Co-vibe coded with AI - Built with human creativity enhanced by artificial intelligence_

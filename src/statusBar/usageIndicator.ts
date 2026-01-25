@@ -165,21 +165,17 @@ export class UsageIndicator {
   private buildTooltip(usage: UsageInfo, timeRemaining: string): string {
     // Design decision: Show comprehensive usage information in tooltip to match message box content.
     // This provides users with full visibility into their API quota without requiring a click.
-    // VSCode status bar tooltips support markdown formatting, allowing for structured multi-line display.
+    // Using plain text with separator for cleaner display without markdown formatting.
     const percentageUsed = usage.percentageUsed.toFixed(1);
     const percentageRemaining = (100 - usage.percentageUsed).toFixed(1);
 
-    return `**Synthetic.new Usage Details**
-
-Requests Used: ${usage.requests.toLocaleString()}
-Requests Limit: ${usage.limit.toLocaleString()}
-Requests Remaining: ${usage.remaining.toLocaleString()}
-
-Percentage Used: ${percentageUsed}%
-Percentage Remaining: ${percentageRemaining}%
-
+    return `Synthetic.new Usage
+---
+Limit: ${usage.limit.toLocaleString()}
+Used: ${usage.requests.toLocaleString()} (${percentageUsed}%)
+Remaining: ${usage.remaining.toLocaleString()} (${percentageRemaining}%)
 Time Remaining: ${timeRemaining}
-Renews At: ${usage.renewsAtString}`;
+Renews: ${usage.renewsAtString}`;
   }
 
   private calculateTimeRemaining(renewsAt: Date): string {
