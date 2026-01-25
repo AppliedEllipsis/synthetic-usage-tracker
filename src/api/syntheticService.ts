@@ -97,6 +97,118 @@ export class SyntheticService {
   }
 
   /**
+   * Fetch quota information for multiple API keys
+   * Returns aggregated usage information for all keys
+   */
+  static async fetchQuotaForMultipleKeys(
+    keys: Array<{ key: string; label?: string }>,
+    apiEndpoint: string = "https://api.synthetic.new/v2"
+  ): Promise<{
+    totalLimit: number;
+    totalRequests: number;
+    totalRemaining: number;
+    averagePercentageUsed: number;
+    keyCount: number;
+    keys: Array<{
+      key: string;
+      label?: string;
+      usage: UsageInfo;
+      error?: string;
+    }>;
+  }> {
+    if (keys.length === 0) {
+      return {
+        totalLimit: 0,
+        totalRequests: 0,
+        totalRemaining: 0,
+        averagePercentageUsed: 0,
+        keyCount: 0,
+        keys: [],
+      };
+    }
+
+    // Fetch quota for each key independently
+    const results = await Promise.allSettled(
+      keys.map(async (keyInfo) => {
+        const service = new SyntheticService(keyInfo.key, apiEndpoint);
+        const usage = await service.fetchQuota();
+        return { keyInfo, usage };
+      })
+    );
+
+    // Process results and aggregate data
+    let totalLimit = 0;
+    let totalRequests = 0;
+    let totalRemaining = 0;
+    const keyResults: Array<{
+      key: string;
+      label?: string;
+      usage: UsageInfo;
+      error?: string;
+    }> = [];
+
+    results.forEach((result, index) => {
+      const keyInfo = keys[index];
+      if (!keyInfo) return;
+
+      if (result.status === "fulfilled") {
+        const { keyInfo, usage } = result.value;
+        totalLimit += usage.limit;
+        totalRequests += usage.requests;
+        totalRemaining += usage.remaining;
+        const keyResult: {
+          key: string;
+          label?: string;
+          usage: UsageInfo;
+        } = {
+          key: keyInfo.key,
+          usage,
+        };
+        if (keyInfo.label !== undefined) {
+          keyResult.label = keyInfo.label;
+        }
+        keyResults.push(keyResult);
+      } else {
+        // Handle failed requests
+        const keyResult: {
+          key: string;
+          label?: string;
+          usage: UsageInfo;
+          error?: string;
+        } = {
+          key: keyInfo.key,
+          usage: {
+            limit: 0,
+            requests: 0,
+            remaining: 0,
+            percentageUsed: 0,
+            renewsAt: new Date(),
+            renewsAtString: "",
+          },
+          error: result.reason instanceof Error ? result.reason.message : "Unknown error",
+        };
+        if (keyInfo.label !== undefined) {
+          keyResult.label = keyInfo.label;
+        }
+        keyResults.push(keyResult);
+      }
+    });
+
+    // Calculate average percentage used
+    const averagePercentageUsed =
+      totalLimit > 0 ? (totalRequests / totalLimit) * 100 : 0;
+
+    return {
+      totalLimit,
+      totalRequests,
+      totalRemaining,
+      averagePercentageUsed: Math.round(averagePercentageUsed * 100) / 100,
+      keyCount: keys.length,
+      keys: keyResults,
+    };
+  }
+
+  /**
    * Fetch quota information from Synthetic.ai API
    */
   async fetchQuota(): Promise<UsageInfo> {

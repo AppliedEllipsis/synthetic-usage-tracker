@@ -108,6 +108,11 @@
         "category": "Synthetic Usage Tracker"
       },
       {
+        "command": "syntheticUsageTracker.refreshKeys",
+        "title": "Refresh API Keys",
+        "category": "Synthetic Usage Tracker"
+      },
+      {
         "command": "syntheticUsageTracker.configure",
         "title": "Configure API Key",
         "category": "Synthetic Usage Tracker"
