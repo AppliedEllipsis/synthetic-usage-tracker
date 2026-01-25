@@ -41,7 +41,7 @@ A VSCode extension that monitors your Synthetic.new API usage and quotas directl
 2. Go to Extensions (Ctrl+Shift+X)
 3. Click the "..." menu in the top right
 4. Select "Install from VSIX..."
-5. Download the extension from [Open VSX Registry](https://open-vsx.org/extension/zai-org/synthetic-usage-tracker)
+5. Download the extension from [Open VSX Registry](https://open-vsx.org/extension/Ellipsis/synthetic-usage-tracker)
 6. Or install using the command: `code --install-extension Ellipsis.synthetic-usage-tracker`
 
 ### From .vsix File

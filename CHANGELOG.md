@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed config schema and refactored documentation structure
 
 ### Fixed
-- Fixed incorrect organization references in README.md - replaced "zai-org" with "Ellipsis" in all badge URLs, links, and CLI commands
+- Fixed incorrect organization references in README.md - replaced "zai-org" with "Ellipsis" in all VSCode Marketplace and Open VSX references, and "AppliedEllipsis" for GitHub references. Fixed 7 total references including: badge URLs (version, install count, rating), installation commands, and Open VSX registry links
 
 ## [1.0.12] - 2026-01-25
 
