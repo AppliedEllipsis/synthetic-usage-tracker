@@ -148,7 +148,6 @@ export class UsageIndicator {
     const timeRemaining = this.calculateTimeRemaining(usage.renewsAt);
     
     let text = "$(database) Synthetic.new";
-    let tooltip = "Synthetic.new Usage Tracker";
 
     if (config.showPercentage) {
       const percentage = usage.percentageUsed.toFixed(0);
@@ -169,8 +168,7 @@ export class UsageIndicator {
     this.updateStatusColor();
 
     // Set tooltip
-    tooltip += this.buildTooltip(usage, timeRemaining);
-    this.statusBarItem.tooltip = tooltip;
+    this.statusBarItem.tooltip = this.buildTooltip(usage, timeRemaining);
 
     // Set command
     this.statusBarItem.command = "syntheticUsageTracker.showUsage";
@@ -214,7 +212,6 @@ export class UsageIndicator {
     const timeRemaining = this.calculateTimeRemaining(earliestRenewal);
     
     let text = "$(database) Synthetic.new";
-    let tooltip = "Synthetic.new Usage Tracker";
 
     // Add key count indicator if multiple keys
     if (aggregatedUsage.keyCount > 1) {
@@ -240,8 +237,7 @@ export class UsageIndicator {
     this.updateStatusColor();
 
     // Set tooltip with aggregated information
-    tooltip += this.buildAggregatedTooltip(aggregatedUsage, earliestRenewal, timeRemaining);
-    this.statusBarItem.tooltip = tooltip;
+    this.statusBarItem.tooltip = this.buildAggregatedTooltip(aggregatedUsage, earliestRenewal, timeRemaining);
 
     // Set command
     this.statusBarItem.command = "syntheticUsageTracker.showUsage";
@@ -466,9 +462,7 @@ Time Remaining: ${timeRemaining}
         this.statusBarItem.text = text;
         
         // Update tooltip with new time remaining
-        const tooltip = "Synthetic.new Usage Tracker" + 
-          this.buildTooltip(this.currentUsage, timeRemaining);
-        this.statusBarItem.tooltip = tooltip;
+        this.statusBarItem.tooltip = this.buildTooltip(this.currentUsage, timeRemaining);
       }
     }, 1000);
   }
@@ -543,9 +537,7 @@ Time Remaining: ${timeRemaining}
         this.statusBarItem.text = text;
         
         // Update tooltip with new time remaining
-        const tooltip = "Synthetic.new Usage Tracker" + 
-          this.buildAggregatedTooltip(this.currentAggregatedUsage, earliestRenewal, timeRemaining);
-        this.statusBarItem.tooltip = tooltip;
+        this.statusBarItem.tooltip = this.buildAggregatedTooltip(this.currentAggregatedUsage, earliestRenewal, timeRemaining);
       }
     }, 1000);
   }
