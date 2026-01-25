@@ -2,7 +2,7 @@
   "name": "synthetic-usage-tracker",
   "displayName": "Synthetic.new Usage Tracker",
   "description": "Monitor your Synthetic.new API usage and quotas directly from VSCode status bar",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "publisher": "synthetic-usage-tracker",
   "license": "MIT",
   "type": "commonjs",
