@@ -7,30 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-### Added
-- Screenshots and documentation additions to README (from [1.0.12])
-
 ### Changed
-- Updated configuration for API endpoint and thresholds (from [1.0.12])
+- Removed config schema and refactored documentation structure
 
 ### Fixed
-- Fixed various issues and improvements (from [1.0.12])
+- Fixed incorrect organization references in README.md - replaced "zai-org" with "Ellipsis" in all badge URLs, links, and CLI commands
+
+## [1.0.12] - 2026-01-25
 
 ### Added
-- Initial release of extension with all features (from historical versions)
-- API key configuration and storage using SecretStorage
-- Real-time usage monitoring via status bar
-- Auto-refresh functionality with configurable interval
-- Manual refresh command
-- Show usage details command
-- Toggle auto-refresh command
-- Erase API key command
-- Open Synthetic dashboard command
-- Subscribe with discount command
-- Cross-window API key synchronization
-- Configuration for API endpoint, refresh interval, display options
-- Notification thresholds for warning and critical usage levels
-- Error handling and retry logic with exponential backoff
+- Screenshots and documentation additions to README
+- VSX Marketplace badges for Open VSX registry
+- Comprehensive AGENTS.md development guide
+
+### Changed
+- Updated configuration for API endpoint and thresholds
+- Improved documentation structure and organization
+- Refactored configuration schema documentation
+
+### Fixed
+- Various issues and improvements
 
 ## [1.0.11] - 2026-01-25
 
@@ -47,21 +43,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Additional functionality
+- Publisher identity updates across package and documentation
 
 ## [1.0.8] - 2026-01-25
 
 ### Added
 - Core features implemented
+- Improved setup flow and documentation
 
 ## [1.0.7] - 2026-01-25
 
 ### Added
 - Feature additions
+- Fixed script escaping and updated documentation
 
 ## [1.0.6] - 2026-01-25
 
 ### Added
 - Initial features
+- Buildrelease workflow and documentation
+- Improved cache control and code safety
+- Cleaned up assets and improved tooltips
+- Added dedicated loading icon for status bar
 
 ---
 
