@@ -449,10 +449,8 @@ Time Remaining: ${timeRemaining}
         if (config.showRawNumbers) {
           text += ` (${this.currentUsage.requests}/${this.currentUsage.limit})`;
         }
-        
-        // Add reset time only (not countdown)
-        text += ` | Resets: ${this.formatTime(this.currentUsage.renewsAt)}`;
 
+        // Set text (resets details are in tooltip and popup only)
         this.statusBarItem.text = text;
         
         // Update tooltip with new time remaining
@@ -524,10 +522,8 @@ Time Remaining: ${timeRemaining}
         if (config.showRawNumbers) {
           text += ` (${this.currentAggregatedUsage.totalRequests.toLocaleString()}/${this.currentAggregatedUsage.totalLimit.toLocaleString()})`;
         }
-        
-        // Add reset time only (not countdown)
-        text += ` | Resets: ${this.formatTime(earliestRenewal)}`;
 
+        // Set text (resets details are in tooltip and popup only)
         this.statusBarItem.text = text;
         
         // Update tooltip with new time remaining

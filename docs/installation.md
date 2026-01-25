@@ -75,6 +75,61 @@ For most users, the default settings work well. However, you may want to adjust:
 - **Warning Threshold**: Set to when you want to be notified of approaching limits (default: 80%)
 - **Critical Threshold**: Set to when you want urgent notifications (default: 90%)
 
+## Managing Multiple API Keys
+
+The extension supports managing multiple Synthetic.ai API keys, allowing you to track usage across different accounts or projects.
+
+### Adding API Keys
+
+To add a new API key to your configuration:
+
+1. Press `Ctrl+Shift+P` (or `Cmd+Shift+P` on macOS) to open the Command Palette
+2. Type and select **Synthetic Usage Tracker: Configure API Key**
+3. Enter your Synthetic.ai API key (it should start with `syn_`)
+4. The key will be added to your collection and the extension will automatically fetch usage data
+
+You can add multiple keys by running this command multiple times. Each key you add is stored securely in VSCode's SecretStorage.
+
+### Viewing Usage Across Keys
+
+Usage data is automatically aggregated across all your configured API keys:
+
+- The status bar displays the total usage percentage calculated from all keys combined
+- Use the **Synthetic Usage Tracker: Show Usage Details** command to view individual key usage breakdowns
+- Each key's label, usage, and quota information are displayed in the details view
+
+### Key Aggregation Behavior
+
+When multiple API keys are configured:
+
+- **Total Usage**: The extension sums the usage across all keys to provide a comprehensive view
+- **Total Quota**: The extension calculates the combined quota limit from all keys
+- **Percentage Display**: The status bar shows the percentage of total usage against the total quota
+- **Individual Tracking**: Each key's usage is tracked separately and available in the details view
+
+### Cross-Window Synchronization
+
+API key configuration is synchronized across all open VSCode windows:
+
+- Keys added in one window are immediately available in all other open windows
+- Changes to your API key collection persist across VSCode sessions
+- Usage data updates are synchronized across windows automatically
+
+### Deleting API Keys
+
+Currently, the extension stores deletion functionality in the codebase but does not expose it as a user command. If you need to remove an API key from your configuration:
+
+- The extension stores keys securely in VSCode SecretStorage
+- As a workaround, you may need to reconfigure your keys by using the **Configure API Key** command to set up only the keys you want to keep
+- Future versions may include a dedicated command for key deletion
+
+### Best Practices
+
+- **Organize by Project**: Use different API keys for different projects or environments
+- **Label Your Keys**: Although individual key labels are supported, consider maintaining a record of which key corresponds to which project
+- **Monitor Individually**: Regularly check the usage details view to identify which keys are consuming quota
+- **Plan Ahead**: Keep track of approaching limits on individual keys to avoid service interruptions
+
 ## Uninstallation
 
 ### From VSCode
