@@ -1,7 +1,7 @@
 {
   "name": "synthetic-usage-tracker",
-  "displayName": "Synthetic.ai Usage Tracker",
-  "description": "Monitor your Synthetic.ai API usage and quotas directly from VSCode status bar",
+  "displayName": "Synthetic.new Usage Tracker",
+  "description": "Monitor your Synthetic.new API usage and quotas directly from VSCode status bar",
   "version": "1.0.2",
   "publisher": "synthetic-usage-tracker",
   "license": "MIT",
@@ -18,7 +18,7 @@
     "Other"
   ],
   "keywords": [
-    "synthetic.ai",
+    "synthetic.new",
     "api",
     "usage",
     "quota",
@@ -36,18 +36,18 @@
   "homepage": "https://github.com/your-username/synthetic-usage-tracker#readme",
   "contributes": {
     "configuration": {
-      "title": "Synthetic.ai Usage Tracker",
+      "title": "Synthetic.new Usage Tracker",
       "properties": {
         "syntheticUsageTracker.apiKey": {
           "type": "string",
           "default": "",
-          "description": "Your Synthetic.ai API key (stored securely using VSCode SecretStorage)",
+          "description": "Your Synthetic.new API key (stored securely using VSCode SecretStorage)",
           "order": 1
         },
         "syntheticUsageTracker.apiEndpoint": {
           "type": "string",
           "default": "https://api.synthetic.new/v2",
-          "description": "The Synthetic.ai API endpoint",
+          "description": "The Synthetic.new API endpoint",
           "order": 2
         },
         "syntheticUsageTracker.refreshInterval": {

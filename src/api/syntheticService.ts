@@ -1,5 +1,5 @@
 /**
- * Synthetic.ai API quota response structure
+ * Synthetic.new API quota response structure
  */
 export interface QuotaResponse {
   subscription: {
@@ -82,7 +82,7 @@ function calculateDelay(attempt: number, config: RetryConfig): number {
 }
 
 /**
- * Synthetic.ai API service client
+ * Synthetic.new API service client
  * Handles API communication with retry logic and error handling
  */
 export class SyntheticService {
@@ -97,7 +97,7 @@ export class SyntheticService {
   }
 
   /**
-   * Fetch quota information from Synthetic.ai API
+   * Fetch quota information from Synthetic.new API
    */
   async fetchQuota(): Promise<UsageInfo> {
     return this.retryFetch(() => this.fetchQuotaInternal());
@@ -226,7 +226,7 @@ export class SyntheticService {
 
   /**
    * Validate API key format
-   * Synthetic.ai API keys typically start with "syn_"
+   * Synthetic.new API keys typically start with "syn_"
    */
   static validateApiKey(apiKey: string): boolean {
     return apiKey.length > 0 && apiKey.startsWith("syn_");
@@ -256,11 +256,11 @@ export function getErrorMessage(error: ApiError): string {
     case ApiErrorType.Network:
       return "Network error. Please check your internet connection.";
     case ApiErrorType.Authentication:
-      return "Invalid API key. Please configure a valid Synthetic.ai API key.";
+      return "Invalid API key. Please configure a valid Synthetic.new API key.";
     case ApiErrorType.RateLimit:
       return "Rate limit exceeded. Please wait a moment before trying again.";
     case ApiErrorType.Server:
-      return "Synthetic.ai server error. Please try again later.";
+      return "Synthetic.new server error. Please try again later.";
     default:
       return error.message || "An unknown error occurred.";
   }

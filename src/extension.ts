@@ -141,7 +141,7 @@ export class SyntheticUsageTrackerExtension {
 
       const config = this.configManager.getConfig();
       if (config.enableNotifications) {
-        vscode.window.showErrorMessage(`Failed to fetch Synthetic.ai usage: ${message}`);
+        vscode.window.showErrorMessage(`Failed to fetch Synthetic.new usage: ${message}`);
       }
     } finally {
       this.isFetching = false;
@@ -179,7 +179,7 @@ export class SyntheticUsageTrackerExtension {
     const placeholder = currentApiKey || "syn_...";
 
     const input = await vscode.window.showInputBox({
-      prompt: "Enter your Synthetic.ai API key",
+      prompt: "Enter your Synthetic.new API key",
       placeHolder: placeholder,
       password: true,
       validateInput: (value) => {
@@ -237,7 +237,7 @@ export class SyntheticUsageTrackerExtension {
     }
 
     const message = `
-Synthetic.ai Usage Details
+Synthetic.new Usage Details
 ━━━━━━━━━━━━━━━━━━━━━
 Requests Used: ${usage.requests.toLocaleString()}
 Requests Limit: ${usage.limit.toLocaleString()}

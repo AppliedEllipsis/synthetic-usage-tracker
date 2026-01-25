@@ -14,7 +14,7 @@ enum DisplayState {
 }
 
 /**
- * Status bar usage indicator for displaying Synthetic.ai usage information
+ * Status bar usage indicator for displaying Synthetic.new usage information
  */
 export class UsageIndicator {
   private statusBarItem: vscode.StatusBarItem;
@@ -64,6 +64,15 @@ export class UsageIndicator {
   }
 
   /**
+   * Clear the cached values to force an update
+   */
+  private clearCache(): void {
+    this.lastText = null;
+    this.lastTooltip = null;
+    this.lastDisplayState = null;
+  }
+
+  /**
    * Update the status bar item with usage information
    */
   private updateStatusBarItem(usage: UsageInfo, config: {
@@ -83,13 +92,25 @@ export class UsageIndicator {
       text += ` (${usage.requests}/${usage.limit})`;
     }
 
-    this.statusBarItem.text = text;
+    const tooltip = this.buildTooltip(usage, timeRemaining);
 
-    this.updateStatusColor();
+    // Only update if values have actually changed to prevent blinking/redraw
+    const needsUpdate = 
+      this.lastText !== text ||
+      this.lastTooltip !== tooltip ||
+      this.lastDisplayState !== this.displayState;
 
-    this.statusBarItem.tooltip = this.buildTooltip(usage, timeRemaining);
+    if (needsUpdate) {
+      this.statusBarItem.text = text;
+      this.statusBarItem.tooltip = tooltip;
+      this.updateStatusColor();
+      this.statusBarItem.command = "syntheticUsageTracker.showUsage";
 
-    this.statusBarItem.command = "syntheticUsageTracker.showUsage";
+      // Update cache
+      this.lastText = text;
+      this.lastTooltip = tooltip;
+      this.lastDisplayState = this.displayState;
+    }
   }
 
   /**
@@ -116,18 +137,10 @@ export class UsageIndicator {
   }
 
   private buildTooltip(usage: UsageInfo, timeRemaining: string): string {
-    return `
-Synthetic.new Usage Tracker
-
-Requests: ${usage.requests.toLocaleString()}
-Limit: ${usage.limit.toLocaleString()}
-Remaining: ${usage.remaining.toLocaleString()}
-Percentage: ${usage.percentageUsed.toFixed(1)}%
-Reset Time: ${usage.renewsAtString}
+    return `Quota: ${usage.requests.toLocaleString()}/${usage.limit.toLocaleString()}
 Time Remaining: ${timeRemaining}
 
-Click to view details
-`.trim();
+Resets in: ${timeRemaining}`;
   }
 
   private calculateTimeRemaining(renewsAt: Date): string {
@@ -149,6 +162,9 @@ Click to view details
     this.statusBarItem.text = "$(loading~spin) Synthetic.new";
     this.statusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.prominentBackground");
     this.statusBarItem.tooltip = "Loading Synthetic.new usage...";
+    
+    // Clear cache to force update
+    this.clearCache();
   }
 
   setError(message: string): void {
@@ -156,6 +172,9 @@ Click to view details
     this.statusBarItem.text = "$(error) Synthetic.new";
     this.statusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.errorBackground");
     this.statusBarItem.tooltip = `Error: ${message}`;
+    
+    // Clear cache to force update
+    this.clearCache();
   }
 
   setIdle(): void {
@@ -163,6 +182,9 @@ Click to view details
     this.statusBarItem.text = "$(database) Synthetic.new";
     this.statusBarItem.backgroundColor = undefined;
     this.statusBarItem.tooltip = "Configure your Synthetic.new API key to track usage";
+    
+    // Clear cache to force update
+    this.clearCache();
   }
 
   startAutoRefresh(intervalSeconds: number, refreshCallback: () => void): void {
