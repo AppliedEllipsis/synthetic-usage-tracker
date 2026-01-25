@@ -2,7 +2,7 @@
   "name": "synthetic-usage-tracker",
   "displayName": "Synthetic.new Usage Tracker",
   "description": "Monitor your Synthetic.new API usage and quotas directly from VSCode status bar",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "publisher": "synthetic-usage-tracker",
   "license": "MIT",
   "type": "commonjs",
@@ -60,7 +60,10 @@
         },
         "syntheticUsageTracker.statusBarPosition": {
           "type": "string",
-          "enum": ["left", "right"],
+          "enum": [
+            "left",
+            "right"
+          ],
           "default": "right",
           "description": "Position of the usage indicator in the status bar",
           "order": 4
@@ -179,7 +182,9 @@
     "typescript-eslint": "^8.19.1"
   },
   "release": {
-    "branches": ["main"],
+    "branches": [
+      "main"
+    ],
     "plugins": [
       "@semantic-release/commit-analyzer",
       "@semantic-release/release-notes-generator",
