@@ -1,6 +1,6 @@
 # Synthetic.new Usage Tracker
 
-![Extension Icon](icon.png)
+![Extension Icon](image/icon/icon_128.png)
 
 A VSCode extension that monitors your Synthetic.new API usage and quotas directly from the status bar.
 

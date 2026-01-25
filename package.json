@@ -7,7 +7,7 @@
   "license": "MIT",
   "type": "commonjs",
   "main": "./out/extension.js",
-  "icon": "icon.png",
+  "icon": "image/icon/icon.png",
   "engines": {
     "vscode": "^1.96.0"
   },
