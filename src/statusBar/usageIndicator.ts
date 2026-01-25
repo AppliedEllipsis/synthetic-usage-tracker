@@ -21,7 +21,6 @@ export class UsageIndicator {
   private displayState: DisplayState = DisplayState.Idle;
   private currentUsage: UsageInfo | null = null;
   private autoRefreshTimer: NodeJS.Timeout | null = null;
-  private countdownTimer: NodeJS.Timeout | null = null;
   private isAutoRefreshEnabled: boolean = true;
 
   constructor(context: vscode.ExtensionContext) {
@@ -99,9 +98,6 @@ export class UsageIndicator {
 
     // Set command
     this.statusBarItem.command = "syntheticUsageTracker.showUsage";
-
-    // Start countdown timer for real-time updates
-    this.startCountdownTimer(usage, config);
   }
 
   /**
@@ -146,102 +142,20 @@ Click to view details
   }
 
   /**
-   * Check if usage exceeds thresholds and show notifications
-   */
-  private checkThresholds(usage: UsageInfo, config: {
-    warningThreshold: number;
-    criticalThreshold: number;
-  }): void {
-    if (usage.percentageUsed >= config.criticalThreshold) {
-      vscode.window.showWarningMessage(
-        `Synthetic.ai quota critical: ${usage.percentageUsed.toFixed(0)}% used (${usage.requests}/${usage.limit} requests)`,
-      );
-    } else if (usage.percentageUsed >= config.warningThreshold) {
-      vscode.window.showInformationMessage(
-        `Synthetic.ai quota warning: ${usage.percentageUsed.toFixed(0)}% used (${usage.requests}/${usage.limit} requests)`,
-      );
-    }
-  }
-
-  /**
-   * Calculate time remaining until reset in hh/mm/ss format
+   * Calculate time remaining until reset in hours and minutes format (e.g., "3h 2m")
    */
   private calculateTimeRemaining(renewsAt: Date): string {
     const now = new Date();
     const diff = renewsAt.getTime() - now.getTime();
     
     if (diff <= 0) {
-      return "00:00:00";
+      return "0h 0m";
     }
     
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
     
-    return `${this.padZero(hours)}:${this.padZero(minutes)}:${this.padZero(seconds)}`;
-  }
-
-  /**
-   * Format time for display (hh:mm AM/PM)
-   */
-  private formatTime(date: Date): string {
-    return date.toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: true 
-    });
-  }
-
-  /**
-   * Pad a number with leading zero if needed
-   */
-  private padZero(num: number): string {
-    return num.toString().padStart(2, '0');
-  }
-
-  /**
-   * Start countdown timer for real-time updates
-   */
-  private startCountdownTimer(_usage: UsageInfo, config: {
-    showPercentage: boolean;
-    showRawNumbers: boolean;
-  }): void {
-    // Stop existing timer
-    this.stopCountdownTimer();
-    
-    // Start new timer that updates every second
-    this.countdownTimer = setInterval(() => {
-      if (this.currentUsage) {
-        const timeRemaining = this.calculateTimeRemaining(this.currentUsage.renewsAt);
-        
-        let text = "$(database) Synthetic.new";
-        
-        if (config.showPercentage) {
-          const percentage = this.currentUsage.percentageUsed.toFixed(0);
-          text += ` ${percentage}%`;
-        }
-        
-        if (config.showRawNumbers) {
-          text += ` (${this.currentUsage.requests}/${this.currentUsage.limit})`;
-        }
-
-        // Set text (resets details are in tooltip and popup only)
-        this.statusBarItem.text = text;
-        
-        // Update tooltip with new time remaining
-        this.statusBarItem.tooltip = this.buildTooltip(this.currentUsage, timeRemaining);
-      }
-    }, 1000);
-  }
-
-  /**
-   * Stop countdown timer
-   */
-  private stopCountdownTimer(): void {
-    if (this.countdownTimer) {
-      clearInterval(this.countdownTimer);
-      this.countdownTimer = null;
-    }
+    return `${hours}h ${minutes}m`;
   }
 
   /**
@@ -347,7 +261,6 @@ Click to view details
    */
   dispose(): void {
     this.stopAutoRefresh();
-    this.stopCountdownTimer();
     this.statusBarItem.dispose();
   }
 }

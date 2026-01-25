@@ -137,8 +137,9 @@ export class SyntheticUsageTrackerExtension {
       // Get configuration
       const config = this.configManager.getConfig();
 
-      // Fetch quota for the API key
-      const usage = await SyntheticService.fetchQuota(apiKey, config.apiEndpoint);
+      // Fetch quota for the API key using instance method
+      const service = new SyntheticService(apiKey, config.apiEndpoint);
+      const usage = await service.fetchQuota();
 
       // Update indicator with usage data
       this.usageIndicator.updateUsage(usage, {
@@ -248,6 +249,16 @@ export class SyntheticUsageTrackerExtension {
     const percentageUsed = usage.percentageUsed.toFixed(1);
     const percentageRemaining = ((1 - usage.percentageUsed / 100) * 100).toFixed(1);
 
+    // Calculate time remaining in hours and minutes
+    const now = new Date();
+    const diff = usage.renewsAt.getTime() - now.getTime();
+    let timeRemaining = "0h 0m";
+    if (diff > 0) {
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      timeRemaining = `${hours}h ${minutes}m`;
+    }
+
     const message = `
 Synthetic.ai Usage Details
 ━━━━━━━━━━━━━━━━━━━━━
@@ -259,6 +270,7 @@ Percentage Used: ${percentageUsed}%
 Percentage Remaining: ${percentageRemaining}%
 
 Renews At: ${usage.renewsAtString}
+Time Remaining: ${timeRemaining}
 `.trim();
 
     const result = await vscode.window.showInformationMessage(
