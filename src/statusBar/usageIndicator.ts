@@ -158,10 +158,7 @@ export class UsageIndicator {
       text += ` (${usage.requests}/${usage.limit})`;
     }
 
-    // Add reset time only (not countdown)
-    text += ` | Resets: ${this.formatTime(usage.renewsAt)}`;
-
-    // Set text
+    // Set text (resets details are in tooltip and popup only)
     this.statusBarItem.text = text;
 
     // Set color based on state
@@ -205,7 +202,7 @@ export class UsageIndicator {
   }): void {
     // Get the earliest renewal time from valid keys
     const validKeys = aggregatedUsage.keys.filter(k => !k.error && k.usage.renewsAt);
-    const earliestRenewal = validKeys.length > 0 
+    const earliestRenewal = validKeys.length > 0
       ? validKeys.reduce((earliest, k) => k.usage.renewsAt < earliest ? k.usage.renewsAt : earliest, validKeys[0]!.usage.renewsAt)
       : new Date();
     
@@ -227,10 +224,7 @@ export class UsageIndicator {
       text += ` (${aggregatedUsage.totalRequests.toLocaleString()}/${aggregatedUsage.totalLimit.toLocaleString()})`;
     }
 
-    // Add reset time only (not countdown)
-    text += ` | Resets: ${this.formatTime(earliestRenewal)}`;
-
-    // Set text
+    // Set text (resets details are in tooltip and popup only)
     this.statusBarItem.text = text;
 
     // Set color based on state
