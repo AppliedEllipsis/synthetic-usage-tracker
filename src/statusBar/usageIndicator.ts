@@ -158,8 +158,8 @@ export class UsageIndicator {
       text += ` (${usage.requests}/${usage.limit})`;
     }
 
-    // Add time remaining and reset time
-    text += ` | Resets: ${this.formatTime(usage.renewsAt)} | ${timeRemaining}`;
+    // Add reset time only (not countdown)
+    text += ` | Resets: ${this.formatTime(usage.renewsAt)}`;
 
     // Set text
     this.statusBarItem.text = text;
@@ -227,8 +227,8 @@ export class UsageIndicator {
       text += ` (${aggregatedUsage.totalRequests.toLocaleString()}/${aggregatedUsage.totalLimit.toLocaleString()})`;
     }
 
-    // Add time remaining and reset time
-    text += ` | Resets: ${this.formatTime(earliestRenewal)} | ${timeRemaining}`;
+    // Add reset time only (not countdown)
+    text += ` | Resets: ${this.formatTime(earliestRenewal)}`;
 
     // Set text
     this.statusBarItem.text = text;
@@ -456,9 +456,9 @@ Time Remaining: ${timeRemaining}
           text += ` (${this.currentUsage.requests}/${this.currentUsage.limit})`;
         }
         
-        // Add time remaining and reset time
-        text += ` | Resets: ${this.formatTime(this.currentUsage.renewsAt)} | ${timeRemaining}`;
-        
+        // Add reset time only (not countdown)
+        text += ` | Resets: ${this.formatTime(this.currentUsage.renewsAt)}`;
+
         this.statusBarItem.text = text;
         
         // Update tooltip with new time remaining
@@ -531,9 +531,9 @@ Time Remaining: ${timeRemaining}
           text += ` (${this.currentAggregatedUsage.totalRequests.toLocaleString()}/${this.currentAggregatedUsage.totalLimit.toLocaleString()})`;
         }
         
-        // Add time remaining and reset time
-        text += ` | Resets: ${this.formatTime(earliestRenewal)} | ${timeRemaining}`;
-        
+        // Add reset time only (not countdown)
+        text += ` | Resets: ${this.formatTime(earliestRenewal)}`;
+
         this.statusBarItem.text = text;
         
         // Update tooltip with new time remaining
