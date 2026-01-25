@@ -57,7 +57,6 @@ export class ConfigurationManager {
 
   /**
    * Get the API key from VSCode SecretStorage
-   * For backward compatibility, if multiple keys were stored, returns the first one
    */
   async getApiKey(): Promise<string | undefined> {
     // Check for multi-key format (new format)
@@ -211,8 +210,3 @@ export class ConfigurationManager {
     this.configChangeDisposable.dispose();
   }
 }
-
-/**
- * Configuration section name
- */
-export const CONFIG_SECTION = "syntheticUsageTracker";

@@ -128,6 +128,33 @@ MIT License - see [LICENSE](LICENSE) for details.
 - Documentation: [Full Documentation](docs/README.md)
 - API Docs: [Synthetic.ai API Documentation](https://dev.synthetic.new/docs/synthetic/quotas)
 
+## Support This Project
+
+If you find this extension useful and would like to support its continued development, there are a couple of ways you can help:
+
+### Join with a Referral
+
+When you subscribe to Synthetic.ai through our referral link, you'll receive bonus credits as a welcome bonus:
+
+- **$10.00** in subscription credit for standard signups
+- **$20.00** in subscription credit for pro signups
+
+Use the following link to sign up and support this project:
+
+[https://synthetic.new/?referral=4JZcLOKgRmZ4o6k](https://synthetic.new/?referral=4JZcLOKgRmZ4o6k)
+
+This helps support the ongoing development and maintenance of this extension at no extra cost to you!
+
+### Crypto Donation
+
+If you'd prefer to donate directly via cryptocurrency, you can send Bitcoin to:
+
+```
+bc1q8nrdytlvms0a0zurp04xwfppflcxwgpyrzw5hn
+```
+
+Thank you for your support! ❤️
+
 ## Acknowledgments
 
 - Based on the [zai-usage-tracker](https://github.com/melon-hub/zai-usage-tracker) extension

@@ -87,7 +87,6 @@ export class UsageIndicator {
       text += ` (${usage.requests}/${usage.limit})`;
     }
 
-    // Set text (resets details are in tooltip and popup only)
     this.statusBarItem.text = text;
 
     // Set color based on state
@@ -240,20 +239,6 @@ Click to view details
    */
   getCurrentUsage(): UsageInfo | null {
     return this.currentUsage;
-  }
-
-  /**
-   * Show the status bar item
-   */
-  show(): void {
-    this.statusBarItem.show();
-  }
-
-  /**
-   * Hide the status bar item
-   */
-  hide(): void {
-    this.statusBarItem.hide();
   }
 
   /**

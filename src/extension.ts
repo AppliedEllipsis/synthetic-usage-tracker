@@ -113,6 +113,13 @@ export class SyntheticUsageTrackerExtension {
       () => this.openDashboard(),
     );
     this.context.subscriptions.push(openDashboardCommand);
+
+    // Subscribe with discount command
+    const subscribeWithDiscountCommand = vscode.commands.registerCommand(
+      "syntheticUsageTracker.subscribeWithDiscount",
+      () => this.subscribeWithDiscount(),
+    );
+    this.context.subscriptions.push(subscribeWithDiscountCommand);
   }
 
   /**
@@ -137,7 +144,6 @@ export class SyntheticUsageTrackerExtension {
       // Get configuration
       const config = this.configManager.getConfig();
 
-      // Fetch quota for the API key using instance method
       const service = new SyntheticService(apiKey, config.apiEndpoint);
       const usage = await service.fetchQuota();
 
@@ -280,12 +286,15 @@ Renews At: ${usage.renewsAtString}
       { modal: true },
       "Refresh",
       "Open Dashboard",
+      "Subscribe with Discount",
     );
 
     if (result === "Refresh") {
       await this.refreshUsage();
     } else if (result === "Open Dashboard") {
       this.openDashboard();
+    } else if (result === "Subscribe with Discount") {
+      this.subscribeWithDiscount();
     }
   }
 
@@ -305,6 +314,13 @@ Renews At: ${usage.renewsAtString}
    */
   private openDashboard(): void {
     vscode.env.openExternal(vscode.Uri.parse("https://synthetic.new/billing"));
+  }
+
+  /**
+   * Subscribe with discount - opens the referral link
+   */
+  private subscribeWithDiscount(): void {
+    vscode.env.openExternal(vscode.Uri.parse("https://synthetic.new/?referral=4JZcLOKgRmZ4o6k"));
   }
 
   /**
@@ -342,7 +358,6 @@ Renews At: ${usage.renewsAtString}
       // Refresh usage data with the updated key
       await this.refreshUsage();
 
-      // Show notification that key was auto-refreshed from another window
       const config = this.configManager.getConfig();
       if (config.enableNotifications) {
         vscode.window.showInformationMessage("API key updated in another window. Usage data refreshed.");
@@ -373,7 +388,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
 /**
  * Extension deactivation function
+ * Cleanup is handled by the extension instance's deactivate method
  */
 export function deactivate(): void {
-  // Cleanup is handled by the extension's dispose method
 }

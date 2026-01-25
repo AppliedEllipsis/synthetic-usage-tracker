@@ -57,6 +57,7 @@ temp/
 # Release files
 *.tgz
 *.tar.gz
+release/
 
 # Memory bank (already exists outside)
 # memory-bank/

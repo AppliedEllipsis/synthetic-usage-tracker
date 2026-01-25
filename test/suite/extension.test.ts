@@ -1,11 +1,10 @@
 import * as vscode from "vscode";
 import * as assert from "assert";
 import { ConfigurationManager } from "../../src/config/configuration";
-import { SyntheticService, ApiError, ApiErrorType } from "../../src/api/syntheticService";
+import { SyntheticService, ApiErrorType } from "../../src/api/syntheticService";
 import { UsageIndicator } from "../../src/statusBar/usageIndicator";
 
 suite("Synthetic Usage Tracker Extension Test Suite", () => {
-  vscode.window.showInformationMessage("Start all tests.");
 
   test("ConfigurationManager should be created", () => {
     const context = {

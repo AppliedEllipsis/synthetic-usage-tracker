@@ -225,20 +225,6 @@ export class SyntheticService {
   }
 
   /**
-   * Update the API key
-   */
-  updateApiKey(apiKey: string): void {
-    this.apiKey = apiKey;
-  }
-
-  /**
-   * Update the API endpoint
-   */
-  updateApiEndpoint(apiEndpoint: string): void {
-    this.apiEndpoint = apiEndpoint;
-  }
-
-  /**
    * Validate API key format
    * Synthetic.ai API keys typically start with "syn_"
    */
