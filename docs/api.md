@@ -83,10 +83,8 @@ Main configuration interface:
 
 ```typescript
 interface Configuration {
-  apiKey: string;              // API key (stored in SecretStorage)
   apiEndpoint: string;         // API endpoint URL
   refreshInterval: number;     // Auto-refresh interval in seconds
-  statusBarPosition: "left" | "right";
   showPercentage: boolean;
   showRawNumbers: boolean;
   enableNotifications: boolean;
@@ -257,11 +255,6 @@ The extension contributes the following configuration properties:
 
 ```json
 {
-  "syntheticUsageTracker.apiKey": {
-    "type": "string",
-    "default": "",
-    "description": "Your Synthetic.new API key"
-  },
   "syntheticUsageTracker.apiEndpoint": {
     "type": "string",
     "default": "https://api.synthetic.new/v2",
@@ -273,12 +266,6 @@ The extension contributes the following configuration properties:
     "minimum": 10,
     "maximum": 3600,
     "description": "Auto-refresh interval in seconds"
-  },
-  "syntheticUsageTracker.statusBarPosition": {
-    "type": "string",
-    "enum": ["left", "right"],
-    "default": "right",
-    "description": "Position of the usage indicator"
   },
   "syntheticUsageTracker.showPercentage": {
     "type": "boolean",

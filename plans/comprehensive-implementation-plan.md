@@ -40,15 +40,15 @@ synthetic-usage-tracker/
 │   └── .gitkeep                      # Ensure directory is tracked
 ├── memory-bank/                      # Tracked memory entries (git)
 │   ├── entries/                      # Individual memory entries (JSON)
-│   │   ├── 2025-01-25-feature-auto-refresh.json
-│   │   ├── 2025-01-26-fix-api-error.json
+│   │   ├── 2025-01-25-feature-auto-refresh (JSON file in memory-bank/entries/)
+│   │   ├── 2025-01-26-fix-api-error (JSON file in memory-bank/entries/)
 │   │   └── ...
 │   ├── indices/                      # Index files for fast lookup
 │   │   ├── by-type.json
 │   │   ├── by-component.json
 │   │   └── by-version.json
-│   ├── MEMORY.md                     # Human-readable memory log
-│   └── VERSION_HISTORY.md            # Version change log
+│   ├── MEMORY.md                     # Human-readable memory log (documented in [`agents.md`](agents.md))
+│   └── VERSION_HISTORY.md            # Version change log (documented in [`agents.md`](agents.md))
 ├── release/                          # Release artifacts
 │   └── .gitkeep                      # Ensure directory is tracked
 ├── scripts/

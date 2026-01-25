@@ -212,7 +212,7 @@ type UpdateType = 'none' | 'minor' | 'major' | 'new-section' | 'full-rewrite';
 
 ## MEMORY.md Format
 
-The [`MEMORY.md`](MEMORY.md) file provides a human-readable, chronological log of all memory entries:
+The MEMORY.md file (documented in [`agents.md`](agents.md)) provides a human-readable, chronological log of all memory entries:
 
 ```markdown
 # Project Memory
@@ -272,7 +272,7 @@ Fixed exponential backoff retry logic to properly handle rate limit errors.
 
 ## VERSION_HISTORY.md Format
 
-The [`VERSION_HISTORY.md`](VERSION_HISTORY.md) tracks all version changes with detailed context:
+The VERSION_HISTORY.md file (documented in [`agents.md`](agents.md)) tracks all version changes with detailed context:
 
 ```markdown
 # Version History
@@ -291,7 +291,7 @@ Complete history of version changes with context and rationale.
 
 **Breaking Changes**: None
 
-**Memory Entry**: [20250125-143052-abc123](.memory/entries/20250125-143052-abc123.json)
+**Memory Entry**: 20250125-143052-abc123 (JSON file in .memory/entries/)
 
 ---
 
@@ -310,7 +310,7 @@ Complete history of version changes with context and rationale.
 
 **Breaking Changes**: None
 
-**Memory Entry**: [20250120-100000-initial-release](.memory/entries/20250120-100000-initial-release.json)
+**Memory Entry**: 20250120-100000-initial-release (JSON file in .memory/entries/)
 ```
 
 ## Integration with Build Process

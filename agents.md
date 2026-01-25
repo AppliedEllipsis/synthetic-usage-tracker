@@ -436,7 +436,23 @@ Update [`CHANGELOG.md`](CHANGELOG.md) for:
 - **Version bumps**: Update version number following semantic versioning
 - **Date entries**: Include date for each version
 
-**Format**:
+**Important**: Use the "Unreleased" section for pending changes. Only create version headers after running `npm run buildrelease`.
+
+**Format for Unreleased section**:
+```markdown
+## Unreleased
+
+### Added
+- New configuration option for custom thresholds
+
+### Changed
+- Improved error handling for API failures
+
+### Fixed
+- Fixed status bar not updating after configuration change
+```
+
+**Format for Released versions** (after `npm run buildrelease`):
 ```markdown
 ## [1.0.3] - 2026-01-25
 
@@ -449,6 +465,20 @@ Update [`CHANGELOG.md`](CHANGELOG.md) for:
 ### Fixed
 - Fixed status bar not updating after configuration change
 ```
+
+**CHANGELOG Workflow**:
+
+1. **During development**: Add all new changes to the "Unreleased" section at the top of CHANGELOG.md
+2. **Before release**: Ensure the "Unreleased" section is complete and accurate
+3. **Run release**: Execute `npm run buildrelease` which:
+   - Increments the version in package.json
+   - Creates a git commit with the version bump
+   - Creates a git tag (e.g., v1.0.3)
+   - Compiles and packages the extension
+4. **Update CHANGELOG**: After the release, move the "Unreleased" section to a new version header with the format `## [X.Y.Z] - YYYY-MM-DD`
+5. **Verify**: Ensure the version header matches the git tag created during the release
+
+**Design decision: Using an "Unreleased" section helps distinguish between changes that have been formally released (with git tags) and changes that are still in development. This prevents confusion about which features are currently available in published versions.**
 
 ### Documentation Standards
 
@@ -781,10 +811,13 @@ export class SyntheticUsageTrackerExtension {
 **Use interfaces for contracts**:
 ```typescript
 export interface Configuration {
-  apiKey: string;
   apiEndpoint: string;
   refreshInterval: number;
-  // ...
+  showPercentage: boolean;
+  showRawNumbers: boolean;
+  enableNotifications: boolean;
+  warningThreshold: number;
+  criticalThreshold: number;
 }
 ```
 
@@ -1618,10 +1651,8 @@ private async retryFetch<T>(fetchFn: () => Promise<T>): Promise<T> {
 **Define clear configuration schema**:
 ```typescript
 export interface Configuration {
-  apiKey: string;
   apiEndpoint: string;
   refreshInterval: number;
-  statusBarPosition: "left" | "right";
   showPercentage: boolean;
   showRawNumbers: boolean;
   enableNotifications: boolean;
@@ -1635,10 +1666,8 @@ export interface Configuration {
 getConfig(): Configuration {
   const config = vscode.workspace.getConfiguration("syntheticUsageTracker");
   return {
-    apiKey: config.get<string>("apiKey", ""),
     apiEndpoint: config.get<string>("apiEndpoint", "https://api.synthetic.new/v2"),
     refreshInterval: config.get<number>("refreshInterval", 60),
-    statusBarPosition: config.get<"left" | "right">("statusBarPosition", "right"),
     showPercentage: config.get<boolean>("showPercentage", true),
     showRawNumbers: config.get<boolean>("showRawNumbers", false),
     enableNotifications: config.get<boolean>("enableNotifications", true),

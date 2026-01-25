@@ -4,13 +4,13 @@
 
 A VSCode extension that monitors your Synthetic.new API usage and quotas directly from the status bar.
 
-![Version](https://img.shields.io/visual-studio-marketplace/v/Ellipsis.synthetic-usage-tracker?cacheSeconds=3600)
-![Downloads](https://img.shields.io/visual-studio-marketplace/d/Ellipsis.synthetic-usage-tracker?cacheSeconds=3600)
-![Rating](https://img.shields.io/visual-studio-marketplace/r/Ellipsis.synthetic-usage-tracker?cacheSeconds=3600)
+[![VSCode Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/zai-org.synthetic-usage-tracker?logo=visual-studio-code&label=VSCode%20Marketplace&cacheSeconds=3600)](https://marketplace.visualstudio.com/items?itemName=zai-org.synthetic-usage-tracker)
+[![VSCode Marketplace Installs](https://img.shields.io/visual-studio-marketplace/i/zai-org.synthetic-usage-tracker?logo=visual-studio-code&color=007acc&cacheSeconds=3600)](https://marketplace.visualstudio.com/items?itemName=zai-org.synthetic-usage-tracker)
+[![VSCode Marketplace Rating](https://img.shields.io/visual-studio-marketplace/stars/zai-org.synthetic-usage-tracker?logo=visual-studio-code&color=007acc&cacheSeconds=3600)](https://marketplace.visualstudio.com/items?itemName=zai-org.synthetic-usage-tracker)
 
-![Open VSX Version](https://img.shields.io/open-vsx/v/Ellipsis/synthetic-usage-tracker)
-![Open VSX Downloads](https://img.shields.io/open-vsx/dt/Ellipsis/synthetic-usage-tracker)
-![Open VSX Release Date](https://img.shields.io/open-vsx/release-date/Ellipsis/synthetic-usage-tracker)
+[![Open VSX Version](https://img.shields.io/open-vsx/v/zai-org/synthetic-usage-tracker?logo=open-vsx&label=Open%20VSX)](https://open-vsx.org/extension/zai-org/synthetic-usage-tracker)
+[![Open VSX Downloads](https://img.shields.io/open-vsx/dt/zai-org/synthetic-usage-tracker?logo=open-vsx&color=35b0ab)](https://open-vsx.org/extension/zai-org/synthetic-usage-tracker)
+[![Open VSX Rating](https://img.shields.io/open-vsx/rating/zai-org/synthetic-usage-tracker?logo=open-vsx&color=35b0ab)](https://open-vsx.org/extension/zai-org/synthetic-usage-tracker)
 
 ## Features
 
@@ -26,7 +26,7 @@ A VSCode extension that monitors your Synthetic.new API usage and quotas directl
 
 ### From VSCode Marketplace
 
-[![Install from VSCode Marketplace](https://img.shields.io/visual-studio-marketplace/v/Ellipsis.synthetic-usage-tracker?label=VSCode%20Marketplace&logo=visual-studio-code&logoColor=white&color=007acc)](https://marketplace.visualstudio.com/items?itemName=Ellipsis.synthetic-usage-tracker)
+[![Install from VSCode Marketplace](https://img.shields.io/visual-studio-marketplace/v/zai-org.synthetic-usage-tracker?label=VSCode%20Marketplace&logo=visual-studio-code&logoColor=white&color=007acc)](https://marketplace.visualstudio.com/items?itemName=zai-org.synthetic-usage-tracker)
 
 1. Open VSCode
 2. Go to Extensions (Ctrl+Shift+X)
@@ -35,14 +35,14 @@ A VSCode extension that monitors your Synthetic.new API usage and quotas directl
 
 ### From Open VSX Registry
 
-[![Install from Open VSX](https://img.shields.io/badge/Open%20VSX-Install-success?logo=open-vsx)](https://open-vsx.org/extension/Ellipsis/synthetic-usage-tracker)
+[![Install from Open VSX](https://img.shields.io/badge/Open%20VSX-Install-success?logo=open-vsx&color=35b0ab)](https://open-vsx.org/extension/zai-org/synthetic-usage-tracker)
 
 1. Open VSCode
 2. Go to Extensions (Ctrl+Shift+X)
 3. Click the "..." menu in the top right
 4. Select "Install from VSIX..."
-5. Download the extension from [Open VSX Registry](https://open-vsx.org/extension/Ellipsis/synthetic-usage-tracker)
-6. Or install using the command: `code --install-extension Ellipsis.synthetic-usage-tracker`
+5. Download the extension from [Open VSX Registry](https://open-vsx.org/extension/zai-org/synthetic-usage-tracker)
+6. Or install using the command: `code --install-extension zai-org.synthetic-usage-tracker`
 
 ### From .vsix File
 
@@ -96,11 +96,12 @@ Access all extension commands through the Command Palette (`Ctrl+Shift+P` or `Cm
 
 The extension can be configured through VSCode settings:
 
+> **Note**: Some configuration changes may not be reflected until the next refresh of usage data. You can manually refresh by clicking the status bar item or using the "Synthetic Usage Tracker: Refresh Usage" command.
+
 | Setting                                     | Type    | Default                        | Description                                           |
 | ------------------------------------------- | ------- | ------------------------------ | ----------------------------------------------------- |
 | `syntheticUsageTracker.apiEndpoint`         | string  | `https://api.synthetic.new/v2` | The Synthetic.new API endpoint                        |
 | `syntheticUsageTracker.refreshInterval`     | number  | `60`                           | Auto-refresh interval in seconds (min: 10)            |
-| `syntheticUsageTracker.statusBarPosition`   | string  | `right`                        | Position of the usage indicator in the status bar     |
 | `syntheticUsageTracker.showPercentage`      | boolean | `true`                         | Show usage as percentage in status bar                |
 | `syntheticUsageTracker.showRawNumbers`      | boolean | `false`                        | Show raw request numbers in status bar tooltip        |
 | `syntheticUsageTracker.enableNotifications` | boolean | `true`                         | Show notifications for API errors and quota warnings  |

@@ -4,10 +4,8 @@ import * as vscode from "vscode";
  * Configuration keys for the Synthetic Usage Tracker extension
  */
 export interface Configuration {
-  apiKey: string;
   apiEndpoint: string;
   refreshInterval: number;
-  statusBarPosition: "left" | "right";
   showPercentage: boolean;
   showRawNumbers: boolean;
   enableNotifications: boolean;
@@ -46,14 +44,10 @@ export class ConfigurationManager {
   getConfig(): Configuration {
     const config = vscode.workspace.getConfiguration("syntheticUsageTracker");
     return {
-      // Note: apiKey is retrieved from secrets, not configuration
-      // This field exists for type compatibility but is always empty here
-      apiKey: config.get<string>("apiKey", ""),
       // Default endpoint matches Synthetic.new production API
       apiEndpoint: config.get<string>("apiEndpoint", "https://api.synthetic.new/v2"),
       // Default 60s interval balances responsiveness with API rate limits
       refreshInterval: config.get<number>("refreshInterval", 60),
-      statusBarPosition: config.get<"left" | "right">("statusBarPosition", "right"),
       // Percentage shown by default as it's most immediately useful
       showPercentage: config.get<boolean>("showPercentage", true),
       // Raw numbers optional to avoid cluttering the status bar

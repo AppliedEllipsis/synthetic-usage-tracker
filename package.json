@@ -38,12 +38,6 @@
     "configuration": {
       "title": "Synthetic.new Usage Tracker",
       "properties": {
-        "syntheticUsageTracker.apiKey": {
-          "type": "string",
-          "default": "",
-          "description": "Your Synthetic.new API key (stored securely using VSCode SecretStorage)",
-          "order": 1
-        },
         "syntheticUsageTracker.apiEndpoint": {
           "type": "string",
           "default": "https://api.synthetic.new/v2",
@@ -57,16 +51,6 @@
           "maximum": 3600,
           "description": "Auto-refresh interval in seconds (minimum 10)",
           "order": 3
-        },
-        "syntheticUsageTracker.statusBarPosition": {
-          "type": "string",
-          "enum": [
-            "left",
-            "right"
-          ],
-          "default": "right",
-          "description": "Position of the usage indicator in the status bar",
-          "order": 4
         },
         "syntheticUsageTracker.showPercentage": {
           "type": "boolean",
