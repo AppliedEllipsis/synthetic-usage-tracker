@@ -11,26 +11,6 @@ export class SyntheticUsageTrackerExtension {
   private usageIndicator: UsageIndicator;
   private isInitialized: boolean = false;
   private isFetching: boolean = false;
-  private currentAggregatedUsage: {
-    totalLimit: number;
-    totalRequests: number;
-    totalRemaining: number;
-    averagePercentageUsed: number;
-    keyCount: number;
-    keys: Array<{
-      key: string;
-      label?: string;
-      usage: {
-        limit: number;
-        requests: number;
-        remaining: number;
-        percentageUsed: number;
-        renewsAt: Date;
-        renewsAtString: string;
-      };
-      error?: string;
-    }>;
-  } | null = null;
   private sharedStateWatcherDisposable: vscode.Disposable | null = null;
 
   constructor(private context: vscode.ExtensionContext) {
@@ -40,7 +20,7 @@ export class SyntheticUsageTrackerExtension {
     // Watch for configuration changes
     this.configManager.onConfigChange(() => this.handleConfigChange());
 
-    // Watch for keys refreshed from other windows
+    // Watch for key refreshed from other windows
     this.configManager.onKeysRefreshed(() => this.handleKeysRefreshed());
   }
 
@@ -147,9 +127,9 @@ export class SyntheticUsageTrackerExtension {
     this.usageIndicator.setLoading();
 
     try {
-      // Get API keys
-      const apiKeys = await this.configManager.getApiKeys();
-      if (apiKeys.length === 0) {
+      // Get API key
+      const apiKey = await this.configManager.getApiKey();
+      if (!apiKey) {
         this.usageIndicator.setIdle();
         return;
       }
@@ -157,35 +137,17 @@ export class SyntheticUsageTrackerExtension {
       // Get configuration
       const config = this.configManager.getConfig();
 
-      // Fetch quota for all keys using the static method
-      const aggregatedUsage = await SyntheticService.fetchQuotaForMultipleKeys(
-        apiKeys,
-        config.apiEndpoint
-      );
+      // Fetch quota for the API key
+      const usage = await SyntheticService.fetchQuota(apiKey, config.apiEndpoint);
 
-      // Store aggregated usage
-      this.currentAggregatedUsage = aggregatedUsage;
-
-      // Update indicator with aggregated data
-      this.usageIndicator.updateAggregatedUsage(aggregatedUsage, {
+      // Update indicator with usage data
+      this.usageIndicator.updateUsage(usage, {
         showPercentage: config.showPercentage,
         showRawNumbers: config.showRawNumbers,
         warningThreshold: config.warningThreshold,
         criticalThreshold: config.criticalThreshold,
         enableNotifications: config.enableNotifications,
       });
-
-      // Show error notification if any keys failed
-      const failedKeys = aggregatedUsage.keys.filter(k => k.error);
-      if (failedKeys.length > 0 && config.enableNotifications) {
-        const errorMessages = failedKeys.map(k => {
-          const label = k.label ? `${k.label} (${k.key.substring(0, 8)}...)` : k.key.substring(0, 8) + '...';
-          return `${label}: ${k.error}`;
-        }).join('\n');
-        vscode.window.showWarningMessage(
-          `Some API keys failed to fetch usage:\n${errorMessages}`
-        );
-      }
     } catch (error) {
       console.error("Failed to fetch usage:", error);
       const message = error instanceof Error ? error.message : "Unknown error";
@@ -202,31 +164,28 @@ export class SyntheticUsageTrackerExtension {
   }
 
   /**
-   * Refresh API keys from shared store
-   * This allows the extension to detect keys added/updated in other VS Code windows
+   * Refresh API key from shared store
+   * This allows the extension to detect the key updated in other VS Code windows
    */
   private async refreshKeys(): Promise<void> {
     try {
-      // Refresh keys from shared store
+      // Refresh key from shared store
       const result = await this.configManager.refreshKeys();
 
-      if (result.keyCount === 0) {
-        vscode.window.showInformationMessage("No API keys configured.");
+      if (!result.hasKey) {
+        vscode.window.showInformationMessage("No API key configured.");
         return;
       }
 
       // Show success message
-      const message = result.keyCount === 1
-        ? "API key refreshed successfully."
-        : `${result.keyCount} API keys refreshed successfully.`;
-      vscode.window.showInformationMessage(message);
+      vscode.window.showInformationMessage("API key refreshed successfully.");
 
-      // Refresh usage data with the updated keys
+      // Refresh usage data with the updated key
       await this.refreshUsage();
     } catch (error) {
-      console.error("Failed to refresh keys:", error);
+      console.error("Failed to refresh key:", error);
       const message = error instanceof Error ? error.message : "Unknown error";
-      vscode.window.showErrorMessage(`Failed to refresh API keys: ${message}`);
+      vscode.window.showErrorMessage(`Failed to refresh API key: ${message}`);
     }
   }
 
@@ -259,15 +218,11 @@ export class SyntheticUsageTrackerExtension {
 
     const apiKey = input.trim();
 
-    // Store the API key (adds to existing keys)
+    // Store the API key
     await this.configManager.setApiKey(apiKey);
 
     // Show success message
-    const keyCount = await this.configManager.getApiKeyCount();
-    const message = keyCount > 1 
-      ? `API key added successfully (${keyCount} keys configured)`
-      : "API key saved successfully";
-    vscode.window.showInformationMessage(message);
+    vscode.window.showInformationMessage("API key saved successfully");
 
     // Refresh usage
     await this.refreshUsage();
@@ -281,17 +236,9 @@ export class SyntheticUsageTrackerExtension {
   }
 
   /**
-   * Show usage details in a message box or webview
+   * Show usage details in a message box
    */
   private async showUsageDetails(): Promise<void> {
-    // Check if we have aggregated usage data
-    const aggregatedUsage = this.usageIndicator.getCurrentAggregatedUsage();
-    if (aggregatedUsage && aggregatedUsage.keyCount > 0) {
-      await this.showAggregatedUsageDetails();
-      return;
-    }
-
-    // Fallback to single key display
     const usage = this.usageIndicator.getCurrentUsage();
     if (!usage) {
       vscode.window.showInformationMessage("No usage data available. Try refreshing.");
@@ -313,66 +260,6 @@ Percentage Remaining: ${percentageRemaining}%
 
 Renews At: ${usage.renewsAtString}
 `.trim();
-
-    const result = await vscode.window.showInformationMessage(
-      message,
-      { modal: true },
-      "Refresh",
-      "Open Dashboard",
-    );
-
-    if (result === "Refresh") {
-      await this.refreshUsage();
-    } else if (result === "Open Dashboard") {
-      this.openDashboard();
-    }
-  }
-
-  /**
-   * Show aggregated usage details for multiple API keys
-   */
-  private async showAggregatedUsageDetails(): Promise<void> {
-    if (!this.currentAggregatedUsage) {
-      return;
-    }
-
-    const { totalLimit, totalRequests, totalRemaining, averagePercentageUsed, keyCount, keys } = this.currentAggregatedUsage;
-    const percentageRemaining = ((1 - averagePercentageUsed / 100) * 100).toFixed(1);
-
-    let message = `
-Synthetic.ai Usage Details (${keyCount} key${keyCount > 1 ? 's' : ''})
-━━━━━━━━━━━━━━━━━━━━━
-Total Requests Used: ${totalRequests.toLocaleString()}
-Total Requests Limit: ${totalLimit.toLocaleString()}
-Total Requests Remaining: ${totalRemaining.toLocaleString()}
-
-Average Percentage Used: ${averagePercentageUsed.toFixed(1)}%
-Average Percentage Remaining: ${percentageRemaining}%
-`.trim();
-
-    // Add individual key details
-    if (keys.length > 1) {
-      message += '\n\nIndividual Keys:\n';
-      keys.forEach((keyData, index) => {
-        const label = keyData.label || `Key ${index + 1}`;
-        const keyPreview = keyData.key.substring(0, 8) + '...';
-        if (keyData.error) {
-          message += `\n${label} (${keyPreview}): Error - ${keyData.error}`;
-        } else {
-          message += `\n${label} (${keyPreview}): ${keyData.usage.requests.toLocaleString()}/${keyData.usage.limit.toLocaleString()} (${keyData.usage.percentageUsed.toFixed(1)}%)`;
-        }
-      });
-    }
-
-    // Add renewal info (use the earliest renewal time)
-    const validKeys = keys.filter(k => !k.error && k.usage.renewsAt);
-    if (validKeys.length > 0) {
-      const earliestRenewal = validKeys.reduce((earliest, k) => 
-        k.usage.renewsAt < earliest ? k.usage.renewsAt : earliest, 
-        validKeys[0]!.usage.renewsAt
-      );
-      message += `\n\nNext Renewal: ${earliestRenewal.toLocaleString()}`;
-    }
 
     const result = await vscode.window.showInformationMessage(
       message,
@@ -421,8 +308,8 @@ Average Percentage Remaining: ${percentageRemaining}%
   }
 
   /**
-   * Handle keys refreshed from another window
-   * Automatically refreshes usage data when keys are updated in another VS Code window
+   * Handle key refreshed from another window
+   * Automatically refreshes usage data when the key is updated in another VS Code window
    */
   private async handleKeysRefreshed(): Promise<void> {
     if (!this.isInitialized) {
@@ -430,28 +317,24 @@ Average Percentage Remaining: ${percentageRemaining}%
     }
 
     try {
-      // Get current key count
-      const keyCount = await this.configManager.getApiKeyCount();
+      const hasKey = await this.configManager.hasApiKey();
       
-      if (keyCount === 0) {
-        // No keys configured, set idle state
+      if (!hasKey) {
+        // No key configured, set idle state
         this.usageIndicator.setIdle();
         return;
       }
 
-      // Refresh usage data with the updated keys
+      // Refresh usage data with the updated key
       await this.refreshUsage();
 
-      // Show notification that keys were auto-refreshed from another window
+      // Show notification that key was auto-refreshed from another window
       const config = this.configManager.getConfig();
       if (config.enableNotifications) {
-        const message = keyCount === 1
-          ? "API keys updated in another window. Usage data refreshed."
-          : `${keyCount} API keys updated in another window. Usage data refreshed.`;
-        vscode.window.showInformationMessage(message);
+        vscode.window.showInformationMessage("API key updated in another window. Usage data refreshed.");
       }
     } catch (error) {
-      console.error("Failed to handle keys refreshed:", error);
+      console.error("Failed to handle key refreshed:", error);
       // Don't show error on auto-refresh to avoid spamming the user
     }
   }
