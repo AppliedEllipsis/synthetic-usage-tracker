@@ -53,6 +53,28 @@ A VSCode extension that monitors your Synthetic.new API usage and quotas directl
    - Search for "Synthetic Usage Tracker"
    - Adjust settings to your preference
 
+## Screenshots
+
+### Status Bar & Tooltip
+The status bar displays your current usage, and hovering over it shows detailed information including quota limits and renewal dates.
+
+![Status Bar with Tooltip](image/screens/statusbar-tooltip.jpg)
+
+### Warning State
+When your usage approaches the warning threshold (default: 80%), the status bar changes color to alert you.
+
+![Warning State](image/screens/warning.jpg)
+
+### Usage Details
+Click on the status bar item to view a detailed breakdown of your API usage, including raw numbers and quota information.
+
+![Usage Details](image/screens/details.jpg)
+
+### Commands
+Access all extension commands through the Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P`):
+
+![Commands](image/screens/commands.jpg)
+
 ## Configuration
 
 The extension can be configured through VSCode settings:
@@ -163,6 +185,18 @@ In subscription credit when they subscribe!
 - Report issues: [GitHub Issues](https://github.com/AppliedEllipsis/synthetic-usage-tracker/issues)
 - Documentation: [Full Documentation](docs/README.md)
 - API Docs: [Synthetic.new API Documentation](https://dev.synthetic.new/docs/synthetic/quotas)
+
+## Documentation
+
+For detailed technical documentation, see the following resources:
+
+- **[Documentation Index](docs/README.md)** - Complete documentation overview
+- **[Architecture](docs/architecture.md)** - System architecture and design decisions
+- **[API Reference](docs/api.md)** - API integration details and service documentation
+- **[Development Guide](docs/development.md)** - Development workflow and coding practices
+- **[Installation Guide](docs/installation.md)** - Detailed installation instructions
+- **[Troubleshooting](docs/troubleshooting.md)** - Common issues and solutions
+- **[CHANGELOG](CHANGELOG.md)** - Version history and release notes
 
 ## Support This Project
 

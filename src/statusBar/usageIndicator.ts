@@ -30,7 +30,7 @@ export class UsageIndicator {
   private currentUsage: UsageInfo | null = null;
   private autoRefreshTimer: NodeJS.Timeout | null = null;
   private isAutoRefreshEnabled: boolean = true;
-  
+
   // Cache to prevent unnecessary redraws
   // Design rationale: VS Code status bar updates can cause visual flickering
   // if done too frequently. Caching the last rendered values allows us to skip
@@ -65,13 +65,16 @@ export class UsageIndicator {
    * is always displayed, which is appropriate for quota tracking where users need
    * immediate visibility of approaching limits.
    */
-  updateUsage(usage: UsageInfo, config: {
-    showPercentage: boolean;
-    showRawNumbers: boolean;
-    warningThreshold: number;
-    criticalThreshold: number;
-    enableNotifications: boolean;
-  }): void {
+  updateUsage(
+    usage: UsageInfo,
+    config: {
+      showPercentage: boolean;
+      showRawNumbers: boolean;
+      warningThreshold: number;
+      criticalThreshold: number;
+      enableNotifications: boolean;
+    },
+  ): void {
     this.currentUsage = usage;
 
     // Use cascading if-else to ensure only one state is selected
@@ -99,10 +102,13 @@ export class UsageIndicator {
   /**
    * Update the status bar item with usage information
    */
-  private updateStatusBarItem(usage: UsageInfo, config: {
-    showPercentage: boolean;
-    showRawNumbers: boolean;
-  }): void {
+  private updateStatusBarItem(
+    usage: UsageInfo,
+    config: {
+      showPercentage: boolean;
+      showRawNumbers: boolean;
+    },
+  ): void {
     const timeRemaining = this.calculateTimeRemaining(usage.renewsAt);
 
     // Using custom icon defined in package.json contributes.icons section
@@ -121,7 +127,7 @@ export class UsageIndicator {
     const tooltip = this.buildTooltip(usage, timeRemaining);
 
     // Only update if values have actually changed to prevent blinking/redraw
-    const needsUpdate = 
+    const needsUpdate =
       this.lastText !== text ||
       this.lastTooltip !== tooltip ||
       this.lastDisplayState !== this.displayState;
@@ -146,16 +152,22 @@ export class UsageIndicator {
     switch (this.displayState) {
       case DisplayState.Critical:
       case DisplayState.Error:
-        this.statusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.errorBackground");
+        this.statusBarItem.backgroundColor = new vscode.ThemeColor(
+          "statusBarItem.errorBackground",
+        );
         break;
       case DisplayState.Warning:
-        this.statusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.warningBackground");
+        this.statusBarItem.backgroundColor = new vscode.ThemeColor(
+          "statusBarItem.warningBackground",
+        );
         break;
       case DisplayState.Success:
         this.statusBarItem.backgroundColor = undefined;
         break;
       case DisplayState.Loading:
-        this.statusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.prominentBackground");
+        this.statusBarItem.backgroundColor = new vscode.ThemeColor(
+          "statusBarItem.prominentBackground",
+        );
         break;
       default:
         this.statusBarItem.backgroundColor = undefined;
@@ -165,30 +177,33 @@ export class UsageIndicator {
   private buildTooltip(usage: UsageInfo, timeRemaining: string): string {
     // Design decision: Show comprehensive usage information in tooltip to match message box content.
     // This provides users with full visibility into their API quota without requiring a click.
-    // Using plain text with separator for cleaner display without markdown formatting.
+    // Using plain text with Unicode separator for better visual appearance.
+    // Adding extra line breaks to match popup dialog spacing.
     const percentageUsed = usage.percentageUsed.toFixed(1);
     const percentageRemaining = (100 - usage.percentageUsed).toFixed(1);
 
-    return `Synthetic.new Usage
----
-Limit: ${usage.limit.toLocaleString()}
+    return `Synthetic.new Usage (${percentageUsed}%)
+───────────────────
+Time Remaining: ${timeRemaining}
+Renews: ${usage.renewsAtString}
+
 Used: ${usage.requests.toLocaleString()} (${percentageUsed}%)
 Remaining: ${usage.remaining.toLocaleString()} (${percentageRemaining}%)
-Time Remaining: ${timeRemaining}
-Renews: ${usage.renewsAtString}`;
+Limit: ${usage.limit.toLocaleString()}
+`;
   }
 
   private calculateTimeRemaining(renewsAt: Date): string {
     const now = new Date();
     const diff = renewsAt.getTime() - now.getTime();
-    
+
     if (diff <= 0) {
       return "0h 0m";
     }
-    
+
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    
+
     return `${hours}h ${minutes}m`;
   }
 
@@ -196,7 +211,9 @@ Renews: ${usage.renewsAtString}`;
     this.displayState = DisplayState.Loading;
     // Using custom loading icon for visual feedback during data fetch
     this.statusBarItem.text = "$(synthetic-status-loading)";
-    this.statusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.prominentBackground");
+    this.statusBarItem.backgroundColor = new vscode.ThemeColor(
+      "statusBarItem.prominentBackground",
+    );
     this.statusBarItem.tooltip = "Loading Synthetic.new usage...";
 
     // Clear cache to force update
@@ -207,7 +224,9 @@ Renews: ${usage.renewsAtString}`;
     this.displayState = DisplayState.Error;
     // Using custom icon defined in package.json contributes.icons section
     this.statusBarItem.text = "$(synthetic-status-icon)";
-    this.statusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.errorBackground");
+    this.statusBarItem.backgroundColor = new vscode.ThemeColor(
+      "statusBarItem.errorBackground",
+    );
     this.statusBarItem.tooltip = `Error: ${message}`;
 
     // Clear cache to force update
@@ -219,7 +238,24 @@ Renews: ${usage.renewsAtString}`;
     // Using custom icon defined in package.json contributes.icons section
     this.statusBarItem.text = "$(synthetic-status-icon)";
     this.statusBarItem.backgroundColor = undefined;
-    this.statusBarItem.tooltip = "Configure your Synthetic.new API key to track usage";
+    this.statusBarItem.tooltip =
+      "Configure your Synthetic.new API key to track usage";
+
+    // Clear cache to force update
+    this.clearCache();
+  }
+
+  /**
+   * Set status bar to show "Please Set Key" message
+   * Used when API key is explicitly set to "none" or after key is erased
+   */
+  setPleaseSetKey(): void {
+    this.displayState = DisplayState.Idle;
+    this.statusBarItem.text = "$(synthetic-status-icon) Please Set Key";
+    this.statusBarItem.backgroundColor = undefined;
+    this.statusBarItem.tooltip =
+      "Click to configure your Synthetic.new API key";
+    this.statusBarItem.command = "syntheticUsageTracker.configure";
 
     // Clear cache to force update
     this.clearCache();
@@ -251,7 +287,10 @@ Renews: ${usage.renewsAtString}`;
     return this.isAutoRefreshEnabled;
   }
 
-  updateAutoRefreshInterval(intervalSeconds: number, refreshCallback: () => void): void {
+  updateAutoRefreshInterval(
+    intervalSeconds: number,
+    refreshCallback: () => void,
+  ): void {
     if (this.isAutoRefreshEnabled) {
       this.startAutoRefresh(intervalSeconds, refreshCallback);
     }

@@ -56,11 +56,23 @@ export class SyntheticUsageTrackerExtension {
    * and error notifications. Users expect the extension to be silent until configured.
    */
   private async initialize(): Promise<void> {
-    const hasApiKey = await this.configManager.hasApiKey();
+    const apiKey = await this.configManager.getApiKey();
 
-    if (!hasApiKey) {
-      // Set idle state instead of error - missing key is expected during initial setup
-      this.usageIndicator.setIdle();
+    // Design decision: Prompt for API key on first launch if missing or empty
+    // If the key is explicitly set to "none", don't prompt and show "Please Set Key" status
+    if (!apiKey || apiKey.trim().length === 0) {
+      // Prompt user to set API key
+      await this.configureApiKey();
+    } else if (apiKey === "none") {
+      // User explicitly set key to "none", show prompt status without asking
+      this.usageIndicator.setPleaseSetKey();
+      return;
+    }
+
+    // Re-check key configuration after prompt attempt
+    const finalApiKey = await this.configManager.getApiKey();
+    if (!finalApiKey || finalApiKey.trim().length === 0 || finalApiKey === "none") {
+      this.usageIndicator.setPleaseSetKey();
       return;
     }
 
@@ -85,12 +97,6 @@ export class SyntheticUsageTrackerExtension {
     );
     this.context.subscriptions.push(refreshCommand);
 
-    const refreshKeysCommand = vscode.commands.registerCommand(
-      "syntheticUsageTracker.refreshKeys",
-      () => this.refreshKeys(),
-    );
-    this.context.subscriptions.push(refreshKeysCommand);
-
     const configureCommand = vscode.commands.registerCommand(
       "syntheticUsageTracker.configure",
       () => this.configureApiKey(),
@@ -108,6 +114,12 @@ export class SyntheticUsageTrackerExtension {
       () => this.toggleAutoRefresh(),
     );
     this.context.subscriptions.push(toggleAutoRefreshCommand);
+
+    const eraseKeyCommand = vscode.commands.registerCommand(
+      "syntheticUsageTracker.eraseKey",
+      () => this.eraseKey(),
+    );
+    this.context.subscriptions.push(eraseKeyCommand);
 
     const openDashboardCommand = vscode.commands.registerCommand(
       "syntheticUsageTracker.openDashboard",
@@ -169,29 +181,6 @@ export class SyntheticUsageTrackerExtension {
   }
 
   /**
-   * Refresh API key from shared store
-   * This allows the extension to detect the key updated in other VS Code windows
-   */
-  private async refreshKeys(): Promise<void> {
-    try {
-      const result = await this.configManager.refreshKeys();
-
-      if (!result.hasKey) {
-        vscode.window.showInformationMessage("No API key configured.");
-        return;
-      }
-
-      vscode.window.showInformationMessage("API key refreshed successfully.");
-
-      await this.refreshUsage();
-    } catch (error) {
-      console.error("Failed to refresh key:", error);
-      const message = error instanceof Error ? error.message : "Unknown error";
-      vscode.window.showErrorMessage(`Failed to refresh API key: ${message}`);
-    }
-  }
-
-  /**
    * Configure the API key
    */
   private async configureApiKey(): Promise<void> {
@@ -230,6 +219,26 @@ export class SyntheticUsageTrackerExtension {
       config.refreshInterval,
       () => this.refreshUsage(),
     );
+  }
+
+  /**
+   * Erase the stored API key
+   */
+  private async eraseKey(): Promise<void> {
+    // Design decision: Don't explicitly add "Cancel" button - VSCode provides it automatically
+    // Adding it explicitly would create duplicate cancel buttons in the dialog
+    const result = await vscode.window.showWarningMessage(
+      "Are you sure you want to erase your API key? You will need to re-enter it to continue tracking usage.",
+      { modal: true },
+      "Erase Key",
+    );
+
+    if (result === "Erase Key") {
+      await this.configManager.deleteApiKey();
+      this.usageIndicator.setIdle();
+      this.usageIndicator.stopAutoRefresh();
+      vscode.window.showInformationMessage("API key erased successfully");
+    }
   }
 
   /**
@@ -306,7 +315,7 @@ Renews At: ${usage.renewsAtString}
   }
 
   /**
-   * Subscribe with discount - opens the referral link
+   * Subscribe with Discount - opens the referral link
    */
   private subscribeWithDiscount(): void {
     vscode.env.openExternal(vscode.Uri.parse("https://synthetic.new/?referral=4JZcLOKgRmZ4o6k"));

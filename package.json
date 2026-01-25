@@ -111,11 +111,6 @@
         "category": "Synthetic Usage Tracker"
       },
       {
-        "command": "syntheticUsageTracker.refreshKeys",
-        "title": "Refresh API Keys",
-        "category": "Synthetic Usage Tracker"
-      },
-      {
         "command": "syntheticUsageTracker.configure",
         "title": "Configure API Key",
         "category": "Synthetic Usage Tracker"
@@ -127,7 +122,11 @@
       },
       {
         "command": "syntheticUsageTracker.toggleAutoRefresh",
-        "title": "Toggle Auto-Refresh",
+        "title": "Toggle Auto-Refresh"
+      },
+      {
+        "command": "syntheticUsageTracker.eraseKey",
+        "title": "Erase API Key",
         "category": "Synthetic Usage Tracker"
       },
       {
@@ -137,20 +136,24 @@
       },
       {
         "command": "syntheticUsageTracker.subscribeWithDiscount",
-        "title": "Subscribe with discount",
+        "title": "Subscribe with Discount",
         "category": "Synthetic Usage Tracker"
       }
     ],
     "icons": {
       "synthetic-status-icon": {
         "description": "Synthetic.new status bar icon - normal state",
-        "fontPath": "image/icon/fonts/synthetic-usage-tracker.woff",
-        "fontCharacter": "\\u0031"
+        "default": {
+          "fontPath": "./image/icon/fonts/synthetic-usage-tracker.woff",
+          "fontCharacter": "1"
+        }
       },
       "synthetic-status-loading": {
         "description": "Synthetic.new status bar icon - loading state",
-        "fontPath": "image/icon/fonts/synthetic-usage-tracker.woff",
-        "fontCharacter": "\\u0032"
+        "default": {
+          "fontPath": "./image/icon/fonts/synthetic-usage-tracker.woff",
+          "fontCharacter": "2"
+        }
       }
     }
   },
