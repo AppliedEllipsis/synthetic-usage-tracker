@@ -252,11 +252,13 @@ export class SyntheticUsageTrackerExtension {
     // Calculate time remaining in hours and minutes
     const now = new Date();
     const diff = usage.renewsAt.getTime() - now.getTime();
-    let timeRemaining = "0h 0m";
+    let timeRemaining = "0 hours and 0 minutes";
     if (diff > 0) {
       const hours = Math.floor(diff / (1000 * 60 * 60));
       const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-      timeRemaining = `${hours}h ${minutes}m`;
+      const hourText = hours === 1 ? "hour" : "hours";
+      const minuteText = minutes === 1 ? "minute" : "minutes";
+      timeRemaining = `${hours} ${hourText} and ${minutes} ${minuteText}`;
     }
 
     const message = `
@@ -269,8 +271,8 @@ Requests Remaining: ${usage.remaining.toLocaleString()}
 Percentage Used: ${percentageUsed}%
 Percentage Remaining: ${percentageRemaining}%
 
-Renews At: ${usage.renewsAtString}
 Time Remaining: ${timeRemaining}
+Renews At: ${usage.renewsAtString}
 `.trim();
 
     const result = await vscode.window.showInformationMessage(
@@ -302,7 +304,7 @@ Time Remaining: ${timeRemaining}
    * Open the Synthetic.ai dashboard
    */
   private openDashboard(): void {
-    vscode.env.openExternal(vscode.Uri.parse("https://dev.synthetic.new/dashboard"));
+    vscode.env.openExternal(vscode.Uri.parse("https://synthetic.new/billing"));
   }
 
   /**
