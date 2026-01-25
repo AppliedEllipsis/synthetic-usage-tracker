@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2025-01-25
+
+### Changed
+- Format time remaining display as "3h 2m" (hours and minutes only, no seconds)
+- Remove auto-refresh from tooltip and popup displays
+
+### Added
+- Time remaining information to popup display
+
+## [Unreleased]
+
 ### Added
 - Initial release of Synthetic.ai Usage Tracker extension
 - Real-time API usage monitoring in VSCode status bar
