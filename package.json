@@ -1,0 +1,174 @@
+{
+  "name": "synthetic-usage-tracker",
+  "displayName": "Synthetic.ai Usage Tracker",
+  "description": "Monitor your Synthetic.ai API usage and quotas directly from VSCode status bar",
+  "version": "0.0.0",
+  "publisher": "synthetic-usage-tracker",
+  "license": "MIT",
+  "type": "commonjs",
+  "main": "./out/extension.js",
+  "icon": "icon.png",
+  "engines": {
+    "vscode": "^1.96.0"
+  },
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "synthetic.ai",
+    "api",
+    "usage",
+    "quota",
+    "monitor",
+    "tracker",
+    "status bar"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/synthetic-usage-tracker"
+  },
+  "bugs": {
+    "url": "https://github.com/your-username/synthetic-usage-tracker/issues"
+  },
+  "homepage": "https://github.com/your-username/synthetic-usage-tracker#readme",
+  "contributes": {
+    "configuration": {
+      "title": "Synthetic.ai Usage Tracker",
+      "properties": {
+        "syntheticUsageTracker.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Your Synthetic.ai API key (stored securely using VSCode SecretStorage)",
+          "order": 1
+        },
+        "syntheticUsageTracker.apiEndpoint": {
+          "type": "string",
+          "default": "https://api.synthetic.new/v2",
+          "description": "The Synthetic.ai API endpoint",
+          "order": 2
+        },
+        "syntheticUsageTracker.refreshInterval": {
+          "type": "number",
+          "default": 60,
+          "minimum": 10,
+          "maximum": 3600,
+          "description": "Auto-refresh interval in seconds (minimum 10)",
+          "order": 3
+        },
+        "syntheticUsageTracker.statusBarPosition": {
+          "type": "string",
+          "enum": ["left", "right"],
+          "default": "right",
+          "description": "Position of the usage indicator in the status bar",
+          "order": 4
+        },
+        "syntheticUsageTracker.showPercentage": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show usage as percentage in status bar",
+          "order": 5
+        },
+        "syntheticUsageTracker.showRawNumbers": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show raw request numbers in status bar tooltip",
+          "order": 6
+        },
+        "syntheticUsageTracker.enableNotifications": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show notifications for API errors and quota warnings",
+          "order": 7
+        },
+        "syntheticUsageTracker.warningThreshold": {
+          "type": "number",
+          "default": 80,
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Usage percentage threshold for showing warning notifications",
+          "order": 8
+        },
+        "syntheticUsageTracker.criticalThreshold": {
+          "type": "number",
+          "default": 90,
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Usage percentage threshold for showing critical notifications",
+          "order": 9
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "syntheticUsageTracker.refresh",
+        "title": "Refresh Usage",
+        "category": "Synthetic Usage Tracker"
+      },
+      {
+        "command": "syntheticUsageTracker.configure",
+        "title": "Configure API Key",
+        "category": "Synthetic Usage Tracker"
+      },
+      {
+        "command": "syntheticUsageTracker.showUsage",
+        "title": "Show Usage Details",
+        "category": "Synthetic Usage Tracker"
+      },
+      {
+        "command": "syntheticUsageTracker.toggleAutoRefresh",
+        "title": "Toggle Auto-Refresh",
+        "category": "Synthetic Usage Tracker"
+      },
+      {
+        "command": "syntheticUsageTracker.openDashboard",
+        "title": "Open Synthetic Dashboard",
+        "category": "Synthetic Usage Tracker"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "lint:fix": "eslint src --ext ts --fix",
+    "test": "vscode-test",
+    "package": "vsce package",
+    "prepare": "husky install"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/vscode": "^1.96.0",
+    "@typescript-eslint/eslint-plugin": "^8.19.1",
+    "@typescript-eslint/parser": "^8.19.1",
+    "@vscode/test-cli": "^0.0.10",
+    "@vscode/test-electron": "^2.4.1",
+    "@vscode/vsce": "^3.2.1",
+    "commitlint": "^19.6.1",
+    "eslint": "^9.17.0",
+    "husky": "^9.1.7",
+    "semantic-release": "^24.2.1",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.19.1"
+  },
+  "release": {
+    "branches": ["main"],
+    "plugins": [
+      "@semantic-release/commit-analyzer",
+      "@semantic-release/release-notes-generator",
+      "@semantic-release/changelog",
+      "@semantic-release/npm",
+      "@semantic-release/github",
+      "@semantic-release/git"
+    ]
+  },
+  "config": {
+    "commitizen": {
+      "path": "cz-conventional-changelog"
+    }
+  }
+}

@@ -1,0 +1,24 @@
+# VSCode extension ignore patterns
+.vscode/**
+.vscode-test/**
+src/**
+.gitignore
+.yarnrc
+vsc-extension-quickstart.md
+**/tsconfig.json
+**/.eslintrc.json
+**/*.map
+**/*.ts
+**/eslint.config.mjs
+.git/**
+.DS_Store
+*.tgz
+*.vsix
+**/node_modules/**
+memory-bank/**
+plans/**
+test/**
+.env
+.env.local
+.env.*.local
+*.log
