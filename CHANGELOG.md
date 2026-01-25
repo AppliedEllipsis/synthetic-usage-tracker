@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Initial release of Synthetic.ai Usage Tracker extension
+- Initial release of Synthetic.new Usage Tracker extension
 - Real-time API usage monitoring in VSCode status bar
 - Auto-refresh functionality with configurable intervals
 - Secure API key storage using VSCode SecretStorage

@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes the architecture and design of the Synthetic.ai Usage Tracker extension.
+This document describes the architecture and design of the Synthetic.new Usage Tracker extension.
 
 ## System Overview
 
@@ -25,7 +25,7 @@ graph TB
     end
 
     subgraph External API
-        I[Synthetic.ai API<br/>/v2/quotas]
+        I[Synthetic.new API<br/>/v2/quotas]
     end
 
     A --> B
@@ -72,7 +72,7 @@ Manages extension configuration and secure storage:
 
 ### 3. Synthetic Service (`api/syntheticService.ts`)
 
-Handles all communication with the Synthetic.ai API:
+Handles all communication with the Synthetic.new API:
 
 - Fetches quota information from the API
 - Implements retry logic with exponential backoff
@@ -127,7 +127,7 @@ sequenceDiagram
     participant Config as Config Manager
     participant Service as Synthetic Service
     participant Indicator as Usage Indicator
-    participant API as Synthetic.ai API
+    participant API as Synthetic.new API
 
     VSCode->>Extension: activate()
     Extension->>Config: Create instance
@@ -154,7 +154,7 @@ sequenceDiagram
     participant Extension as Extension
     participant Config as Config Manager
     participant Service as Synthetic Service
-    participant API as Synthetic.ai API
+    participant API as Synthetic.new API
     participant Indicator as Usage Indicator
 
     Timer->>Extension: Trigger refresh

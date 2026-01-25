@@ -22,6 +22,11 @@ export class UsageIndicator {
   private currentUsage: UsageInfo | null = null;
   private autoRefreshTimer: NodeJS.Timeout | null = null;
   private isAutoRefreshEnabled: boolean = true;
+  
+  // Cache to prevent unnecessary redraws
+  private lastText: string | null = null;
+  private lastTooltip: string | null = null;
+  private lastDisplayState: DisplayState | null = null;
 
   constructor(context: vscode.ExtensionContext) {
     this.statusBarItem = vscode.window.createStatusBarItem(

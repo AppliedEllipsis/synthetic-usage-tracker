@@ -1,6 +1,6 @@
 # Development Guide
 
-This guide covers setting up a development environment and contributing to the Synthetic.ai Usage Tracker extension.
+This guide covers setting up a development environment and contributing to the Synthetic.new Usage Tracker extension.
 
 ## Prerequisites
 

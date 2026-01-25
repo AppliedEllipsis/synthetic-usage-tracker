@@ -1,6 +1,6 @@
 # Troubleshooting Guide
 
-This guide covers common issues and their solutions for the Synthetic.ai Usage Tracker extension.
+This guide covers common issues and their solutions for the Synthetic.new Usage Tracker extension.
 
 ## Table of Contents
 
@@ -47,7 +47,7 @@ This guide covers common issues and their solutions for the Synthetic.ai Usage T
 
 **Solutions**:
 1. Open Extensions view (`Ctrl+Shift+X`)
-2. Find "Synthetic.ai Usage Tracker"
+2. Find "Synthetic.new Usage Tracker"
 3. Click "Enable"
 
 ## Configuration Issues

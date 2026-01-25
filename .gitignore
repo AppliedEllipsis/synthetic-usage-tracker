@@ -1,68 +1,155 @@
-# Compiled output
+# ==========================================
+# Compiled output and build artifacts
+# ==========================================
 out/
 dist/
 build/
 *.vsix
 
+# ==========================================
 # Dependencies
+# ==========================================
 node_modules/
+jspm_packages/
 
+# ==========================================
 # Logs
+# ==========================================
 logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
+pnpm-debug.log*
 
+# ==========================================
 # Editor directories and files
+# ==========================================
+# VSCode (keep essential config files)
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
 !.vscode/*.code-workspace
+
+# JetBrains IDEs
 .idea/
+*.iml
+*.iws
+*.ipr
+
+# Vim
 *.swp
 *.swo
 *~
+*.swn
 
+# Emacs
+*~
+\#*\#
+.\#*
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# ==========================================
 # OS files
+# ==========================================
+# macOS
 .DS_Store
 .DS_Store?
 ._*
 .Spotlight-V100
 .Trashes
-ehthumbs.db
-Thumbs.db
+.AppleDouble
+.LSOverride
 
-# Environment variables
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# Linux
+*~
+.nfs*
+
+# ==========================================
+# Environment variables and secrets
+# ==========================================
 .env
 .env.local
 .env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.pem
+*.key
+*.cert
+*.secret
 
-# Test coverage
+# ==========================================
+# Test coverage and testing
+# ==========================================
 coverage/
 .nyc_output/
+test-results/
+*.lcov
 
-# Temporary files
+# ==========================================
+# Temporary files and caches
+# ==========================================
 tmp/
 temp/
 *.tmp
+.cache/
+.parcel-cache/
+.vite/
+.eslintcache
 
-# Package manager lock files (keep package-lock.json)
+# ==========================================
+# Package manager lock files
+# ==========================================
+# Keep package-lock.json for this project
+# Uncomment if using other package managers:
 # yarn.lock
 # pnpm-lock.yaml
+# bun.lockb
 
+# ==========================================
 # Release files
+# ==========================================
 *.tgz
 *.tar.gz
 release/
+*.zip
 
-# Memory bank (already exists outside)
-# memory-bank/
+# ==========================================
+# TypeScript specific
+# ==========================================
+*.tsbuildinfo
 
-
+# ==========================================
+# VSCode Extension specific
+# ==========================================
+# Test directories
 .vscode-test
 /synthetic-usage-tracker/.vscode-test
 /synthetic-usage-tracker/.vscode-test/*.2
+
+# ==========================================
+# Memory bank (already exists outside)
+# ==========================================
+# memory-bank/
+
+# ==========================================
+# Misc
+# ==========================================
+.DS_Store
+*.pid
+*.seed
+*.pid.lock

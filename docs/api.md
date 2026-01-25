@@ -177,7 +177,7 @@ class ConfigurationManager {
 
 #### `SyntheticService`
 
-API client for Synthetic.ai:
+API client for Synthetic.new:
 
 ```typescript
 class SyntheticService {
@@ -247,7 +247,7 @@ The extension provides the following commands:
 | `syntheticUsageTracker.configure` | Configure API key |
 | `syntheticUsageTracker.showUsage` | Show detailed usage information |
 | `syntheticUsageTracker.toggleAutoRefresh` | Toggle auto-refresh on/off |
-| `syntheticUsageTracker.openDashboard` | Open Synthetic.ai dashboard |
+| `syntheticUsageTracker.openDashboard` | Open Synthetic.new dashboard |
 
 ### Configuration Schema
 
@@ -260,12 +260,12 @@ The extension contributes the following configuration properties:
   "syntheticUsageTracker.apiKey": {
     "type": "string",
     "default": "",
-    "description": "Your Synthetic.ai API key"
+    "description": "Your Synthetic.new API key"
   },
   "syntheticUsageTracker.apiEndpoint": {
     "type": "string",
     "default": "https://api.synthetic.new/v2",
-    "description": "The Synthetic.ai API endpoint"
+    "description": "The Synthetic.new API endpoint"
   },
   "syntheticUsageTracker.refreshInterval": {
     "type": "number",
@@ -425,6 +425,6 @@ suite("SyntheticService Tests", () => {
 
 ## See Also
 
-- [Synthetic.ai API Documentation](https://dev.synthetic.new/docs/synthetic/quotas)
+- [Synthetic.new API Documentation](https://dev.synthetic.new/docs/synthetic/quotas)
 - [Architecture Documentation](architecture.md)
 - [Development Guide](development.md)

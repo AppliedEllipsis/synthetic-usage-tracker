@@ -1,11 +1,11 @@
 # Installation Guide
 
-This guide covers installing the Synthetic.ai Usage Tracker extension in VSCode.
+This guide covers installing the Synthetic.new Usage Tracker extension in VSCode.
 
 ## Prerequisites
 
 - VSCode 1.96.0 or higher
-- A Synthetic.ai API key (get one from [https://dev.synthetic.new/](https://dev.synthetic.new/))
+- A Synthetic.new API key (get one from [https://dev.synthetic.new/](https://dev.synthetic.new/))
 
 ## Installation Methods
 
@@ -13,7 +13,7 @@ This guide covers installing the Synthetic.ai Usage Tracker extension in VSCode.
 
 1. Open VSCode
 2. Press `Ctrl+Shift+X` (or `Cmd+Shift+X` on macOS) to open the Extensions view
-3. Search for "Synthetic.ai Usage Tracker"
+3. Search for "Synthetic.new Usage Tracker"
 4. Click the **Install** button
 5. Wait for the installation to complete
 
@@ -44,11 +44,11 @@ code --install-extension synthetic-usage-tracker.synthetic-usage-tracker
 
 ### 1. Configure Your API Key
 
-After installation, you need to configure your Synthetic.ai API key:
+After installation, you need to configure your Synthetic.new API key:
 
 1. Press `Ctrl+Shift+P` (or `Cmd+Shift+P` on macOS) to open the Command Palette
 2. Type and select **Synthetic Usage Tracker: Configure API Key**
-3. Enter your Synthetic.ai API key (it should start with `syn_`)
+3. Enter your Synthetic.new API key (it should start with `syn_`)
 4. The extension will automatically fetch your usage data
 
 ### 2. Verify Installation
@@ -77,7 +77,7 @@ For most users, the default settings work well. However, you may want to adjust:
 
 ## Managing Multiple API Keys
 
-The extension supports managing multiple Synthetic.ai API keys, allowing you to track usage across different accounts or projects.
+The extension supports managing multiple Synthetic.new API keys, allowing you to track usage across different accounts or projects.
 
 ### Adding API Keys
 
@@ -85,7 +85,7 @@ To add a new API key to your configuration:
 
 1. Press `Ctrl+Shift+P` (or `Cmd+Shift+P` on macOS) to open the Command Palette
 2. Type and select **Synthetic Usage Tracker: Configure API Key**
-3. Enter your Synthetic.ai API key (it should start with `syn_`)
+3. Enter your Synthetic.new API key (it should start with `syn_`)
 4. The key will be added to your collection and the extension will automatically fetch usage data
 
 You can add multiple keys by running this command multiple times. Each key you add is stored securely in VSCode's SecretStorage.
@@ -135,7 +135,7 @@ Currently, the extension stores deletion functionality in the codebase but does 
 ### From VSCode
 
 1. Open the Extensions view (`Ctrl+Shift+X`)
-2. Search for "Synthetic.ai Usage Tracker"
+2. Search for "Synthetic.new Usage Tracker"
 3. Click the **gear** icon next to the extension
 4. Select **Uninstall**
 
