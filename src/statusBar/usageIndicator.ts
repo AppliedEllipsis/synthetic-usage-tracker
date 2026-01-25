@@ -20,26 +20,6 @@ export class UsageIndicator {
   private statusBarItem: vscode.StatusBarItem;
   private displayState: DisplayState = DisplayState.Idle;
   private currentUsage: UsageInfo | null = null;
-  private currentAggregatedUsage: {
-    totalLimit: number;
-    totalRequests: number;
-    totalRemaining: number;
-    averagePercentageUsed: number;
-    keyCount: number;
-    keys: Array<{
-      key: string;
-      label?: string;
-      usage: {
-        limit: number;
-        requests: number;
-        remaining: number;
-        percentageUsed: number;
-        renewsAt: Date;
-        renewsAtString: string;
-      };
-      error?: string;
-    }>;
-  } | null = null;
   private autoRefreshTimer: NodeJS.Timeout | null = null;
   private countdownTimer: NodeJS.Timeout | null = null;
   private isAutoRefreshEnabled: boolean = true;
@@ -83,59 +63,9 @@ export class UsageIndicator {
     // Update status bar text and color
     this.updateStatusBarItem(usage, config);
 
-    // Show notification if thresholds are exceeded
-    if (config.enableNotifications) {
-      this.checkThresholds(usage, config);
-    }
-  }
-
-  /**
-   * Update the usage indicator with aggregated data from multiple keys
-   */
-  updateAggregatedUsage(aggregatedUsage: {
-    totalLimit: number;
-    totalRequests: number;
-    totalRemaining: number;
-    averagePercentageUsed: number;
-    keyCount: number;
-    keys: Array<{
-      key: string;
-      label?: string;
-      usage: {
-        limit: number;
-        requests: number;
-        remaining: number;
-        percentageUsed: number;
-        renewsAt: Date;
-        renewsAtString: string;
-      };
-      error?: string;
-    }>;
-  }, config: {
-    showPercentage: boolean;
-    showRawNumbers: boolean;
-    warningThreshold: number;
-    criticalThreshold: number;
-    enableNotifications: boolean;
-  }): void {
-    this.currentAggregatedUsage = aggregatedUsage;
-
-    // Determine display state based on average usage percentage
-    if (aggregatedUsage.averagePercentageUsed >= config.criticalThreshold) {
-      this.displayState = DisplayState.Critical;
-    } else if (aggregatedUsage.averagePercentageUsed >= config.warningThreshold) {
-      this.displayState = DisplayState.Warning;
-    } else {
-      this.displayState = DisplayState.Success;
-    }
-
-    // Update status bar text and color with aggregated data
-    this.updateAggregatedStatusBarItem(aggregatedUsage, config);
-
-    // Show notification if thresholds are exceeded
-    if (config.enableNotifications) {
-      this.checkAggregatedThresholds(aggregatedUsage, config);
-    }
+    // Automatic threshold notifications are disabled
+    // Users can check the status bar for usage information
+    // If notifications are needed, they can be manually triggered via the showUsage command
   }
 
   /**
@@ -172,72 +102,6 @@ export class UsageIndicator {
 
     // Start countdown timer for real-time updates
     this.startCountdownTimer(usage, config);
-  }
-
-  /**
-   * Update the status bar item with aggregated usage information
-   */
-  private updateAggregatedStatusBarItem(aggregatedUsage: {
-    totalLimit: number;
-    totalRequests: number;
-    totalRemaining: number;
-    averagePercentageUsed: number;
-    keyCount: number;
-    keys: Array<{
-      key: string;
-      label?: string;
-      usage: {
-        limit: number;
-        requests: number;
-        remaining: number;
-        percentageUsed: number;
-        renewsAt: Date;
-        renewsAtString: string;
-      };
-      error?: string;
-    }>;
-  }, config: {
-    showPercentage: boolean;
-    showRawNumbers: boolean;
-  }): void {
-    // Get the earliest renewal time from valid keys
-    const validKeys = aggregatedUsage.keys.filter(k => !k.error && k.usage.renewsAt);
-    const earliestRenewal = validKeys.length > 0
-      ? validKeys.reduce((earliest, k) => k.usage.renewsAt < earliest ? k.usage.renewsAt : earliest, validKeys[0]!.usage.renewsAt)
-      : new Date();
-    
-    const timeRemaining = this.calculateTimeRemaining(earliestRenewal);
-    
-    let text = "$(database) Synthetic.new";
-
-    // Add key count indicator if multiple keys
-    if (aggregatedUsage.keyCount > 1) {
-      text += ` (${aggregatedUsage.keyCount} keys)`;
-    }
-
-    if (config.showPercentage) {
-      const percentage = aggregatedUsage.averagePercentageUsed.toFixed(0);
-      text += ` ${percentage}%`;
-    }
-
-    if (config.showRawNumbers) {
-      text += ` (${aggregatedUsage.totalRequests.toLocaleString()}/${aggregatedUsage.totalLimit.toLocaleString()})`;
-    }
-
-    // Set text (resets details are in tooltip and popup only)
-    this.statusBarItem.text = text;
-
-    // Set color based on state
-    this.updateStatusColor();
-
-    // Set tooltip with aggregated information
-    this.statusBarItem.tooltip = this.buildAggregatedTooltip(aggregatedUsage, earliestRenewal, timeRemaining);
-
-    // Set command
-    this.statusBarItem.command = "syntheticUsageTracker.showUsage";
-
-    // Start countdown timer for real-time updates
-    this.startAggregatedCountdownTimer(aggregatedUsage, config, earliestRenewal);
   }
 
   /**
@@ -282,58 +146,6 @@ Click to view details
   }
 
   /**
-   * Build tooltip string with aggregated usage information from multiple keys
-   */
-  private buildAggregatedTooltip(aggregatedUsage: {
-    totalLimit: number;
-    totalRequests: number;
-    totalRemaining: number;
-    averagePercentageUsed: number;
-    keyCount: number;
-    keys: Array<{
-      key: string;
-      label?: string;
-      usage: {
-        limit: number;
-        requests: number;
-        remaining: number;
-        percentageUsed: number;
-        renewsAt: Date;
-        renewsAtString: string;
-      };
-      error?: string;
-    }>;
-  }, earliestRenewal: Date, timeRemaining: string): string {
-    let tooltip = `
-Synthetic.new Usage Tracker (${aggregatedUsage.keyCount} key${aggregatedUsage.keyCount > 1 ? 's' : ''})
-
-Total Requests: ${aggregatedUsage.totalRequests.toLocaleString()}
-Total Limit: ${aggregatedUsage.totalLimit.toLocaleString()}
-Total Remaining: ${aggregatedUsage.totalRemaining.toLocaleString()}
-Average Percentage: ${aggregatedUsage.averagePercentageUsed.toFixed(1)}%
-Next Reset: ${earliestRenewal.toLocaleString()}
-Time Remaining: ${timeRemaining}
-`.trim();
-
-    // Add individual key details if multiple keys
-    if (aggregatedUsage.keys.length > 1) {
-      tooltip += '\n\nIndividual Keys:\n';
-      aggregatedUsage.keys.forEach((keyData, index) => {
-        const label = keyData.label || `Key ${index + 1}`;
-        const keyPreview = keyData.key.substring(0, 8) + '...';
-        if (keyData.error) {
-          tooltip += `\n${label} (${keyPreview}): Error - ${keyData.error}`;
-        } else {
-          tooltip += `\n${label} (${keyPreview}): ${keyData.usage.requests.toLocaleString()}/${keyData.usage.limit.toLocaleString()} (${keyData.usage.percentageUsed.toFixed(1)}%)`;
-        }
-      });
-    }
-
-    tooltip += '\n\nClick to view details';
-    return tooltip;
-  }
-
-  /**
    * Check if usage exceeds thresholds and show notifications
    */
   private checkThresholds(usage: UsageInfo, config: {
@@ -347,43 +159,6 @@ Time Remaining: ${timeRemaining}
     } else if (usage.percentageUsed >= config.warningThreshold) {
       vscode.window.showInformationMessage(
         `Synthetic.ai quota warning: ${usage.percentageUsed.toFixed(0)}% used (${usage.requests}/${usage.limit} requests)`,
-      );
-    }
-  }
-
-  /**
-   * Check if aggregated usage exceeds thresholds and show notifications
-   */
-  private checkAggregatedThresholds(aggregatedUsage: {
-    totalLimit: number;
-    totalRequests: number;
-    totalRemaining: number;
-    averagePercentageUsed: number;
-    keyCount: number;
-    keys: Array<{
-      key: string;
-      label?: string;
-      usage: {
-        limit: number;
-        requests: number;
-        remaining: number;
-        percentageUsed: number;
-        renewsAt: Date;
-        renewsAtString: string;
-      };
-      error?: string;
-    }>;
-  }, config: {
-    warningThreshold: number;
-    criticalThreshold: number;
-  }): void {
-    if (aggregatedUsage.averagePercentageUsed >= config.criticalThreshold) {
-      vscode.window.showWarningMessage(
-        `Synthetic.ai quota critical: ${aggregatedUsage.averagePercentageUsed.toFixed(0)}% used (${aggregatedUsage.totalRequests.toLocaleString()}/${aggregatedUsage.totalLimit.toLocaleString()} requests across ${aggregatedUsage.keyCount} keys)`,
-      );
-    } else if (aggregatedUsage.averagePercentageUsed >= config.warningThreshold) {
-      vscode.window.showInformationMessage(
-        `Synthetic.ai quota warning: ${aggregatedUsage.averagePercentageUsed.toFixed(0)}% used (${aggregatedUsage.totalRequests.toLocaleString()}/${aggregatedUsage.totalLimit.toLocaleString()} requests across ${aggregatedUsage.keyCount} keys)`,
       );
     }
   }
@@ -470,69 +245,6 @@ Time Remaining: ${timeRemaining}
   }
 
   /**
-   * Start countdown timer for aggregated usage with real-time updates
-   */
-  private startAggregatedCountdownTimer(
-    _aggregatedUsage: {
-      totalLimit: number;
-      totalRequests: number;
-      totalRemaining: number;
-      averagePercentageUsed: number;
-      keyCount: number;
-      keys: Array<{
-        key: string;
-        label?: string;
-        usage: {
-          limit: number;
-          requests: number;
-          remaining: number;
-          percentageUsed: number;
-          renewsAt: Date;
-          renewsAtString: string;
-        };
-        error?: string;
-      }>;
-    },
-    config: {
-      showPercentage: boolean;
-      showRawNumbers: boolean;
-    },
-    earliestRenewal: Date
-  ): void {
-    // Stop existing timer
-    this.stopCountdownTimer();
-    
-    // Start new timer that updates every second
-    this.countdownTimer = setInterval(() => {
-      if (this.currentAggregatedUsage) {
-        const timeRemaining = this.calculateTimeRemaining(earliestRenewal);
-        
-        let text = "$(database) Synthetic.new";
-        
-        // Add key count indicator if multiple keys
-        if (this.currentAggregatedUsage.keyCount > 1) {
-          text += ` (${this.currentAggregatedUsage.keyCount} keys)`;
-        }
-        
-        if (config.showPercentage) {
-          const percentage = this.currentAggregatedUsage.averagePercentageUsed.toFixed(0);
-          text += ` ${percentage}%`;
-        }
-        
-        if (config.showRawNumbers) {
-          text += ` (${this.currentAggregatedUsage.totalRequests.toLocaleString()}/${this.currentAggregatedUsage.totalLimit.toLocaleString()})`;
-        }
-
-        // Set text (resets details are in tooltip and popup only)
-        this.statusBarItem.text = text;
-        
-        // Update tooltip with new time remaining
-        this.statusBarItem.tooltip = this.buildAggregatedTooltip(this.currentAggregatedUsage, earliestRenewal, timeRemaining);
-      }
-    }, 1000);
-  }
-
-  /**
    * Set loading state
    */
   setLoading(): void {
@@ -614,32 +326,6 @@ Time Remaining: ${timeRemaining}
    */
   getCurrentUsage(): UsageInfo | null {
     return this.currentUsage;
-  }
-
-  /**
-   * Get current aggregated usage information
-   */
-  getCurrentAggregatedUsage(): {
-    totalLimit: number;
-    totalRequests: number;
-    totalRemaining: number;
-    averagePercentageUsed: number;
-    keyCount: number;
-    keys: Array<{
-      key: string;
-      label?: string;
-      usage: {
-        limit: number;
-        requests: number;
-        remaining: number;
-        percentageUsed: number;
-        renewsAt: Date;
-        renewsAtString: string;
-      };
-      error?: string;
-    }>;
-  } | null {
-    return this.currentAggregatedUsage;
   }
 
   /**

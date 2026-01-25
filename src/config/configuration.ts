@@ -16,42 +16,10 @@ export interface Configuration {
 }
 
 /**
- * Individual API key information
- */
-export interface ApiKeyInfo {
-  key: string;
-  label?: string;
-}
-
-/**
- * Aggregated usage information from multiple API keys
- */
-export interface AggregatedUsageInfo {
-  totalLimit: number;
-  totalRequests: number;
-  totalRemaining: number;
-  averagePercentageUsed: number;
-  keyCount: number;
-  keys: Array<{
-    key: string;
-    label?: string;
-    usage: {
-      limit: number;
-      requests: number;
-      remaining: number;
-      percentageUsed: number;
-      renewsAt: Date;
-      renewsAtString: string;
-    };
-    error?: string;
-  }>;
-}
-
-/**
  * Shared state keys for cross-window communication
  */
 const SHARED_STATE_KEYS = {
-  KEY_UPDATE_TIMESTAMP: 'syntheticApiKeysUpdateTimestamp',
+  KEY_UPDATE_TIMESTAMP: 'syntheticApiKeyUpdateTimestamp',
 } as const;
 
 /**
@@ -88,92 +56,60 @@ export class ConfigurationManager {
   }
 
   /**
-   * Get the API key from VSCode SecretStorage (backward compatibility)
-   * Returns the first key if multiple keys are stored
+   * Get the API key from VSCode SecretStorage
+   * For backward compatibility, if multiple keys were stored, returns the first one
    */
   async getApiKey(): Promise<string | undefined> {
-    const keys = await this.getApiKeys();
-    return keys.length > 0 ? keys[0]!.key : undefined;
-  }
-
-  /**
-   * Get all API keys from VSCode SecretStorage
-   * Returns an array of ApiKeyInfo objects
-   */
-  async getApiKeys(): Promise<ApiKeyInfo[]> {
+    // Check for multi-key format (new format)
     const keysJson = await this.context.secrets.get("syntheticApiKeys");
-    if (!keysJson) {
-      // Try to get legacy single key for backward compatibility
-      const legacyKey = await this.context.secrets.get("syntheticApiKey");
-      if (legacyKey) {
-        return [{ key: legacyKey }];
+    if (keysJson) {
+      try {
+        const keys = JSON.parse(keysJson) as Array<{ key: string; label?: string }>;
+        if (Array.isArray(keys) && keys.length > 0) {
+          return keys[0]!.key;
+        }
+      } catch {
+        // Fall through to legacy format
       }
-      return [];
     }
-    try {
-      const keys = JSON.parse(keysJson) as ApiKeyInfo[];
-      return Array.isArray(keys) ? keys : [];
-    } catch {
-      return [];
+    
+    // Check for legacy single key format
+    const legacyKey = await this.context.secrets.get("syntheticApiKey");
+    if (legacyKey) {
+      return legacyKey;
     }
+    
+    return undefined;
   }
 
   /**
-   * Store the API key in VSCode SecretStorage (backward compatibility)
-   * Adds the key to the list of keys
+   * Store the API key in VSCode SecretStorage
+   * Overwrites any existing key (single key mode)
    */
   async setApiKey(apiKey: string): Promise<void> {
-    const keys = await this.getApiKeys();
-    // Check if key already exists
-    const existingIndex = keys.findIndex(k => k.key === apiKey);
-    if (existingIndex === -1) {
-      keys.push({ key: apiKey });
-    }
-    await this.setApiKeys(keys);
-  }
-
-  /**
-   * Store multiple API keys in VSCode SecretStorage
-   */
-  async setApiKeys(keys: ApiKeyInfo[]): Promise<void> {
-    const keysJson = JSON.stringify(keys);
-    await this.context.secrets.store("syntheticApiKeys", keysJson);
+    // Store as a single key (simplified format)
+    await this.context.secrets.store("syntheticApiKey", apiKey);
+    // Clear any multi-key data
+    await this.context.secrets.delete("syntheticApiKeys");
     // Update shared state timestamp to signal other windows
     await this.updateKeysTimestamp();
   }
 
   /**
-   * Delete the API key from VSCode SecretStorage (backward compatibility)
-   * Removes all keys with this value
+   * Check if an API key is configured
+   */
+  async hasApiKey(): Promise<boolean> {
+    const apiKey = await this.getApiKey();
+    return apiKey !== undefined && apiKey.length > 0;
+  }
+
+  /**
+   * Delete the API key from VSCode SecretStorage
    */
   async deleteApiKey(): Promise<void> {
     await this.context.secrets.delete("syntheticApiKey");
     await this.context.secrets.delete("syntheticApiKeys");
-  }
-
-  /**
-   * Delete a specific API key from the list
-   */
-  async deleteApiKeyByKey(keyToDelete: string): Promise<void> {
-    const keys = await this.getApiKeys();
-    const filteredKeys = keys.filter(k => k.key !== keyToDelete);
-    await this.setApiKeys(filteredKeys);
-  }
-
-  /**
-   * Check if an API key is configured (backward compatibility)
-   */
-  async hasApiKey(): Promise<boolean> {
-    const keys = await this.getApiKeys();
-    return keys.length > 0 && keys.some(k => k.key.length > 0);
-  }
-
-  /**
-   * Get the number of configured API keys
-   */
-  async getApiKeyCount(): Promise<number> {
-    const keys = await this.getApiKeys();
-    return keys.length;
+    await this.updateKeysTimestamp();
   }
 
   /**
@@ -218,24 +154,24 @@ export class ConfigurationManager {
   }
 
   /**
-   * Refresh API keys from the shared store
-   * This method checks if keys have been updated in another window
-   * and reloads them if necessary
+   * Refresh API key from the shared store
+   * This method checks if the key has been updated in another window
+   * and reloads it if necessary
    */
   async refreshKeys(): Promise<{
     refreshed: boolean;
-    keyCount: number;
+    hasKey: boolean;
     timestamp: number;
   }> {
     const currentTimestamp = await this.getKeysTimestamp();
-    const keys = await this.getApiKeys();
+    const apiKey = await this.getApiKey();
     
-    // Notify callback that keys have been refreshed
+    // Notify callback that key has been refreshed
     this.onKeysRefreshedCallback?.();
 
     return {
       refreshed: true,
-      keyCount: keys.length,
+      hasKey: apiKey !== undefined,
       timestamp: currentTimestamp,
     };
   }
@@ -256,7 +192,7 @@ export class ConfigurationManager {
       const currentTimestamp = await this.getKeysTimestamp();
       if (currentTimestamp > lastKnownTimestamp) {
         lastKnownTimestamp = currentTimestamp;
-        // Keys have been updated in another window
+        // Key has been updated in another window
         this.onKeysRefreshedCallback?.();
       }
     }, pollInterval);
