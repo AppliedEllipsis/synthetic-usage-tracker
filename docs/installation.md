@@ -11,11 +11,24 @@ This guide covers installing the Synthetic.new Usage Tracker extension in VSCode
 
 ### Method 1: VSCode Marketplace (Recommended)
 
+[![Install from VSCode Marketplace](https://img.shields.io/visual-studio-marketplace/v/Ellipsis.synthetic-usage-tracker?label=VSCode%20Marketplace&logo=visual-studio-code&logoColor=white&color=007acc)](https://marketplace.visualstudio.com/items?itemName=Ellipsis.synthetic-usage-tracker)
+
 1. Open VSCode
 2. Press `Ctrl+Shift+X` (or `Cmd+Shift+X` on macOS) to open the Extensions view
 3. Search for "Synthetic.new Usage Tracker"
 4. Click the **Install** button
 5. Wait for the installation to complete
+
+### Method 1.1: Open VSX Registry
+
+[![Install from Open VSX](https://img.shields.io/badge/Open%20VSX-Install-success?logo=open-vsx)](https://open-vsx.org/extension/Ellipsis/synthetic-usage-tracker)
+
+1. Open VSCode
+2. Press `Ctrl+Shift+X` (or `Cmd+Shift+X` on macOS) to open the Extensions view
+3. Click the **...** (three dots) menu in the top-right corner
+4. Select **Install from VSIX...**
+5. Download the extension from [Open VSX Registry](https://open-vsx.org/extension/Ellipsis/synthetic-usage-tracker)
+6. Or install using the command: `code --install-extension Ellipsis.synthetic-usage-tracker`
 
 ### Method 2: From .vsix File
 
