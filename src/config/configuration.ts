@@ -25,6 +25,10 @@ const SHARED_STATE_KEYS = {
 /**
  * Configuration manager for the extension
  * Handles reading and watching configuration changes
+ *
+ * Design decision: Separate configuration concerns from business logic.
+ * This class provides a clean interface for accessing settings and
+ * manages both workspace configuration and secure secret storage.
  */
 export class ConfigurationManager {
   private context: vscode.ExtensionContext;
@@ -34,25 +38,38 @@ export class ConfigurationManager {
 
   constructor(context: vscode.ExtensionContext) {
     this.context = context;
+    // Start watching configuration changes immediately in constructor
+    // This ensures we don't miss any changes that occur before the first access
     this.configChangeDisposable = this.watchConfigurationChanges();
   }
 
   getConfig(): Configuration {
     const config = vscode.workspace.getConfiguration("syntheticUsageTracker");
     return {
+      // Note: apiKey is retrieved from secrets, not configuration
+      // This field exists for type compatibility but is always empty here
       apiKey: config.get<string>("apiKey", ""),
+      // Default endpoint matches Synthetic.new production API
       apiEndpoint: config.get<string>("apiEndpoint", "https://api.synthetic.new/v2"),
+      // Default 60s interval balances responsiveness with API rate limits
       refreshInterval: config.get<number>("refreshInterval", 60),
       statusBarPosition: config.get<"left" | "right">("statusBarPosition", "right"),
+      // Percentage shown by default as it's most immediately useful
       showPercentage: config.get<boolean>("showPercentage", true),
+      // Raw numbers optional to avoid cluttering the status bar
       showRawNumbers: config.get<boolean>("showRawNumbers", false),
+      // Notifications enabled by default for important updates
       enableNotifications: config.get<boolean>("enableNotifications", true),
+      // Warning at 80% gives users time to respond before hitting limits
       warningThreshold: config.get<number>("warningThreshold", 80),
+      // Critical at 90% indicates immediate action needed
       criticalThreshold: config.get<number>("criticalThreshold", 90),
     };
   }
 
   async getApiKey(): Promise<string | undefined> {
+    // First try new format (array of keys with labels)
+    // This supports future multi-key functionality
     const keysJson = await this.context.secrets.get("syntheticApiKeys");
     if (keysJson) {
       try {
@@ -61,10 +78,13 @@ export class ConfigurationManager {
           return keys[0]!.key;
         }
       } catch {
-        // Ignore JSON parsing errors and fall through to legacy format
+        // Silent fallthrough to legacy format - ignore JSON parse errors
+        // as they might be caused by data migration issues
       }
     }
     
+    // Fallback to legacy single-key format for backward compatibility
+    // Existing users won't lose their keys during extension updates
     const legacyKey = await this.context.secrets.get("syntheticApiKey");
     if (legacyKey) {
       return legacyKey;

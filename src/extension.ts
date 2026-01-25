@@ -5,28 +5,40 @@ import { UsageIndicator } from "./statusBar/usageIndicator";
 
 /**
  * Main extension class
+ * Coordinates between configuration, API service, and UI components
  */
 export class SyntheticUsageTrackerExtension {
   private configManager: ConfigurationManager;
   private usageIndicator: UsageIndicator;
+  // Track initialization state to prevent race conditions during early lifecycle events
   private isInitialized: boolean = false;
+  // Prevent concurrent API requests that could lead to stale data or unnecessary load
   private isFetching: boolean = false;
+  // Watcher for cross-window key updates - kept as reference for proper cleanup on deactivation
   private sharedStateWatcherDisposable: vscode.Disposable | null = null;
 
   constructor(private context: vscode.ExtensionContext) {
     this.configManager = new ConfigurationManager(context);
     this.usageIndicator = new UsageIndicator(context);
 
+    // Register callbacks early in constructor to ensure we catch all configuration changes,
+    // including those that might occur before activation completes
     this.configManager.onConfigChange(() => this.handleConfigChange());
     this.configManager.onKeysRefreshed(() => this.handleKeysRefreshed());
   }
 
   /**
    * Activate the extension
+   *
+   * Design decision: We catch errors at this level to prevent extension failures from
+   * bubbling up and crashing VS Code. The extension should remain functional even if
+   * initial API calls fail, allowing users to configure settings and retry manually.
    */
   async activate(): Promise<void> {
     try {
+      // Register commands before initialization so they're always available, even if API fails
       this.registerCommands();
+      // Start watching for cross-window key updates immediately to ensure synchronization
       this.sharedStateWatcherDisposable = this.configManager.watchSharedStateChanges();
       await this.initialize();
 
@@ -39,18 +51,24 @@ export class SyntheticUsageTrackerExtension {
 
   /**
    * Initialize the extension
+   *
+   * Design decision: Early return when no API key is present to avoid unnecessary API calls
+   * and error notifications. Users expect the extension to be silent until configured.
    */
   private async initialize(): Promise<void> {
     const hasApiKey = await this.configManager.hasApiKey();
 
     if (!hasApiKey) {
+      // Set idle state instead of error - missing key is expected during initial setup
       this.usageIndicator.setIdle();
       return;
     }
 
+    // Fetch initial usage data before starting auto-refresh to ensure UI has valid data immediately
     await this.refreshUsage();
 
     const config = this.configManager.getConfig();
+    // Start auto-refresh only after successful initial fetch to avoid continuous error cycles
     this.usageIndicator.startAutoRefresh(
       config.refreshInterval,
       () => this.refreshUsage(),
@@ -106,6 +124,9 @@ export class SyntheticUsageTrackerExtension {
 
   /**
    * Refresh usage data from the API
+   *
+   * Design decision: Do not show loading icon during refresh to avoid visual flickering.
+   * The status bar will only update when new data arrives, providing a cleaner user experience.
    */
   private async refreshUsage(): Promise<void> {
     if (this.isFetching) {
@@ -113,7 +134,6 @@ export class SyntheticUsageTrackerExtension {
     }
 
     this.isFetching = true;
-    this.usageIndicator.setLoading();
 
     try {
       const apiKey = await this.configManager.getApiKey();

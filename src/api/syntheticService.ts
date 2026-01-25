@@ -48,6 +48,9 @@ export class ApiError extends Error {
 
 /**
  * Retry configuration
+ *
+ * Design decision: Encapsulate retry parameters to make them configurable
+ * and testable. This allows adjustment without modifying core logic.
  */
 interface RetryConfig {
   maxRetries: number;
@@ -58,6 +61,12 @@ interface RetryConfig {
 
 /**
  * Default retry configuration following exponential backoff pattern
+ *
+ * Design rationale:
+ * - maxRetries: 3 attempts balance reliability with responsiveness
+ * - initialDelay: 1000ms gives transient failures time to recover
+ * - maxDelay: 10000s prevents excessively long wait times
+ * - backoffFactor: 2 follows standard exponential backoff to reduce server load
  */
 const DEFAULT_RETRY_CONFIG: RetryConfig = {
   maxRetries: 3,
@@ -68,6 +77,10 @@ const DEFAULT_RETRY_CONFIG: RetryConfig = {
 
 /**
  * Sleep function for retry delays
+ *
+ * Design decision: Use Promise-based setTimeout for cleaner async/await flow
+ * compared to callback-based setTimeout. This integrates seamlessly with
+ * the retry logic's try-catch structure.
  */
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -75,6 +88,10 @@ function sleep(ms: number): Promise<void> {
 
 /**
  * Calculate delay with exponential backoff
+ *
+ * Design decision: Exponential backoff reduces server load during outages by
+ * spacing out retry attempts. Capping at maxDelay prevents the delay from
+ * growing unbounded, which would frustrate users waiting for results.
  */
 function calculateDelay(attempt: number, config: RetryConfig): number {
   const delay = config.initialDelay * Math.pow(config.backoffFactor, attempt);
@@ -84,6 +101,10 @@ function calculateDelay(attempt: number, config: RetryConfig): number {
 /**
  * Synthetic.new API service client
  * Handles API communication with retry logic and error handling
+ *
+ * Design decision: Each instance is stateful and bound to a specific API key.
+ * This design allows for easy testing with different keys and supports scenarios
+ * where multiple keys might be used (e.g., testing vs production).
  */
 export class SyntheticService {
   private apiKey: string;

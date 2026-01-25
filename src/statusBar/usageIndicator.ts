@@ -3,6 +3,10 @@ import type { UsageInfo } from "../api/syntheticService";
 
 /**
  * Status bar item display states
+ *
+ * Design decision: Use enum for type safety and to ensure all states are
+ * explicitly handled in switch statements. This prevents typos and makes
+ * the code more maintainable when adding new states.
  */
 enum DisplayState {
   Loading = "loading",
@@ -15,6 +19,10 @@ enum DisplayState {
 
 /**
  * Status bar usage indicator for displaying Synthetic.new usage information
+ *
+ * Design decision: Encapsulate all status bar logic including display states,
+ * auto-refresh management, and UI updates. This keeps the main extension class
+ * focused on coordination rather than UI details.
  */
 export class UsageIndicator {
   private statusBarItem: vscode.StatusBarItem;
@@ -24,6 +32,9 @@ export class UsageIndicator {
   private isAutoRefreshEnabled: boolean = true;
   
   // Cache to prevent unnecessary redraws
+  // Design rationale: VS Code status bar updates can cause visual flickering
+  // if done too frequently. Caching the last rendered values allows us to skip
+  // redundant updates when data hasn't changed, improving UX and performance.
   private lastText: string | null = null;
   private lastTooltip: string | null = null;
   private lastDisplayState: DisplayState | null = null;
@@ -31,17 +42,28 @@ export class UsageIndicator {
   constructor(context: vscode.ExtensionContext) {
     this.statusBarItem = vscode.window.createStatusBarItem(
       vscode.StatusBarAlignment.Right,
+      // Priority 100 ensures this appears near the right side, alongside other common items
       100,
     );
 
     context.subscriptions.push(this.statusBarItem);
 
-    this.setLoading();
+    // Design decision: Start in idle state instead of loading state to avoid showing
+    // the spinning icon during extension initialization. The status bar will update
+    // when new data arrives, providing a cleaner user experience.
+    this.setIdle();
     this.statusBarItem.show();
   }
 
   /**
    * Update the usage indicator with new data
+   *
+   * Design decision: Determine display state before updating UI. This separation
+   * allows for easy testing of state logic independent of rendering.
+   *
+   * State priority: Critical > Warning > Success ensures the most severe state
+   * is always displayed, which is appropriate for quota tracking where users need
+   * immediate visibility of approaching limits.
    */
   updateUsage(usage: UsageInfo, config: {
     showPercentage: boolean;
@@ -52,6 +74,8 @@ export class UsageIndicator {
   }): void {
     this.currentUsage = usage;
 
+    // Use cascading if-else to ensure only one state is selected
+    // Critical takes precedence over warning, which takes precedence over success
     if (usage.percentageUsed >= config.criticalThreshold) {
       this.displayState = DisplayState.Critical;
     } else if (usage.percentageUsed >= config.warningThreshold) {
