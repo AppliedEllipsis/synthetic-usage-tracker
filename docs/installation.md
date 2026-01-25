@@ -37,7 +37,7 @@ code --install-extension synthetic-usage-tracker-x.x.x.vsix
 Or directly from the marketplace:
 
 ```bash
-code --install-extension synthetic-usage-tracker.synthetic-usage-tracker
+code --install-extension Ellipsis.synthetic-usage-tracker
 ```
 
 ## Initial Setup
@@ -142,7 +142,7 @@ Currently, the extension stores deletion functionality in the codebase but does 
 ### From Command Line
 
 ```bash
-code --uninstall-extension synthetic-usage-tracker.synthetic-usage-tracker
+code --uninstall-extension Ellipsis.synthetic-usage-tracker
 ```
 
 ## Troubleshooting
