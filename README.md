@@ -4,9 +4,9 @@
 
 A VSCode extension that monitors your Synthetic.new API usage and quotas directly from the status bar.
 
-![Version](https://img.shields.io/visual-studio-marketplace/v/synthetic-usage-tracker.synthetic-usage-tracker)
-![Downloads](https://img.shields.io/visual-studio-marketplace/d/synthetic-usage-tracker.synthetic-usage-tracker)
-![Rating](https://img.shields.io/visual-studio-marketplace/r/synthetic-usage-tracker.synthetic-usage-tracker)
+![Version](https://img.shields.io/visual-studio-marketplace/v/synthetic-usage-tracker.synthetic-usage-tracker?cacheSeconds=3600)
+![Downloads](https://img.shields.io/visual-studio-marketplace/d/synthetic-usage-tracker.synthetic-usage-tracker?cacheSeconds=3600)
+![Rating](https://img.shields.io/visual-studio-marketplace/r/synthetic-usage-tracker.synthetic-usage-tracker?cacheSeconds=3600)
 
 ## Features
 

@@ -75,7 +75,7 @@ export class ConfigurationManager {
       try {
         const keys = JSON.parse(keysJson) as Array<{ key: string; label?: string }>;
         if (Array.isArray(keys) && keys.length > 0) {
-          return keys[0]!.key;
+          return keys[0]?.key;
         }
       } catch {
         // Silent fallthrough to legacy format - ignore JSON parse errors
