@@ -139,10 +139,15 @@
       }
     ],
     "icons": {
-      "synthetic-logo": {
-        "description": "Synthetic.new status bar icon",
-        "fontPath": "assets/synthetic.woff",
-        "fontCharacter": "\\uE900"
+      "synthetic-status-icon": {
+        "description": "Synthetic.new status bar icon - normal state",
+        "fontPath": "image/icon/fonts/synthetic-usage-tracker.woff",
+        "fontCharacter": "\\u0031"
+      },
+      "synthetic-status-loading": {
+        "description": "Synthetic.new status bar icon - loading state",
+        "fontPath": "image/icon/fonts/synthetic-usage-tracker.woff",
+        "fontCharacter": "\\u0032"
       }
     }
   },

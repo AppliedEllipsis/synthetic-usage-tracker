@@ -107,7 +107,7 @@ export class UsageIndicator {
 
     // Using custom icon defined in package.json contributes.icons section
     // Design rationale: Custom icon provides better visual identity for the extension
-    let text = "$(synthetic-logo)";
+    let text = "$(synthetic-status-icon)";
 
     if (config.showPercentage) {
       const percentage = usage.percentageUsed.toFixed(0);
@@ -198,8 +198,8 @@ Renews At: ${usage.renewsAtString}`;
 
   setLoading(): void {
     this.displayState = DisplayState.Loading;
-    // Using loading spinner with custom icon for visual feedback during data fetch
-    this.statusBarItem.text = "$(loading~spin) $(synthetic-logo)";
+    // Using custom loading icon for visual feedback during data fetch
+    this.statusBarItem.text = "$(synthetic-status-loading)";
     this.statusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.prominentBackground");
     this.statusBarItem.tooltip = "Loading Synthetic.new usage...";
 
@@ -210,7 +210,7 @@ Renews At: ${usage.renewsAtString}`;
   setError(message: string): void {
     this.displayState = DisplayState.Error;
     // Using custom icon defined in package.json contributes.icons section
-    this.statusBarItem.text = "$(synthetic-logo)";
+    this.statusBarItem.text = "$(synthetic-status-icon)";
     this.statusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.errorBackground");
     this.statusBarItem.tooltip = `Error: ${message}`;
 
@@ -221,7 +221,7 @@ Renews At: ${usage.renewsAtString}`;
   setIdle(): void {
     this.displayState = DisplayState.Idle;
     // Using custom icon defined in package.json contributes.icons section
-    this.statusBarItem.text = "$(synthetic-logo)";
+    this.statusBarItem.text = "$(synthetic-status-icon)";
     this.statusBarItem.backgroundColor = undefined;
     this.statusBarItem.tooltip = "Configure your Synthetic.new API key to track usage";
 
