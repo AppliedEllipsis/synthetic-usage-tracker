@@ -24,16 +24,13 @@ export class UsageIndicator {
   private isAutoRefreshEnabled: boolean = true;
 
   constructor(context: vscode.ExtensionContext) {
-    // Create status bar item on the right side by default
     this.statusBarItem = vscode.window.createStatusBarItem(
       vscode.StatusBarAlignment.Right,
-      100, // Priority
+      100,
     );
 
-    // Store in context for disposal
     context.subscriptions.push(this.statusBarItem);
 
-    // Set initial state
     this.setLoading();
     this.statusBarItem.show();
   }
@@ -50,7 +47,6 @@ export class UsageIndicator {
   }): void {
     this.currentUsage = usage;
 
-    // Determine display state based on usage percentage
     if (usage.percentageUsed >= config.criticalThreshold) {
       this.displayState = DisplayState.Critical;
     } else if (usage.percentageUsed >= config.warningThreshold) {
@@ -59,12 +55,7 @@ export class UsageIndicator {
       this.displayState = DisplayState.Success;
     }
 
-    // Update status bar text and color
     this.updateStatusBarItem(usage, config);
-
-    // Automatic threshold notifications are disabled
-    // Users can check the status bar for usage information
-    // If notifications are needed, they can be manually triggered via the showUsage command
   }
 
   /**
@@ -89,13 +80,10 @@ export class UsageIndicator {
 
     this.statusBarItem.text = text;
 
-    // Set color based on state
     this.updateStatusColor();
 
-    // Set tooltip
     this.statusBarItem.tooltip = this.buildTooltip(usage, timeRemaining);
 
-    // Set command
     this.statusBarItem.command = "syntheticUsageTracker.showUsage";
   }
 
@@ -112,7 +100,7 @@ export class UsageIndicator {
         this.statusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.warningBackground");
         break;
       case DisplayState.Success:
-        this.statusBarItem.backgroundColor = undefined; // Use default
+        this.statusBarItem.backgroundColor = undefined;
         break;
       case DisplayState.Loading:
         this.statusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.prominentBackground");
@@ -122,9 +110,6 @@ export class UsageIndicator {
     }
   }
 
-  /**
-   * Build tooltip string with detailed usage information
-   */
   private buildTooltip(usage: UsageInfo, timeRemaining: string): string {
     return `
 Synthetic.new Usage Tracker
@@ -140,9 +125,6 @@ Click to view details
 `.trim();
   }
 
-  /**
-   * Calculate time remaining until reset in hours and minutes format (e.g., "3h 2m")
-   */
   private calculateTimeRemaining(renewsAt: Date): string {
     const now = new Date();
     const diff = renewsAt.getTime() - now.getTime();
@@ -157,9 +139,6 @@ Click to view details
     return `${hours}h ${minutes}m`;
   }
 
-  /**
-   * Set loading state
-   */
   setLoading(): void {
     this.displayState = DisplayState.Loading;
     this.statusBarItem.text = "$(loading~spin) Synthetic.new";
@@ -167,9 +146,6 @@ Click to view details
     this.statusBarItem.tooltip = "Loading Synthetic.new usage...";
   }
 
-  /**
-   * Set error state
-   */
   setError(message: string): void {
     this.displayState = DisplayState.Error;
     this.statusBarItem.text = "$(error) Synthetic.new";
@@ -177,9 +153,6 @@ Click to view details
     this.statusBarItem.tooltip = `Error: ${message}`;
   }
 
-  /**
-   * Set idle state (no API key configured)
-   */
   setIdle(): void {
     this.displayState = DisplayState.Idle;
     this.statusBarItem.text = "$(database) Synthetic.new";
@@ -187,9 +160,6 @@ Click to view details
     this.statusBarItem.tooltip = "Configure your Synthetic.new API key to track usage";
   }
 
-  /**
-   * Start auto-refresh timer
-   */
   startAutoRefresh(intervalSeconds: number, refreshCallback: () => void): void {
     this.stopAutoRefresh();
     this.isAutoRefreshEnabled = true;
@@ -200,9 +170,6 @@ Click to view details
     }, intervalSeconds * 1000);
   }
 
-  /**
-   * Stop auto-refresh timer
-   */
   stopAutoRefresh(): void {
     if (this.autoRefreshTimer) {
       clearInterval(this.autoRefreshTimer);
@@ -210,40 +177,25 @@ Click to view details
     }
   }
 
-  /**
-   * Toggle auto-refresh
-   */
   toggleAutoRefresh(): boolean {
     this.isAutoRefreshEnabled = !this.isAutoRefreshEnabled;
     return this.isAutoRefreshEnabled;
   }
 
-  /**
-   * Check if auto-refresh is enabled
-   */
   isAutoRefreshActive(): boolean {
     return this.isAutoRefreshEnabled;
   }
 
-  /**
-   * Update auto-refresh interval
-   */
   updateAutoRefreshInterval(intervalSeconds: number, refreshCallback: () => void): void {
     if (this.isAutoRefreshEnabled) {
       this.startAutoRefresh(intervalSeconds, refreshCallback);
     }
   }
 
-  /**
-   * Get current usage information
-   */
   getCurrentUsage(): UsageInfo | null {
     return this.currentUsage;
   }
 
-  /**
-   * Dispose of resources
-   */
   dispose(): void {
     this.stopAutoRefresh();
     this.statusBarItem.dispose();

@@ -1,8 +1,8 @@
 # API Documentation
 
-This document describes the Synthetic.ai API used by the extension and the extension's internal API.
+This document describes the Synthetic.new API used by the extension and the extension's internal API.
 
-## Synthetic.ai API
+## Synthetic.new API
 
 ### Endpoint
 
@@ -22,7 +22,7 @@ Authorization: Bearer syn_your_api_key_here
 
 | Header | Value | Description |
 |--------|-------|-------------|
-| `Authorization` | `Bearer {api_key}` | Your Synthetic.ai API key |
+| `Authorization` | `Bearer {api_key}` | Your Synthetic.new API key |
 | `Content-Type` | `application/json` | Content type |
 
 ### Response Format

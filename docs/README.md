@@ -1,6 +1,6 @@
 # Synthetic Usage Tracker Documentation
 
-Welcome to the comprehensive documentation for the Synthetic.ai Usage Tracker VSCode extension.
+Welcome to the comprehensive documentation for the Synthetic.new Usage Tracker VSCode extension.
 
 ## Table of Contents
 
@@ -14,7 +14,7 @@ Welcome to the comprehensive documentation for the Synthetic.ai Usage Tracker VS
 
 - [VSCode Marketplace](https://marketplace.visualstudio.com/)
 - [GitHub Repository](https://github.com/your-username/synthetic-usage-tracker)
-- [Synthetic.ai API Documentation](https://dev.synthetic.new/docs/synthetic/quotas)
+- [Synthetic.new API Documentation](https://dev.synthetic.new/docs/synthetic/quotas)
 
 ## Getting Help
 

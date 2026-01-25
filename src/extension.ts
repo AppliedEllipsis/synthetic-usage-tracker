@@ -17,10 +17,7 @@ export class SyntheticUsageTrackerExtension {
     this.configManager = new ConfigurationManager(context);
     this.usageIndicator = new UsageIndicator(context);
 
-    // Watch for configuration changes
     this.configManager.onConfigChange(() => this.handleConfigChange());
-
-    // Watch for key refreshed from other windows
     this.configManager.onKeysRefreshed(() => this.handleKeysRefreshed());
   }
 
@@ -29,13 +26,8 @@ export class SyntheticUsageTrackerExtension {
    */
   async activate(): Promise<void> {
     try {
-      // Register commands
       this.registerCommands();
-
-      // Start watching for shared state changes (cross-window key updates)
       this.sharedStateWatcherDisposable = this.configManager.watchSharedStateChanges();
-
-      // Initialize the extension
       await this.initialize();
 
       this.isInitialized = true;
@@ -49,7 +41,6 @@ export class SyntheticUsageTrackerExtension {
    * Initialize the extension
    */
   private async initialize(): Promise<void> {
-    // Check if API key is configured
     const hasApiKey = await this.configManager.hasApiKey();
 
     if (!hasApiKey) {
@@ -57,10 +48,8 @@ export class SyntheticUsageTrackerExtension {
       return;
     }
 
-    // Fetch initial usage data
     await this.refreshUsage();
 
-    // Start auto-refresh
     const config = this.configManager.getConfig();
     this.usageIndicator.startAutoRefresh(
       config.refreshInterval,
@@ -72,49 +61,42 @@ export class SyntheticUsageTrackerExtension {
    * Register extension commands
    */
   private registerCommands(): void {
-    // Refresh usage command
     const refreshCommand = vscode.commands.registerCommand(
       "syntheticUsageTracker.refresh",
       () => this.refreshUsage(),
     );
     this.context.subscriptions.push(refreshCommand);
 
-    // Refresh keys command (for cross-window key sharing)
     const refreshKeysCommand = vscode.commands.registerCommand(
       "syntheticUsageTracker.refreshKeys",
       () => this.refreshKeys(),
     );
     this.context.subscriptions.push(refreshKeysCommand);
 
-    // Configure API key command
     const configureCommand = vscode.commands.registerCommand(
       "syntheticUsageTracker.configure",
       () => this.configureApiKey(),
     );
     this.context.subscriptions.push(configureCommand);
 
-    // Show usage details command
     const showUsageCommand = vscode.commands.registerCommand(
       "syntheticUsageTracker.showUsage",
       () => this.showUsageDetails(),
     );
     this.context.subscriptions.push(showUsageCommand);
 
-    // Toggle auto-refresh command
     const toggleAutoRefreshCommand = vscode.commands.registerCommand(
       "syntheticUsageTracker.toggleAutoRefresh",
       () => this.toggleAutoRefresh(),
     );
     this.context.subscriptions.push(toggleAutoRefreshCommand);
 
-    // Open dashboard command
     const openDashboardCommand = vscode.commands.registerCommand(
       "syntheticUsageTracker.openDashboard",
       () => this.openDashboard(),
     );
     this.context.subscriptions.push(openDashboardCommand);
 
-    // Subscribe with discount command
     const subscribeWithDiscountCommand = vscode.commands.registerCommand(
       "syntheticUsageTracker.subscribeWithDiscount",
       () => this.subscribeWithDiscount(),
@@ -134,20 +116,17 @@ export class SyntheticUsageTrackerExtension {
     this.usageIndicator.setLoading();
 
     try {
-      // Get API key
       const apiKey = await this.configManager.getApiKey();
       if (!apiKey) {
         this.usageIndicator.setIdle();
         return;
       }
 
-      // Get configuration
       const config = this.configManager.getConfig();
 
       const service = new SyntheticService(apiKey, config.apiEndpoint);
       const usage = await service.fetchQuota();
 
-      // Update indicator with usage data
       this.usageIndicator.updateUsage(usage, {
         showPercentage: config.showPercentage,
         showRawNumbers: config.showRawNumbers,
@@ -160,7 +139,6 @@ export class SyntheticUsageTrackerExtension {
       const message = error instanceof Error ? error.message : "Unknown error";
       this.usageIndicator.setError(message);
 
-      // Show error notification
       const config = this.configManager.getConfig();
       if (config.enableNotifications) {
         vscode.window.showErrorMessage(`Failed to fetch Synthetic.ai usage: ${message}`);
@@ -176,7 +154,6 @@ export class SyntheticUsageTrackerExtension {
    */
   private async refreshKeys(): Promise<void> {
     try {
-      // Refresh key from shared store
       const result = await this.configManager.refreshKeys();
 
       if (!result.hasKey) {
@@ -184,10 +161,8 @@ export class SyntheticUsageTrackerExtension {
         return;
       }
 
-      // Show success message
       vscode.window.showInformationMessage("API key refreshed successfully.");
 
-      // Refresh usage data with the updated key
       await this.refreshUsage();
     } catch (error) {
       console.error("Failed to refresh key:", error);
@@ -219,22 +194,17 @@ export class SyntheticUsageTrackerExtension {
     });
 
     if (input === undefined) {
-      // User cancelled
       return;
     }
 
     const apiKey = input.trim();
 
-    // Store the API key
     await this.configManager.setApiKey(apiKey);
 
-    // Show success message
     vscode.window.showInformationMessage("API key saved successfully");
 
-    // Refresh usage
     await this.refreshUsage();
 
-    // Update auto-refresh if needed
     const config = this.configManager.getConfig();
     this.usageIndicator.updateAutoRefreshInterval(
       config.refreshInterval,
@@ -255,7 +225,6 @@ export class SyntheticUsageTrackerExtension {
     const percentageUsed = usage.percentageUsed.toFixed(1);
     const percentageRemaining = ((1 - usage.percentageUsed / 100) * 100).toFixed(1);
 
-    // Calculate time remaining in hours and minutes
     const now = new Date();
     const diff = usage.renewsAt.getTime() - now.getTime();
     let timeRemaining = "0 hours and 0 minutes";
@@ -327,7 +296,6 @@ Renews At: ${usage.renewsAtString}
    * Handle configuration changes
    */
   private handleConfigChange(): void {
-    // Re-initialize to apply new configuration
     if (this.isInitialized) {
       const config = this.configManager.getConfig();
       this.usageIndicator.updateAutoRefreshInterval(
@@ -350,12 +318,10 @@ Renews At: ${usage.renewsAtString}
       const hasKey = await this.configManager.hasApiKey();
       
       if (!hasKey) {
-        // No key configured, set idle state
         this.usageIndicator.setIdle();
         return;
       }
 
-      // Refresh usage data with the updated key
       await this.refreshUsage();
 
       const config = this.configManager.getConfig();
@@ -364,7 +330,6 @@ Renews At: ${usage.renewsAtString}
       }
     } catch (error) {
       console.error("Failed to handle key refreshed:", error);
-      // Don't show error on auto-refresh to avoid spamming the user
     }
   }
 

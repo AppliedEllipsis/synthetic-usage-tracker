@@ -1,6 +1,6 @@
-# Synthetic.ai Usage Tracker
+# Synthetic.new Usage Tracker
 
-A VSCode extension that monitors your Synthetic.ai API usage and quotas directly from the status bar.
+A VSCode extension that monitors your Synthetic.new API usage and quotas directly from the status bar.
 
 ![Version](https://img.shields.io/visual-studio-marketplace/v/synthetic-usage-tracker.synthetic-usage-tracker)
 ![Downloads](https://img.shields.io/visual-studio-marketplace/d/synthetic-usage-tracker.synthetic-usage-tracker)
@@ -8,7 +8,7 @@ A VSCode extension that monitors your Synthetic.ai API usage and quotas directly
 
 ## Features
 
-- **Real-time Usage Tracking**: Monitor your Synthetic.ai API quota usage directly from the VSCode status bar
+- **Real-time Usage Tracking**: Monitor your Synthetic.new API quota usage directly from the VSCode status bar
 - **Auto-refresh**: Automatically updates usage data at configurable intervals
 - **Visual Indicators**: Color-coded status bar based on usage thresholds (warning/critical)
 - **Secure Storage**: API keys are stored securely using VSCode SecretStorage
@@ -22,7 +22,7 @@ A VSCode extension that monitors your Synthetic.ai API usage and quotas directly
 
 1. Open VSCode
 2. Go to Extensions (Ctrl+Shift+X)
-3. Search for "Synthetic.ai Usage Tracker"
+3. Search for "Synthetic.new Usage Tracker"
 4. Click Install
 
 ### From .vsix File
@@ -39,7 +39,7 @@ A VSCode extension that monitors your Synthetic.ai API usage and quotas directly
 1. **Configure your API Key**:
    - Press `Ctrl+Shift+P` (or `Cmd+Shift+P` on Mac)
    - Type `Synthetic Usage Tracker: Configure API Key`
-   - Enter your Synthetic.ai API key (starts with `syn_`)
+   - Enter your Synthetic.new API key (starts with `syn_`)
 
 2. **View Your Usage**:
    - Look at the status bar on the right side
@@ -57,7 +57,7 @@ The extension can be configured through VSCode settings:
 
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
-| `syntheticUsageTracker.apiEndpoint` | string | `https://api.synthetic.new/v2` | The Synthetic.ai API endpoint |
+| `syntheticUsageTracker.apiEndpoint` | string | `https://api.synthetic.new/v2` | The Synthetic.new API endpoint |
 | `syntheticUsageTracker.refreshInterval` | number | `60` | Auto-refresh interval in seconds (min: 10) |
 | `syntheticUsageTracker.statusBarPosition` | string | `right` | Position of the usage indicator in the status bar |
 | `syntheticUsageTracker.showPercentage` | boolean | `true` | Show usage as percentage in status bar |
@@ -74,7 +74,7 @@ The extension can be configured through VSCode settings:
 | `Synthetic Usage Tracker: Configure API Key` | Configure or update your API key |
 | `Synthetic Usage Tracker: Show Usage Details` | Display detailed usage information |
 | `Synthetic Usage Tracker: Toggle Auto-Refresh` | Enable/disable auto-refresh |
-| `Synthetic Usage Tracker: Open Synthetic Dashboard` | Open the Synthetic.ai dashboard in your browser |
+| `Synthetic Usage Tracker: Open Synthetic Dashboard` | Open the Synthetic.new dashboard in your browser |
 
 ## Development
 
@@ -122,11 +122,21 @@ Contributions are welcome! Please read our [Contributing Guidelines](CONTRIBUTIN
 
 MIT License - see [LICENSE](LICENSE) for details.
 
+## 🤝 Help Us Grow!
+
+Invite your friends to **Synthetic.new** and both of you will receive:
+- **$10.00** for standard signups
+- **$20.00** for pro signups
+
+In subscription credit when they subscribe!
+
+[Sign up with referral link](https://synthetic.new/?referral=4JZcLOKgRmZ4o6k)
+
 ## Support
 
 - Report issues: [GitHub Issues](https://github.com/your-username/synthetic-usage-tracker/issues)
 - Documentation: [Full Documentation](docs/README.md)
-- API Docs: [Synthetic.ai API Documentation](https://dev.synthetic.new/docs/synthetic/quotas)
+- API Docs: [Synthetic.new API Documentation](https://dev.synthetic.new/docs/synthetic/quotas)
 
 ## Support This Project
 
@@ -134,7 +144,7 @@ If you find this extension useful and would like to support its continued develo
 
 ### Join with a Referral
 
-When you subscribe to Synthetic.ai through our referral link, you'll receive bonus credits as a welcome bonus:
+When you subscribe to Synthetic.new through our referral link, you'll receive bonus credits as a welcome bonus:
 
 - **$10.00** in subscription credit for standard signups
 - **$20.00** in subscription credit for pro signups
@@ -159,3 +169,7 @@ Thank you for your support! ❤️
 
 - Based on the [zai-usage-tracker](https://github.com/melon-hub/zai-usage-tracker) extension
 - Built with best practices from [ai-dev-env](https://github.com/your-username/ai-dev-env)
+
+---
+
+*Co-vibe coded with AI - Built with human creativity enhanced by artificial intelligence*

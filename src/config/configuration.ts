@@ -37,9 +37,6 @@ export class ConfigurationManager {
     this.configChangeDisposable = this.watchConfigurationChanges();
   }
 
-  /**
-   * Get the current configuration
-   */
   getConfig(): Configuration {
     const config = vscode.workspace.getConfiguration("syntheticUsageTracker");
     return {
@@ -55,11 +52,7 @@ export class ConfigurationManager {
     };
   }
 
-  /**
-   * Get the API key from VSCode SecretStorage
-   */
   async getApiKey(): Promise<string | undefined> {
-    // Check for multi-key format (new format)
     const keysJson = await this.context.secrets.get("syntheticApiKeys");
     if (keysJson) {
       try {
@@ -68,11 +61,10 @@ export class ConfigurationManager {
           return keys[0]!.key;
         }
       } catch {
-        // Fall through to legacy format
+        // Ignore JSON parsing errors and fall through to legacy format
       }
     }
     
-    // Check for legacy single key format
     const legacyKey = await this.context.secrets.get("syntheticApiKey");
     if (legacyKey) {
       return legacyKey;
@@ -81,39 +73,23 @@ export class ConfigurationManager {
     return undefined;
   }
 
-  /**
-   * Store the API key in VSCode SecretStorage
-   * Overwrites any existing key (single key mode)
-   */
   async setApiKey(apiKey: string): Promise<void> {
-    // Store as a single key (simplified format)
     await this.context.secrets.store("syntheticApiKey", apiKey);
-    // Clear any multi-key data
     await this.context.secrets.delete("syntheticApiKeys");
-    // Update shared state timestamp to signal other windows
     await this.updateKeysTimestamp();
   }
 
-  /**
-   * Check if an API key is configured
-   */
   async hasApiKey(): Promise<boolean> {
     const apiKey = await this.getApiKey();
     return apiKey !== undefined && apiKey.length > 0;
   }
 
-  /**
-   * Delete the API key from VSCode SecretStorage
-   */
   async deleteApiKey(): Promise<void> {
     await this.context.secrets.delete("syntheticApiKey");
     await this.context.secrets.delete("syntheticApiKeys");
     await this.updateKeysTimestamp();
   }
 
-  /**
-   * Watch for configuration changes
-   */
   private watchConfigurationChanges(): vscode.Disposable {
     return vscode.workspace.onDidChangeConfiguration((event) => {
       if (event.affectsConfiguration("syntheticUsageTracker")) {
@@ -122,16 +98,10 @@ export class ConfigurationManager {
     });
   }
 
-  /**
-   * Set a callback to be called when configuration changes
-   */
   onConfigChange(callback: () => void): void {
     this.onConfigChangeCallback = callback;
   }
 
-  /**
-   * Set a callback to be called when keys are refreshed from another window
-   */
   onKeysRefreshed(callback: () => void): void {
     this.onKeysRefreshedCallback = callback;
   }
@@ -145,9 +115,6 @@ export class ConfigurationManager {
     await this.context.globalState.update(SHARED_STATE_KEYS.KEY_UPDATE_TIMESTAMP, timestamp);
   }
 
-  /**
-   * Get the last known keys update timestamp from shared state
-   */
   async getKeysTimestamp(): Promise<number> {
     return this.context.globalState.get<number>(SHARED_STATE_KEYS.KEY_UPDATE_TIMESTAMP, 0);
   }
@@ -165,7 +132,6 @@ export class ConfigurationManager {
     const currentTimestamp = await this.getKeysTimestamp();
     const apiKey = await this.getApiKey();
     
-    // Notify callback that key has been refreshed
     this.onKeysRefreshedCallback?.();
 
     return {
@@ -182,7 +148,6 @@ export class ConfigurationManager {
   watchSharedStateChanges(pollInterval: number = 5000): vscode.Disposable {
     let lastKnownTimestamp = 0;
     
-    // Initialize with current timestamp
     this.getKeysTimestamp().then(timestamp => {
       lastKnownTimestamp = timestamp;
     });
@@ -191,7 +156,6 @@ export class ConfigurationManager {
       const currentTimestamp = await this.getKeysTimestamp();
       if (currentTimestamp > lastKnownTimestamp) {
         lastKnownTimestamp = currentTimestamp;
-        // Key has been updated in another window
         this.onKeysRefreshedCallback?.();
       }
     }, pollInterval);
@@ -203,9 +167,6 @@ export class ConfigurationManager {
     };
   }
 
-  /**
-   * Dispose of resources
-   */
   dispose(): void {
     this.configChangeDisposable.dispose();
   }
