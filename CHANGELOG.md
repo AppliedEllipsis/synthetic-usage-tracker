@@ -5,7 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.5] - 2026-01-25
+
+### Changed
+- Version bump to 1.0.5
+
+## [1.0.4] - 2026-01-25
+
+### Fixed
+- Fixed status bar tooltip to show detailed usage information on hover
+
 ## [Unreleased]
+
+## [1.0.3] - 2026-01-25
+
+### Added
+- Added icon.png for extension marketplace display
+- Added icon-bw.png for status bar icon display
 
 ## [1.0.1] - 2025-01-25
 

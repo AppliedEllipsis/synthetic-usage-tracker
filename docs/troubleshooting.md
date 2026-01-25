@@ -300,7 +300,7 @@ This guide covers common issues and their solutions for the Synthetic.new Usage 
 If you can't resolve your issue:
 
 1. **Check the Documentation**: Review [Installation Guide](installation.md) and [API Documentation](api.md)
-2. **Search Existing Issues**: Check [GitHub Issues](https://github.com/your-username/synthetic-usage-tracker/issues)
+2. **Search Existing Issues**: Check [GitHub Issues](https://github.com/AppliedEllipsis/synthetic-usage-tracker/issues)
 3. **Create a New Issue**: Include:
    - VSCode version
    - Extension version

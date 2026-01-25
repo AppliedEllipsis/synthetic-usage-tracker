@@ -104,8 +104,10 @@ export class UsageIndicator {
     showRawNumbers: boolean;
   }): void {
     const timeRemaining = this.calculateTimeRemaining(usage.renewsAt);
-    
-    let text = "$(database) Synthetic.new";
+
+    // Using custom icon defined in package.json contributes.icons section
+    // Design rationale: Custom icon provides better visual identity for the extension
+    let text = "$(synthetic-logo)";
 
     if (config.showPercentage) {
       const percentage = usage.percentageUsed.toFixed(0);
@@ -196,30 +198,33 @@ Renews At: ${usage.renewsAtString}`;
 
   setLoading(): void {
     this.displayState = DisplayState.Loading;
-    this.statusBarItem.text = "$(loading~spin) Synthetic.new";
+    // Using loading spinner with custom icon for visual feedback during data fetch
+    this.statusBarItem.text = "$(loading~spin) $(synthetic-logo)";
     this.statusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.prominentBackground");
     this.statusBarItem.tooltip = "Loading Synthetic.new usage...";
-    
+
     // Clear cache to force update
     this.clearCache();
   }
 
   setError(message: string): void {
     this.displayState = DisplayState.Error;
-    this.statusBarItem.text = "$(error) Synthetic.new";
+    // Using custom icon defined in package.json contributes.icons section
+    this.statusBarItem.text = "$(synthetic-logo)";
     this.statusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.errorBackground");
     this.statusBarItem.tooltip = `Error: ${message}`;
-    
+
     // Clear cache to force update
     this.clearCache();
   }
 
   setIdle(): void {
     this.displayState = DisplayState.Idle;
-    this.statusBarItem.text = "$(database) Synthetic.new";
+    // Using custom icon defined in package.json contributes.icons section
+    this.statusBarItem.text = "$(synthetic-logo)";
     this.statusBarItem.backgroundColor = undefined;
     this.statusBarItem.tooltip = "Configure your Synthetic.new API key to track usage";
-    
+
     // Clear cache to force update
     this.clearCache();
   }

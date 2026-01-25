@@ -2,7 +2,7 @@
   "name": "synthetic-usage-tracker",
   "displayName": "Synthetic.new Usage Tracker",
   "description": "Monitor your Synthetic.new API usage and quotas directly from VSCode status bar",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "publisher": "synthetic-usage-tracker",
   "license": "MIT",
   "type": "commonjs",
@@ -28,12 +28,12 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-username/synthetic-usage-tracker"
+    "url": "https://github.com/AppliedEllipsis/synthetic-usage-tracker"
   },
   "bugs": {
-    "url": "https://github.com/your-username/synthetic-usage-tracker/issues"
+    "url": "https://github.com/AppliedEllipsis/synthetic-usage-tracker/issues"
   },
-  "homepage": "https://github.com/your-username/synthetic-usage-tracker#readme",
+  "homepage": "https://github.com/AppliedEllipsis/synthetic-usage-tracker#readme",
   "contributes": {
     "configuration": {
       "title": "Synthetic.new Usage Tracker",
@@ -137,7 +137,14 @@
         "title": "Subscribe with discount",
         "category": "Synthetic Usage Tracker"
       }
-    ]
+    ],
+    "icons": {
+      "synthetic-logo": {
+        "description": "Synthetic.new status bar icon",
+        "fontPath": "assets/synthetic.woff",
+        "fontCharacter": "\\uE900"
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",

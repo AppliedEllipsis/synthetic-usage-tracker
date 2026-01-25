@@ -14,7 +14,7 @@ This guide covers setting up a development environment and contributing to the S
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/synthetic-usage-tracker.git
+git clone https://github.com/AppliedEllipsis/synthetic-usage-tracker.git
 cd synthetic-usage-tracker
 ```
 
@@ -378,6 +378,6 @@ npm run lint:fix
 
 ## Getting Help
 
-- **Issues**: [GitHub Issues](https://github.com/your-username/synthetic-usage-tracker/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/your-username/synthetic-usage-tracker/discussions)
+- **Issues**: [GitHub Issues](https://github.com/AppliedEllipsis/synthetic-usage-tracker/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/AppliedEllipsis/synthetic-usage-tracker/discussions)
 - **Documentation**: [Full Documentation](README.md)

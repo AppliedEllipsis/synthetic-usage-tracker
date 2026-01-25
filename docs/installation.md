@@ -19,7 +19,7 @@ This guide covers installing the Synthetic.new Usage Tracker extension in VSCode
 
 ### Method 2: From .vsix File
 
-1. Download the latest `.vsix` file from the [Releases](https://github.com/your-username/synthetic-usage-tracker/releases) page
+1. Download the latest `.vsix` file from the [Releases](https://github.com/AppliedEllipsis/synthetic-usage-tracker/releases) page
 2. Open VSCode
 3. Press `Ctrl+Shift+X` (or `Cmd+Shift+X` on macOS) to open the Extensions view
 4. Click the **...** (three dots) menu in the top-right corner

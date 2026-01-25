@@ -1,5 +1,7 @@
 # Synthetic.new Usage Tracker
 
+![Extension Icon](icon.png)
+
 A VSCode extension that monitors your Synthetic.new API usage and quotas directly from the status bar.
 
 ![Version](https://img.shields.io/visual-studio-marketplace/v/synthetic-usage-tracker.synthetic-usage-tracker)
@@ -27,7 +29,7 @@ A VSCode extension that monitors your Synthetic.new API usage and quotas directl
 
 ### From .vsix File
 
-1. Download the latest `.vsix` file from the [Releases](https://github.com/your-username/synthetic-usage-tracker/releases) page
+1. Download the latest `.vsix` file from the [Releases](https://github.com/AppliedEllipsis/synthetic-usage-tracker/releases) page
 2. Open VSCode
 3. Go to Extensions (Ctrl+Shift+X)
 4. Click the "..." menu in the top right
@@ -88,7 +90,7 @@ The extension can be configured through VSCode settings:
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/synthetic-usage-tracker.git
+git clone https://github.com/AppliedEllipsis/synthetic-usage-tracker.git
 cd synthetic-usage-tracker
 
 # Install dependencies
@@ -134,7 +136,7 @@ In subscription credit when they subscribe!
 
 ## Support
 
-- Report issues: [GitHub Issues](https://github.com/your-username/synthetic-usage-tracker/issues)
+- Report issues: [GitHub Issues](https://github.com/AppliedEllipsis/synthetic-usage-tracker/issues)
 - Documentation: [Full Documentation](docs/README.md)
 - API Docs: [Synthetic.new API Documentation](https://dev.synthetic.new/docs/synthetic/quotas)
 
@@ -168,7 +170,7 @@ Thank you for your support! ❤️
 ## Acknowledgments
 
 - Based on the [zai-usage-tracker](https://github.com/melon-hub/zai-usage-tracker) extension
-- Built with best practices from [ai-dev-env](https://github.com/your-username/ai-dev-env)
+- Built with best practices from [ai-dev-env](https://github.com/AppliedEllipsis/ai-dev-env)
 
 ---
 
