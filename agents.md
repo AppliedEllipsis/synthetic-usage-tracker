@@ -5,6 +5,7 @@ This guide provides comprehensive instructions for AI agents working on the Synt
 ## Table of Contents
 
 - [Build Instructions](#build-instructions)
+  - [Release Workflow](#release-workflow)
 - [Incremental Development Approach](#incremental-development-approach)
 - [Documentation Practices](#documentation-practices)
 - [Coding Practices](#coding-practices)
@@ -99,6 +100,60 @@ This command:
 - Creates a `.vsix` file in the project root
 - Includes only files specified in [`.vscodeignore`](.vscodeignore)
 - Ready for upload to VSCode Marketplace
+
+### Release Workflow
+
+The `buildrelease` command automates the complete release process, from version bumping to packaging. Use this workflow when preparing a new release for distribution.
+
+#### Building a Release
+
+Execute the release workflow:
+
+```bash
+npm run buildrelease
+```
+
+This command performs the following steps in sequence:
+
+1. **Increment patch version**: Runs `npm version patch` to automatically increment the patch version (e.g., 1.0.5 → 1.0.6)
+2. **Compile TypeScript**: Runs `npm run compile` to build the extension
+3. **Package extension**: Runs `npm run package` to create the `.vsix` file
+4. **Move to releases**: Moves the `.vsix` file to the [`releases/`](releases/) directory
+
+#### Version Incrementing
+
+The release workflow uses semantic versioning:
+- **Patch version** (X.Y.Z): Bug fixes and minor improvements that don't break existing functionality
+- The workflow currently increments the patch version automatically
+- For major or minor version changes, update the version manually in [`package.json`](package.json) before running the workflow
+
+#### Output Location
+
+After running `npm run buildrelease`, the packaged extension is placed in:
+
+```
+releases/synthetic-usage-tracker-X.Y.Z.vsix
+```
+
+Where `X.Y.Z` is the new version number.
+
+#### Release Checklist
+
+Before running the release workflow:
+
+- [ ] All tests pass: `npm run test`
+- [ ] Code compiles without errors: `npm run compile`
+- [ ] No linting issues: `npm run lint`
+- [ ] Update [`CHANGELOG.md`](CHANGELOG.md) with release notes
+- [ ] Update [`README.md`](README.md) if user-facing changes were made
+- [ ] Ensure working directory is clean (no uncommitted changes)
+
+#### Important Notes
+
+- The release workflow creates a git commit for the version bump
+- The commit is tagged with the new version number
+- For manual version control, you can use `npm version minor` or `npm version major` instead of the automated workflow
+- Always test the `.vsix` file in a clean VSCode instance before distributing
 
 ### Build Troubleshooting
 

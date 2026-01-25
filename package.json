@@ -160,6 +160,7 @@
     "lint:fix": "eslint src --ext ts --fix",
     "test": "vscode-test",
     "package": "vsce package",
+    "buildrelease": "npm version patch && npm run compile && npm run package && powershell -Command \"$pkg = Get-Content package.json -Raw | ConvertFrom-Json; Move-Item -Path \"$($pkg.name)-$($pkg.version).vsix\" -Destination releases/ -Force\"",
     "prepare": "husky install"
   },
   "devDependencies": {
