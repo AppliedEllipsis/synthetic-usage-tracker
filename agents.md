@@ -480,6 +480,126 @@ Update [`CHANGELOG.md`](CHANGELOG.md) for:
 
 **Design decision: Using an "Unreleased" section helps distinguish between changes that have been formally released (with git tags) and changes that are still in development. This prevents confusion about which features are currently available in published versions.**
 
+### CHANGELOG Update Process
+
+After running `npm run buildrelease`, the CHANGELOG needs to be updated to reflect the completed release. This process ensures the version history accurately matches the git tags and published releases.
+
+#### When to Update the CHANGELOG
+
+Update the CHANGELOG **after** successfully completing the release workflow:
+- After `npm run buildrelease` has finished successfully
+- After verifying the `.vsix` file exists in the [`releases/`](releases/) directory
+- After confirming the version number in [`package.json`](package.json) matches the expected release
+
+#### Verification Steps
+
+Before updating the CHANGELOG, verify the release is complete:
+
+1. **Check package.json version**:
+   ```bash
+   grep '"version"' package.json
+   ```
+   Expected output: `"version": "X.Y.Z"` where X.Y.Z is the new version
+
+2. **Verify build file exists**:
+   ```bash
+   ls -la releases/
+   ```
+   Expected output: `synthetic-usage-tracker-X.Y.Z.vsix` file exists
+
+3. **Check git tag**:
+   ```bash
+   git tag -l
+   ```
+   Expected output: `vX.Y.Z` tag exists
+
+#### Update Process
+
+**Step 1: Move Unreleased section to version header**
+
+Take the entire "Unreleased" section (including all subsections like Added, Changed, Fixed) and move it to a new version header. The version header format is:
+
+```markdown
+## [X.Y.Z] - YYYY-MM-DD
+```
+
+Where:
+- `X.Y.Z` is the version number from package.json
+- `YYYY-MM-DD` is the current date (ISO 8601 format)
+
+**Step 2: Create new empty Unreleased section**
+
+After moving the previous Unreleased content, create a new empty Unreleased section at the top of the file:
+
+```markdown
+## Unreleased
+
+Nothing yet
+```
+
+**Step 3: Verify the changes**
+
+Ensure:
+- The new version header matches the git tag created during `npm run buildrelease`
+- The version number in the header matches the version in package.json
+- The date is correct (current date in ISO 8601 format)
+- The new Unreleased section is at the top with "Nothing yet"
+- No duplicate version headers exist
+
+#### Example
+
+**Before update**:
+```markdown
+## Unreleased
+
+### Added
+- New configuration option for custom thresholds
+
+### Changed
+- Improved error handling for API failures
+
+### Fixed
+- Fixed status bar not updating after configuration change
+
+## [1.0.12] - 2026-01-25
+...
+```
+
+**After update** (assuming version 1.0.13 released on 2026-01-25):
+```markdown
+## Unreleased
+
+Nothing yet
+
+## [1.0.13] - 2026-01-25
+
+### Added
+- New configuration option for custom thresholds
+
+### Changed
+- Improved error handling for API failures
+
+### Fixed
+- Fixed status bar not updating after configuration change
+
+## [1.0.12] - 2026-01-25
+...
+```
+
+#### Important Notes
+
+- **Timing**: Update the CHANGELOG only after `npm run buildrelease` completes successfully
+- **Version matching**: The version header must match the git tag (e.g., `v1.0.13` tag → `[1.0.13]` header)
+- **Date format**: Use ISO 8601 format (YYYY-MM-DD) for the date
+- **Placeholder**: Use "Nothing yet" as placeholder for the new empty Unreleased section
+- **Order**: Unreleased section should always be at the top, followed by version headers in descending order (newest first)
+
+#### Related Documentation
+
+For the full release workflow, see:
+- [Release Workflow](#release-workflow) section in Build Instructions
+- [CHANGELOG Workflow](#changelog-workflow) in Documentation Practices section
+
 ### Documentation Standards
 
 #### Clear and Professional
