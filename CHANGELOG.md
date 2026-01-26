@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+Nothing yet
+
+## [1.0.14] - 2026-01-26
+
 ### Added
 - Enhanced error handling for API key issues - clicking the status bar in an error state now prompts users to enter a new API key with contextual guidance
 - Error state tracking to distinguish between authentication errors and no subscription errors
