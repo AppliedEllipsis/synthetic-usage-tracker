@@ -1,8 +1,11 @@
 /**
  * Synthetic.new API quota response structure
+ *
+ * Design decision: subscription is optional to handle cases where API keys exist
+ * but have no active subscription (returns empty object {})
  */
 export interface QuotaResponse {
-  subscription: {
+  subscription?: {
     limit: number;
     requests: number;
     renewsAt: string;
@@ -29,6 +32,7 @@ export enum ApiErrorType {
   Authentication = "Authentication",
   RateLimit = "RateLimit",
   Server = "Server",
+  NoSubscription = "NoSubscription",
   Unknown = "Unknown",
 }
 
@@ -198,8 +202,19 @@ export class SyntheticService {
 
   /**
    * Parse quota response into usage information
+   *
+   * Design decision: Check for missing subscription data to handle API keys that
+   * exist but have no active subscription. The API returns an empty object {} in
+   * this case, which we detect and throw a specific error.
    */
   private parseQuotaResponse(data: QuotaResponse): UsageInfo {
+    if (!data.subscription) {
+      throw new ApiError(
+        ApiErrorType.NoSubscription,
+        "No subscription data detected. Please check your Synthetic.new account."
+      );
+    }
+
     const { limit, requests, renewsAt } = data.subscription;
     const remaining = Math.max(0, limit - requests);
     const percentageUsed = limit > 0 ? (requests / limit) * 100 : 0;
@@ -216,6 +231,10 @@ export class SyntheticService {
 
   /**
    * Execute fetch with retry logic using exponential backoff
+   *
+   * Design decision: Don't retry on authentication errors, no subscription errors, or
+   * the last attempt. This prevents wasting time on requests that will never succeed
+   * and provides faster feedback to users.
    */
   private async retryFetch<T>(fetchFn: () => Promise<T>): Promise<T> {
     let lastError: Error | undefined;
@@ -226,8 +245,13 @@ export class SyntheticService {
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
 
-        // Don't retry on authentication errors
+        // Don't retry on authentication errors - they won't succeed
         if (lastError instanceof ApiError && lastError.type === ApiErrorType.Authentication) {
+          throw lastError;
+        }
+
+        // Don't retry on no subscription errors - account state won't change
+        if (lastError instanceof ApiError && lastError.type === ApiErrorType.NoSubscription) {
           throw lastError;
         }
 
@@ -271,13 +295,19 @@ export class SyntheticService {
 
 /**
  * Create a user-friendly error message from API error
+ *
+ * Design decision: Provide clear, actionable error messages that guide users toward
+ * resolving the issue. Network errors specifically mention checking internet connection
+ * to help users distinguish between API issues vs local connectivity problems.
  */
 export function getErrorMessage(error: ApiError): string {
   switch (error.type) {
     case ApiErrorType.Network:
-      return "Network error. Please check your internet connection.";
+      return "Network error. Please check your internet connection and try again.";
     case ApiErrorType.Authentication:
       return "Invalid API key. Please configure a valid Synthetic.new API key.";
+    case ApiErrorType.NoSubscription:
+      return error.message || "No subscription data detected. Please check your Synthetic.new account.";
     case ApiErrorType.RateLimit:
       return "Rate limit exceeded. Please wait a moment before trying again.";
     case ApiErrorType.Server:

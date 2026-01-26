@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { ConfigurationManager } from "./config/configuration";
-import { SyntheticService } from "./api/syntheticService";
+import { SyntheticService, ApiError, ApiErrorType } from "./api/syntheticService";
 import { UsageIndicator } from "./statusBar/usageIndicator";
 
 /**
@@ -169,7 +169,21 @@ export class SyntheticUsageTrackerExtension {
     } catch (error) {
       console.error("Failed to fetch usage:", error);
       const message = error instanceof Error ? error.message : "Unknown error";
-      this.usageIndicator.setError(message);
+
+      // Map ApiErrorType to UsageIndicator error type strings
+      // Design rationale: This mapping enables contextual error handling when users click the status bar.
+      // Authentication and NoSubscription errors trigger API key re-entry prompts, while other errors
+      // show generic usage details. This provides a clear path for users to fix API key issues.
+      let errorType: "authentication" | "noSubscription" | "other" = "other";
+      if (error instanceof ApiError) {
+        if (error.type === ApiErrorType.Authentication) {
+          errorType = "authentication";
+        } else if (error.type === ApiErrorType.NoSubscription) {
+          errorType = "noSubscription";
+        }
+      }
+
+      this.usageIndicator.setError(message, errorType);
 
       const config = this.configManager.getConfig();
       if (config.enableNotifications) {
@@ -182,13 +196,18 @@ export class SyntheticUsageTrackerExtension {
 
   /**
    * Configure the API key
+   *
+   * Design decision: Accept an optional custom prompt message to provide contextual
+   * guidance when users are prompted to enter a new API key. This allows reusing
+   * the same configuration flow for different scenarios (e.g., initial setup vs.
+   * error recovery) with appropriate messaging for each case.
    */
-  private async configureApiKey(): Promise<void> {
+  private async configureApiKey(customPrompt?: string): Promise<void> {
     const currentApiKey = await this.configManager.getApiKey();
     const placeholder = currentApiKey || "syn_...";
 
     const input = await vscode.window.showInputBox({
-      prompt: "Enter your Synthetic.new API key",
+      prompt: customPrompt || "Enter your Synthetic.new API key",
       placeHolder: placeholder,
       password: true,
       validateInput: (value) => {
@@ -235,7 +254,9 @@ export class SyntheticUsageTrackerExtension {
 
     if (result === "Erase Key") {
       await this.configManager.deleteApiKey();
-      this.usageIndicator.setIdle();
+      // Design decision: Use setPleaseSetKey() instead of setIdle() to provide clear user guidance
+      // This displays "Please Set Key" message and properly clears all cached values
+      this.usageIndicator.setPleaseSetKey();
       this.usageIndicator.stopAutoRefresh();
       vscode.window.showInformationMessage("API key erased successfully");
     }
@@ -243,8 +264,22 @@ export class SyntheticUsageTrackerExtension {
 
   /**
    * Show usage details in a message box
+   *
+   * Design decision: Check error state before showing usage details. When the status bar
+   * is in an error state due to invalid API key or no subscription, prompt the user to
+   * enter a new API key instead of showing usage details. This provides a clear path
+   * for users to fix the issue and improves user experience by guiding them to the
+   * solution directly.
    */
   private async showUsageDetails(): Promise<void> {
+    // Check if status bar is in an error state due to authentication or no subscription
+    const errorType = this.usageIndicator.getErrorType();
+    if (errorType === "authentication" || errorType === "noSubscription") {
+      // Prompt user to enter a new API key with contextual message
+      await this.configureApiKey("Invalid API key or no active subscription. Please enter a valid API key.");
+      return;
+    }
+
     const usage = this.usageIndicator.getCurrentUsage();
     if (!usage) {
       vscode.window.showInformationMessage("No usage data available. Try refreshing.");

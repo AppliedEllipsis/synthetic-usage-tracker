@@ -31,6 +31,13 @@ export class UsageIndicator {
   private autoRefreshTimer: NodeJS.Timeout | null = null;
   private isAutoRefreshEnabled: boolean = true;
 
+  // Track error type to provide contextual guidance when status bar is clicked
+  // Design rationale: When users click the status bar in an error state, we need to
+  // know whether the error is due to an invalid key or no subscription to provide
+  // the appropriate prompt message. This tracking enables better user experience by
+  // offering targeted guidance for fixing the issue.
+  private errorType: "authentication" | "noSubscription" | "other" | null = null;
+
   // Cache to prevent unnecessary redraws
   // Design rationale: VS Code status bar updates can cause visual flickering
   // if done too frequently. Caching the last rendered values allows us to skip
@@ -87,7 +94,14 @@ export class UsageIndicator {
       this.displayState = DisplayState.Success;
     }
 
+    // Clear error type when successfully updating usage
+    this.errorType = null;
+
     this.updateStatusBarItem(usage, config);
+  }
+
+  getErrorType(): "authentication" | "noSubscription" | "other" | null {
+    return this.errorType;
   }
 
   /**
@@ -220,8 +234,10 @@ Limit: ${usage.limit.toLocaleString()}
     this.clearCache();
   }
 
-  setError(message: string): void {
+  setError(message: string, errorType?: "authentication" | "noSubscription" | "other"): void {
     this.displayState = DisplayState.Error;
+    // Track error type to provide contextual guidance when status bar is clicked
+    this.errorType = errorType || "other";
     // Using custom icon defined in package.json contributes.icons section
     this.statusBarItem.text = "$(synthetic-status-icon)";
     this.statusBarItem.backgroundColor = new vscode.ThemeColor(
@@ -235,6 +251,12 @@ Limit: ${usage.limit.toLocaleString()}
 
   setIdle(): void {
     this.displayState = DisplayState.Idle;
+    // Clear error type when transitioning to idle state
+    // Design rationale: When transitioning to idle, any previous error state
+    // is no longer relevant. Clearing the error type ensures that if the user
+    // clicks the status bar later, they get the standard configuration flow
+    // rather than an error-specific prompt.
+    this.errorType = null;
     // Using custom icon defined in package.json contributes.icons section
     this.statusBarItem.text = "$(synthetic-status-icon)";
     this.statusBarItem.backgroundColor = undefined;

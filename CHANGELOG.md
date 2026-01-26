@@ -7,7 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-Nothing yet
+### Added
+- Enhanced error handling for API key issues - clicking the status bar in an error state now prompts users to enter a new API key with contextual guidance
+- Error state tracking to distinguish between authentication errors and no subscription errors
+- Custom prompt messages for API key input when errors occur
+- New `NoSubscription` error type to handle accounts without subscription data
+- Clear "Please Set Key" message displayed when API key is erased, with full cache clearing
+
+### Fixed
+- Status bar now properly clears cache and displays "Please Set Key" after erasing API key
+- Improved Network error message to explicitly mention checking internet connection for better offline handling guidance
+- Fixed handling of empty API responses for accounts without subscription data - now displays "No subscription data detected. Please check your Synthetic.new account."
+- Retry logic now skips retries for NoSubscription errors since account state won't change
 
 ## [1.0.13] - 2026-01-25
 
