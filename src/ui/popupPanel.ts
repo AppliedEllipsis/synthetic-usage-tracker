@@ -1,44 +1,34 @@
 import * as vscode from "vscode";
 import type { UsageInfo } from "../api/syntheticService";
-import { type Model, type ModelChange, ModelChangeType } from "../api/modelService";
+import { type ModelData } from "../model/detailsPanel";
+import { type Model, type ModelChange } from "../api/modelService";
 
 /**
- * Data structure for model information passed to the webview
- *
- * Design decision: Export this interface to allow extension.ts to properly
- * structure model data when updating the panel. This ensures type safety
- * across the module boundary.
- */
-export interface ModelData {
-  models: Model[];
-  changes: ModelChange[];
-  lastUpdated: Date;
-}
-
-/**
- * Type for valid tabs in the details panel
+ * Type for valid tabs in the popup panel
  */
 type TabType = "usage" | "models";
 
 /**
- * Unified details panel showing both Usage and Models data
+ * Popup panel showing both Usage and Models data in a floating webview
  *
- * Design decision: This panel uses a tabbed interface to consolidate
- * related information (usage stats and model details) into a single view,
- * reducing window clutter while maintaining easy access to both data types.
+ * Design decision: This panel appears as a popup (not full window) to provide
+ * quick access to usage and model information without disrupting the user's
+ * workflow. The multi-pane layout allows viewing both usage and model data
+ * side-by-side or switching between tabs.
  *
  * The singleton pattern prevents duplicate panels from being created,
  * providing a consistent user experience.
  */
-export class DetailsPanel {
-  public static currentPanel: DetailsPanel | undefined;
-  public static readonly viewType = "syntheticUsageTracker.details";
+export class PopupPanel {
+  public static currentPanel: PopupPanel | undefined;
+  public static readonly viewType = "syntheticUsageTracker.popup";
 
   private readonly _panel: vscode.WebviewPanel;
   private _disposables: vscode.Disposable[] = [];
   private _usageData: UsageInfo | undefined;
   private _modelData: ModelData | undefined;
   private _activeTab: TabType = "usage";
+  private _viewMode: "tabs" | "split" = "tabs";
   private _onTabSwitchCallback?: (tab: TabType) => void;
 
   /**
@@ -53,7 +43,7 @@ export class DetailsPanel {
   }
 
   /**
-   * Create or show the details panel
+   * Create or show the popup panel
    *
    * Design decision: Static factory method enforces singleton pattern
    * and allows specifying which tab should be active when opening.
@@ -61,26 +51,22 @@ export class DetailsPanel {
   public static createOrShow(
     context: vscode.ExtensionContext,
     activeTab?: TabType,
-  ): DetailsPanel {
-    const column = vscode.window.activeTextEditor
-      ? vscode.window.activeTextEditor.viewColumn
-      : undefined;
-
+  ): PopupPanel {
     // If we already have a panel, show it and switch to requested tab
-    if (DetailsPanel.currentPanel) {
-      DetailsPanel.currentPanel._panel.reveal(column);
+    if (PopupPanel.currentPanel) {
+      PopupPanel.currentPanel._panel.reveal();
       if (activeTab) {
-        DetailsPanel.currentPanel._activeTab = activeTab;
-        DetailsPanel.currentPanel._update();
+        PopupPanel.currentPanel._activeTab = activeTab;
+        PopupPanel.currentPanel._update();
       }
-      return DetailsPanel.currentPanel;
+      return PopupPanel.currentPanel;
     }
 
     // Otherwise, create a new panel
     const panel = vscode.window.createWebviewPanel(
-      DetailsPanel.viewType,
+      PopupPanel.viewType,
       "Synthetic Usage Details",
-      column || vscode.ViewColumn.One,
+      vscode.ViewColumn.Beside, // Opens in a column next to the editor
       {
         enableScripts: true,
         retainContextWhenHidden: true,
@@ -90,12 +76,12 @@ export class DetailsPanel {
       },
     );
 
-    DetailsPanel.currentPanel = new DetailsPanel(
+    PopupPanel.currentPanel = new PopupPanel(
       panel,
       context.extensionUri,
       activeTab || "usage",
     );
-    return DetailsPanel.currentPanel;
+    return PopupPanel.currentPanel;
   }
 
   /**
@@ -129,6 +115,10 @@ export class DetailsPanel {
             // Notify callback to trigger data refresh when switching tabs
             this._onTabSwitchCallback?.(this._activeTab);
             return;
+          case "setViewMode":
+            this._viewMode = message.mode as "tabs" | "split";
+            this._update();
+            return;
         }
       },
       null,
@@ -137,18 +127,29 @@ export class DetailsPanel {
   }
 
   /**
-   * Update the panel with new data
+   * Update the panel with new usage data
    *
-   * Supports partial updates - only updates the data type that was provided
+   * Design decision: Separate methods for updating usage and model data
+   * allow for partial updates - only updating the data type that was provided.
    */
-  public update(usageData?: UsageInfo, modelData?: ModelData): void {
-    if (usageData) {
-      this._usageData = usageData;
-    }
-    if (modelData) {
-      this._modelData = modelData;
-    }
+  public updateUsage(usage: UsageInfo): void {
+    this._usageData = usage;
     this._update();
+  }
+
+  /**
+   * Update the panel with new model data
+   */
+  public updateModels(models: ModelData): void {
+    this._modelData = models;
+    this._update();
+  }
+
+  /**
+   * Hide the panel
+   */
+  public hide(): void {
+    this._panel.dispose();
   }
 
   /**
@@ -163,7 +164,7 @@ export class DetailsPanel {
    * Dispose of resources when panel is closed
    */
   public dispose(): void {
-    DetailsPanel.currentPanel = undefined;
+    PopupPanel.currentPanel = undefined;
 
     this._panel.dispose();
 
@@ -196,12 +197,19 @@ export class DetailsPanel {
     <div class="container">
         <div class="header">
             <h1>Synthetic.new Details</h1>
-            <button class="refresh-btn" onclick="refresh()">
-                <span class="codicon codicon-refresh"></span>
-                Refresh
-            </button>
+            <div class="header-actions">
+                <button class="view-mode-btn" onclick="setViewMode('${this._viewMode === 'tabs' ? 'split' : 'tabs'}')">
+                    <span class="codicon codicon-${this._viewMode === 'tabs' ? 'layout' : 'panel-bottom'}"></span>
+                    ${this._viewMode === 'tabs' ? 'Split View' : 'Tab View'}
+                </button>
+                <button class="refresh-btn" onclick="refresh()">
+                    <span class="codicon codicon-refresh"></span>
+                    Refresh
+                </button>
+            </div>
         </div>
         
+        ${this._viewMode === 'tabs' ? `
         <div class="tabs">
             <button class="tab-btn ${this._activeTab === "usage" ? "active" : ""}" onclick="switchTab('usage')">
                 <span class="codicon codicon-dashboard"></span>
@@ -221,6 +229,24 @@ export class DetailsPanel {
                 ${modelsHtml}
             </div>
         </div>
+        ` : `
+        <div class="split-view">
+            <div class="split-pane usage-pane">
+                <h2>
+                    <span class="codicon codicon-dashboard"></span>
+                    Usage
+                </h2>
+                ${usageHtml}
+            </div>
+            <div class="split-pane models-pane">
+                <h2>
+                    <span class="codicon codicon-symbol-class"></span>
+                    Models
+                </h2>
+                ${modelsHtml}
+            </div>
+        </div>
+        `}
     </div>
     
     <script>
@@ -232,6 +258,10 @@ export class DetailsPanel {
         
         function switchTab(tab) {
             vscode.postMessage({ command: 'switchTab', tab: tab });
+        }
+        
+        function setViewMode(mode) {
+            vscode.postMessage({ command: 'setViewMode', mode: mode });
         }
         
         // Handle escape key to close panel
@@ -256,68 +286,77 @@ export class DetailsPanel {
         
         body {
             font-family: var(--vscode-font-family);
-            padding: 20px;
+            padding: 16px;
             color: var(--vscode-foreground);
             background-color: var(--vscode-editor-background);
+            margin: 0;
+            overflow-x: hidden;
         }
         
         .container {
-            max-width: 800px;
-            margin: 0 auto;
+            max-width: 100%;
         }
         
         .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
             border-bottom: 1px solid var(--vscode-panel-border);
         }
         
         h1 {
             margin: 0;
-            font-size: 24px;
+            font-size: 18px;
             font-weight: 600;
             color: var(--vscode-foreground);
         }
         
         h2 {
-            margin: 0 0 15px 0;
-            font-size: 18px;
-            font-weight: 500;
+            margin: 0 0 12px 0;
+            font-size: 14px;
+            font-weight: 600;
             color: var(--vscode-foreground);
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
         
         h3 {
-            margin: 0 0 10px 0;
-            font-size: 14px;
+            margin: 0 0 8px 0;
+            font-size: 13px;
             font-weight: 600;
             color: var(--vscode-foreground);
         }
         
-        .refresh-btn {
+        .header-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .refresh-btn, .view-mode-btn {
             display: flex;
             align-items: center;
             gap: 6px;
-            padding: 8px 16px;
+            padding: 6px 12px;
             background: var(--vscode-button-background);
             color: var(--vscode-button-foreground);
             border: none;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 500;
         }
         
-        .refresh-btn:hover {
+        .refresh-btn:hover, .view-mode-btn:hover {
             background: var(--vscode-button-hoverBackground);
         }
         
         .tabs {
             display: flex;
-            gap: 4px;
-            margin-bottom: 20px;
+            gap: 0;
+            margin-bottom: 16px;
             border-bottom: 1px solid var(--vscode-panel-border);
         }
         
@@ -325,13 +364,13 @@ export class DetailsPanel {
             display: flex;
             align-items: center;
             gap: 6px;
-            padding: 10px 20px;
+            padding: 8px 16px;
             background: transparent;
             color: var(--vscode-foreground);
             border: none;
             border-bottom: 2px solid transparent;
             cursor: pointer;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 500;
             transition: all 0.2s;
         }
@@ -358,6 +397,32 @@ export class DetailsPanel {
             animation: fadeIn 0.3s ease;
         }
         
+        .split-view {
+            display: flex;
+            gap: 16px;
+            height: calc(100vh - 100px);
+            min-height: 400px;
+        }
+        
+        .split-pane {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 8px;
+        }
+        
+        .split-pane::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .split-pane::-webkit-scrollbar-track {
+            background: var(--vscode-editor-background);
+        }
+        
+        .split-pane::-webkit-scrollbar-thumb {
+            background: var(--vscode-scrollbarSlider-background);
+            border-radius: 4px;
+        }
+        
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
@@ -365,28 +430,28 @@ export class DetailsPanel {
         
         .codicon {
             font-family: "codicon";
-            font-size: 14px;
+            font-size: 13px;
         }
         
         .empty-state {
             text-align: center;
-            padding: 60px 20px;
+            padding: 40px 16px;
             color: var(--vscode-descriptionForeground);
         }
         
         .empty-state-icon {
-            font-size: 48px;
-            margin-bottom: 16px;
+            font-size: 40px;
+            margin-bottom: 12px;
             opacity: 0.5;
         }
         
         .empty-state-text {
-            font-size: 14px;
-            margin-bottom: 8px;
+            font-size: 13px;
+            margin-bottom: 6px;
         }
         
         .empty-state-subtext {
-            font-size: 12px;
+            font-size: 11px;
             opacity: 0.7;
         }
     `;
@@ -394,6 +459,9 @@ export class DetailsPanel {
 
   /**
    * Generate HTML for the Usage tab
+   *
+   * Design decision: Reuse the same visual design as the original DetailsPanel
+   * to maintain consistency and provide a familiar user experience.
    */
   private _getUsageHtml(): string {
     if (!this._usageData) {
@@ -489,7 +557,7 @@ export class DetailsPanel {
             
             .usage-header {
                 text-align: center;
-                margin-bottom: 30px;
+                margin-bottom: 20px;
             }
             
             .percentage-display {
@@ -499,29 +567,27 @@ export class DetailsPanel {
             }
             
             .percentage-value {
-                font-size: 72px;
+                font-size: 48px;
                 font-weight: 700;
                 line-height: 1;
             }
             
-            .percentage-symbol {
-                font-size: 36px;
-                font-weight: 600;
-            }
-            
-            .percentage-display.critical .percentage-value,
-            .percentage-display.critical .percentage-symbol {
+            .percentage-display.critical .percentage-value {
                 color: var(--vscode-testing-iconFailed);
             }
             
-            .percentage-display.warning .percentage-value,
-            .percentage-display.warning .percentage-symbol {
+            .percentage-display.warning .percentage-value {
                 color: var(--vscode-editorWarning-foreground);
             }
             
-            .percentage-display.normal .percentage-value,
-            .percentage-display.normal .percentage-symbol {
+            .percentage-display.normal .percentage-value {
                 color: var(--vscode-testing-iconPassed);
+            }
+            
+            .percentage-symbol {
+                font-size: 24px;
+                font-weight: 600;
+                color: var(--vscode-descriptionForeground);
             }
             
             .usage-label {
@@ -531,26 +597,27 @@ export class DetailsPanel {
             }
             
             .progress-section {
-                margin-bottom: 30px;
+                margin-bottom: 24px;
             }
             
             .progress-bar-bg {
-                height: 12px;
-                background: var(--vscode-scrollbarSlider-background);
-                border-radius: 6px;
+                height: 24px;
+                background: var(--vscode-progressBar-background);
+                border-radius: 12px;
                 overflow: hidden;
-                margin-bottom: 8px;
+                position: relative;
             }
             
             .progress-bar-fill {
                 height: 100%;
-                border-radius: 6px;
                 transition: width 0.5s ease;
+                border-radius: 12px;
             }
             
             .progress-labels {
                 display: flex;
                 justify-content: space-between;
+                margin-top: 6px;
                 font-size: 11px;
                 color: var(--vscode-descriptionForeground);
             }
@@ -558,42 +625,45 @@ export class DetailsPanel {
             .stats-grid {
                 display: grid;
                 grid-template-columns: repeat(3, 1fr);
-                gap: 16px;
-                margin-bottom: 30px;
+                gap: 12px;
+                margin-bottom: 24px;
             }
             
             .stat-card {
-                background: var(--vscode-editor-inactiveSelectionBackground);
-                padding: 20px;
+                background: var(--vscode-editor-background);
+                border: 1px solid var(--vscode-panel-border);
                 border-radius: 8px;
+                padding: 16px;
                 text-align: center;
             }
             
             .stat-value {
-                font-size: 24px;
-                font-weight: 700;
+                font-size: 20px;
+                font-weight: 600;
                 color: var(--vscode-foreground);
                 margin-bottom: 4px;
             }
             
             .stat-label {
-                font-size: 12px;
+                font-size: 11px;
                 color: var(--vscode-descriptionForeground);
             }
             
             .renewal-section {
-                background: var(--vscode-editor-inactiveSelectionBackground);
-                padding: 20px;
+                background: var(--vscode-editor-background);
+                border: 1px solid var(--vscode-panel-border);
                 border-radius: 8px;
-                margin-bottom: 20px;
+                padding: 16px;
+                margin-bottom: 16px;
             }
             
             .renewal-info, .time-remaining {
                 display: flex;
                 align-items: center;
-                gap: 10px;
-                font-size: 14px;
-                margin-bottom: 10px;
+                gap: 8px;
+                font-size: 13px;
+                color: var(--vscode-foreground);
+                margin-bottom: 8px;
             }
             
             .renewal-info:last-child, .time-remaining:last-child {
@@ -603,23 +673,22 @@ export class DetailsPanel {
             .alert {
                 display: flex;
                 align-items: center;
-                gap: 10px;
-                padding: 16px;
+                gap: 8px;
+                padding: 12px 16px;
                 border-radius: 6px;
-                font-size: 14px;
-                font-weight: 500;
+                font-size: 13px;
             }
             
             .alert.critical {
-                background: var(--vscode-inputValidation-errorBackground);
+                background: rgba(255, 0, 0, 0.1);
+                border: 1px solid var(--vscode-testing-iconFailed);
                 color: var(--vscode-testing-iconFailed);
-                border: 1px solid var(--vscode-inputValidation-errorBorder);
             }
             
             .alert.warning {
-                background: var(--vscode-inputValidation-warningBackground);
+                background: rgba(255, 165, 0, 0.1);
+                border: 1px solid var(--vscode-editorWarning-foreground);
                 color: var(--vscode-editorWarning-foreground);
-                border: 1px solid var(--vscode-inputValidation-warningBorder);
             }
         </style>
     `;
@@ -627,6 +696,9 @@ export class DetailsPanel {
 
   /**
    * Generate HTML for the Models tab
+   *
+   * Design decision: Reuse the same visual design as the original DetailsPanel
+   * to maintain consistency and provide a familiar user experience.
    */
   private _getModelsHtml(): string {
     if (!this._modelData) {
@@ -639,61 +711,27 @@ export class DetailsPanel {
       `;
     }
 
-    const { models, changes, lastUpdated } = this._modelData;
-
-    // Group models by provider
-    const modelsByProvider = this._groupModelsByProvider(models);
+    const { models, changes } = this._modelData;
 
     return `
         <div class="models-container">
-            <div class="last-updated">
-                Last updated: ${this._formatDate(lastUpdated)}
+            <div class="changes-section">
+                <h3>Recent Changes</h3>
+                ${changes.length === 0 ? `
+                    <div class="no-changes">No recent changes</div>
+                ` : `
+                    <div class="changes-list">
+                        ${changes.map((change) => this._renderChange(change)).join('')}
+                    </div>
+                `}
             </div>
             
             <div class="models-section">
-                <h2>Available Models</h2>
-                ${Object.entries(modelsByProvider)
-                  .map(
-                    ([provider, providerModels]) => `
-                    <div class="provider-group">
-                        <h3>${this._escapeHtml(provider)}</h3>
-                        <div class="models-grid">
-                            ${providerModels
-                              .map(
-                                (model) => `
-                                <div class="model-card">
-                                    <div class="model-name">${this._escapeHtml(model.name)}</div>
-                                    <div class="model-id">${this._escapeHtml(model.id)}</div>
-                                    ${model.contextLength ? `<div class="model-context">Context: ${model.contextLength.toLocaleString()} tokens</div>` : ""}
-                                </div>
-                            `,
-                              )
-                              .join("")}
-                        </div>
-                    </div>
-                `,
-                  )
-                  .join("")}
-            </div>
-            
-            ${changes.length > 0 ? `
-                <div class="changes-section">
-                    <h2>Recent Changes</h2>
-                    <div class="changes-timeline">
-                        ${changes
-                          .map(
-                            (change) => `
-                            <div class="change-item">
-                                <div class="change-date">${this._formatDate(new Date(change.timestamp))}</div>
-                                <div class="change-type ${change.type}">${change.type}</div>
-                                <div class="change-description">${this._formatChangeDetails(change)}</div>
-                            </div>
-                        `,
-                          )
-                          .join("")}
-                    </div>
+                <h3>Available Models (${models.length})</h3>
+                <div class="models-list">
+                    ${models.map((model) => this._renderModel(model)).join('')}
                 </div>
-            ` : ""}
+            </div>
         </div>
         
         <style>
@@ -701,152 +739,160 @@ export class DetailsPanel {
                 animation: fadeIn 0.3s ease;
             }
             
-            .last-updated {
-                text-align: right;
-                font-size: 12px;
-                color: var(--vscode-descriptionForeground);
+            .changes-section, .models-section {
                 margin-bottom: 20px;
             }
             
-            .models-section {
-                margin-bottom: 30px;
-            }
-            
-            .provider-group {
-                margin-bottom: 24px;
-            }
-            
-            .provider-group h3 {
-                color: var(--vscode-focusBorder);
-                margin-bottom: 12px;
-                padding-bottom: 8px;
-                border-bottom: 1px solid var(--vscode-panel-border);
-            }
-            
-            .models-grid {
-                display: grid;
-                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-                gap: 12px;
-            }
-            
-            .model-card {
-                background: var(--vscode-editor-inactiveSelectionBackground);
-                padding: 12px;
-                border-radius: 6px;
-                border: 1px solid var(--vscode-panel-border);
-            }
-            
-            .model-name {
-                font-weight: 600;
+            .no-changes {
+                padding: 20px;
+                text-align: center;
+                color: var(--vscode-descriptionForeground);
                 font-size: 13px;
-                margin-bottom: 4px;
+                background: var(--vscode-editor-background);
+                border: 1px solid var(--vscode-panel-border);
+                border-radius: 6px;
             }
             
-            .model-id {
-                font-size: 11px;
-                color: var(--vscode-descriptionForeground);
-                font-family: monospace;
-                margin-bottom: 4px;
-            }
-            
-            .model-context {
-                font-size: 11px;
-                color: var(--vscode-descriptionForeground);
-            }
-            
-            .changes-section {
-                margin-top: 30px;
-            }
-            
-            .changes-timeline {
+            .changes-list {
                 display: flex;
                 flex-direction: column;
-                gap: 12px;
+                gap: 8px;
             }
             
-            .change-item {
+            .models-list {
                 display: flex;
-                align-items: center;
-                gap: 12px;
-                padding: 12px;
-                background: var(--vscode-editor-inactiveSelectionBackground);
-                border-radius: 6px;
-                border-left: 3px solid var(--vscode-panel-border);
+                flex-direction: column;
+                gap: 8px;
+                max-height: 400px;
+                overflow-y: auto;
             }
             
-            .change-date {
-                font-size: 12px;
-                color: var(--vscode-descriptionForeground);
-                min-width: 100px;
+            .models-list::-webkit-scrollbar {
+                width: 6px;
             }
             
-            .change-type {
-                font-size: 10px;
-                font-weight: 600;
-                text-transform: uppercase;
-                padding: 2px 8px;
-                border-radius: 4px;
-                min-width: 60px;
-                text-align: center;
+            .models-list::-webkit-scrollbar-track {
+                background: var(--vscode-editor-background);
             }
             
-            .change-type.added {
-                background: var(--vscode-testing-iconPassed);
-                color: white;
-            }
-            
-            .change-type.removed {
-                background: var(--vscode-testing-iconFailed);
-                color: white;
-            }
-            
-            .change-type.updated {
-                background: var(--vscode-editorWarning-foreground);
-                color: black;
-            }
-            
-            .change-description {
-                flex: 1;
-                font-size: 13px;
+            .models-list::-webkit-scrollbar-thumb {
+                background: var(--vscode-scrollbarSlider-background);
+                border-radius: 3px;
             }
         </style>
     `;
   }
 
   /**
-   * Group models by their provider
+   * Render a single model change
    */
-  private _groupModelsByProvider(models: Model[]): Record<string, Model[]> {
-    return models.reduce(
-      (groups, model) => {
-        const provider = model.provider || "Other";
-        if (!groups[provider]) {
-          groups[provider] = [];
+  private _renderChange(change: ModelChange): string {
+    const changeIcon = change.type === "added" ? "add" : 
+                      change.type === "removed" ? "remove" : "edit";
+    
+    return `
+      <div class="change-item">
+        <span class="codicon codicon-${changeIcon}"></span>
+        <div class="change-details">
+            <div class="change-name">${change.modelName}</div>
+            <div class="change-time">${this._formatDate(new Date(change.timestamp))}</div>
+        </div>
+      </div>
+      <style>
+        .change-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: var(--vscode-editor-background);
+            border: 1px solid var(--vscode-panel-border);
+            border-radius: 6px;
         }
-        groups[provider].push(model);
-        return groups;
-      },
-      {} as Record<string, Model[]>,
-    );
+        
+        .change-details {
+            flex: 1;
+        }
+        
+        .change-name {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--vscode-foreground);
+            margin-bottom: 4px;
+        }
+        
+        .change-time {
+            font-size: 11px;
+            color: var(--vscode-descriptionForeground);
+        }
+      </style>
+    `;
   }
 
   /**
-   * Calculate human-readable time remaining until a date
+   * Render a single model
    */
-  private _calculateTimeRemaining(renewsAt: Date): string {
+  private _renderModel(model: Model): string {
+    return `
+      <div class="model-item">
+        <div class="model-header">
+            <span class="model-name">${model.name}</span>
+            <span class="codicon codicon-chevron-right"></span>
+        </div>
+        <div class="model-description">${model.description || 'No description available'}</div>
+      </div>
+      <style>
+        .model-item {
+            padding: 12px;
+            background: var(--vscode-editor-background);
+            border: 1px solid var(--vscode-panel-border);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .model-item:hover {
+            background: var(--vscode-list-hoverBackground);
+        }
+        
+        .model-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+        
+        .model-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--vscode-foreground);
+        }
+        
+        .model-description {
+            font-size: 12px;
+            color: var(--vscode-descriptionForeground);
+            line-height: 1.4;
+        }
+      </style>
+    `;
+  }
+
+  /**
+   * Calculate time remaining until a given date
+   */
+  private _calculateTimeRemaining(date: Date): string {
     const now = new Date();
-    const diff = renewsAt.getTime() - now.getTime();
-
+    const diff = date.getTime() - now.getTime();
+    
     if (diff <= 0) {
-      return "Renewal overdue";
+      return "Renewed";
     }
-
+    
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
     const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-
+    
     if (days > 0) {
-      return `${days}d ${hours}h ${minutes}m`;
+      return `${days}d ${hours}h`;
     } else if (hours > 0) {
       return `${hours}h ${minutes}m`;
     } else {
@@ -858,58 +904,12 @@ export class DetailsPanel {
    * Format a date for display
    */
   private _formatDate(date: Date): string {
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
     });
-  }
-
-  /**
-   * Format change details for display
-   * Generates a human-readable description from the change details
-   */
-  private _formatChangeDetails(change: ModelChange): string {
-    const { details, type } = change;
-
-    switch (type) {
-      case ModelChangeType.Added:
-        return "New model added to the API";
-      case ModelChangeType.Removed:
-        return "Model removed from the API";
-      case ModelChangeType.PricingChanged:
-        return "Pricing updated";
-      case ModelChangeType.FeaturesChanged: {
-        if (details.differences && details.differences.length > 0) {
-          return `Features changed: ${details.differences.join(", ")}`;
-        }
-        return "Features modified";
-      }
-      case ModelChangeType.ProviderChanged:
-        return "Provider changed";
-      case ModelChangeType.AlwaysOnChanged:
-        return "Always-on status changed";
-      case ModelChangeType.ContextLengthChanged:
-        return "Context length modified";
-      case ModelChangeType.QuantizationChanged:
-        return "Quantization settings updated";
-      default:
-        return "Model properties modified";
-    }
-  }
-
-  /**
-   * Escape HTML special characters to prevent XSS
-   */
-  private _escapeHtml(text: string): string {
-    if (!text) return "";
-    return text
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
   }
 }

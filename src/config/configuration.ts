@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { ApiKeyManager } from "./apiKeyManager";
 
 /**
  * Configuration keys for the Synthetic Usage Tracker extension
@@ -31,6 +32,9 @@ const SHARED_STATE_KEYS = {
  * Design decision: Separate configuration concerns from business logic.
  * This class provides a clean interface for accessing settings and
  * manages both workspace configuration and secure secret storage.
+ *
+ * The ApiKeyManager is now used for multi-profile API key management,
+ * replacing the previous single-key storage approach.
  */
 export class ConfigurationManager {
   private context: vscode.ExtensionContext;
@@ -38,8 +42,19 @@ export class ConfigurationManager {
   private onConfigChangeCallback?: () => void;
   private onKeysRefreshedCallback?: () => void;
 
+  /**
+   * API Key Manager for multi-profile API key management
+   *
+   * Design decision: The ApiKeyManager is instantiated in the constructor
+   * and exposed via getApiKeyManager(). This allows the extension to manage
+   * multiple API key profiles while maintaining backward compatibility with
+   * the legacy single-key methods.
+   */
+  private apiKeyManager: ApiKeyManager;
+
   constructor(context: vscode.ExtensionContext) {
     this.context = context;
+    this.apiKeyManager = new ApiKeyManager(context);
     // Start watching configuration changes immediately in constructor
     // This ensures we don't miss any changes that occur before the first access
     this.configChangeDisposable = this.watchConfigurationChanges();
@@ -73,49 +88,6 @@ export class ConfigurationManager {
     };
   }
 
-  async getApiKey(): Promise<string | undefined> {
-    // First try new format (array of keys with labels)
-    // This supports future multi-key functionality
-    const keysJson = await this.context.secrets.get("syntheticApiKeys");
-    if (keysJson) {
-      try {
-        const keys = JSON.parse(keysJson) as Array<{ key: string; label?: string }>;
-        if (Array.isArray(keys) && keys.length > 0) {
-          return keys[0]?.key;
-        }
-      } catch {
-        // Silent fallthrough to legacy format - ignore JSON parse errors
-        // as they might be caused by data migration issues
-      }
-    }
-    
-    // Fallback to legacy single-key format for backward compatibility
-    // Existing users won't lose their keys during extension updates
-    const legacyKey = await this.context.secrets.get("syntheticApiKey");
-    if (legacyKey) {
-      return legacyKey;
-    }
-    
-    return undefined;
-  }
-
-  async setApiKey(apiKey: string): Promise<void> {
-    await this.context.secrets.store("syntheticApiKey", apiKey);
-    await this.context.secrets.delete("syntheticApiKeys");
-    await this.updateKeysTimestamp();
-  }
-
-  async hasApiKey(): Promise<boolean> {
-    const apiKey = await this.getApiKey();
-    return apiKey !== undefined && apiKey.length > 0;
-  }
-
-  async deleteApiKey(): Promise<void> {
-    await this.context.secrets.delete("syntheticApiKey");
-    await this.context.secrets.delete("syntheticApiKeys");
-    await this.updateKeysTimestamp();
-  }
-
   private watchConfigurationChanges(): vscode.Disposable {
     return vscode.workspace.onDidChangeConfiguration((event) => {
       if (event.affectsConfiguration("syntheticUsageTracker")) {
@@ -130,15 +102,6 @@ export class ConfigurationManager {
 
   onKeysRefreshed(callback: () => void): void {
     this.onKeysRefreshedCallback = callback;
-  }
-
-  /**
-   * Update the shared state timestamp to signal that keys have changed
-   * This allows other VS Code windows to detect the change
-   */
-  private async updateKeysTimestamp(): Promise<void> {
-    const timestamp = Date.now();
-    await this.context.globalState.update(SHARED_STATE_KEYS.KEY_UPDATE_TIMESTAMP, timestamp);
   }
 
   async getKeysTimestamp(): Promise<number> {
@@ -195,5 +158,53 @@ export class ConfigurationManager {
 
   dispose(): void {
     this.configChangeDisposable.dispose();
+    this.apiKeyManager.dispose();
+  }
+
+  /**
+   * Get the API Key Manager instance
+   *
+   * Design decision: Expose the ApiKeyManager to allow the extension to access
+   * multi-profile API key management functionality. This provides a clean
+   * separation of concerns while maintaining backward compatibility.
+   */
+  getApiKeyManager(): ApiKeyManager {
+    return this.apiKeyManager;
+  }
+
+  /**
+   * Get the active API key from the currently active profile
+   *
+   * @deprecated Use getApiKeyManager().getActiveProfile() instead
+   * This method is maintained for backward compatibility but delegates
+   * to the new ApiKeyManager for multi-profile support.
+   */
+  async getApiKey(): Promise<string | undefined> {
+    const activeProfile = await this.apiKeyManager.getActiveProfile();
+    return activeProfile?.key;
+  }
+
+  /**
+   * Check if an API key is configured
+   *
+   * @deprecated Use getApiKeyManager().getActiveProfile() instead
+   * This method is maintained for backward compatibility.
+   */
+  async hasApiKey(): Promise<boolean> {
+    const profiles = await this.apiKeyManager.getProfiles();
+    return profiles.length > 0;
+  }
+
+  /**
+   * Set a new API key as a profile
+   *
+   * @deprecated Use getApiKeyManager().addProfile() instead
+   * This method is maintained for backward compatibility and creates
+   * a new profile with the provided key.
+   */
+  async setApiKey(apiKey: string): Promise<void> {
+    const profiles = await this.apiKeyManager.getProfiles();
+    const profileLabel = profiles.length === 0 ? "Default" : `API Key ${profiles.length + 1}`;
+    await this.apiKeyManager.addProfile(apiKey, profileLabel);
   }
 }

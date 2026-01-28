@@ -157,21 +157,6 @@
         "command": "syntheticUsageTracker.subscribeWithDiscount",
         "title": "Subscribe with Discount",
         "category": "Synthetic Usage Tracker"
-      },
-      {
-        "command": "syntheticUsageTracker.showModels",
-        "title": "Show Model Details",
-        "category": "Synthetic Usage Tracker"
-      },
-      {
-        "command": "syntheticUsageTracker.checkModelUpdates",
-        "title": "Check Model Updates",
-        "category": "Synthetic Usage Tracker"
-      },
-      {
-        "command": "syntheticUsageTracker.clearModelChanges",
-        "title": "Clear Model Change History",
-        "category": "Synthetic Usage Tracker"
       }
     ],
     "icons": {

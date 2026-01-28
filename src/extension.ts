@@ -5,7 +5,7 @@ import { UsageIndicator } from "./statusBar/usageIndicator";
 import { ModelManager, ModelUpdateResult } from "./model/modelManager";
 import { ModelIndicator } from "./model/modelIndicator";
 import { DetailsPanel } from "./model/detailsPanel";
-import { Model } from "./api/modelService";
+import type { ModelData } from "./model/detailsPanel";
 
 /**
  * Main extension class
@@ -28,12 +28,18 @@ export class SyntheticUsageTrackerExtension {
   private sharedStateWatcherDisposable: vscode.Disposable | null = null;
   // Watcher for cross-window model updates
   private modelStateWatcherDisposable: vscode.Disposable | null = null;
+  // Auto-refresh timer for model data
+  // Design decision: Separate timer from usage data because models change less frequently
+  // and use a different refresh interval. This allows independent refresh cycles.
+  private modelAutoRefreshTimer: NodeJS.Timeout | null = null;
   // Cache for the most recent usage data to display in details panel
   // Design decision: Store data in extension to bridge between API service and webview panel
   // The panel is recreated on demand, so we need to persist data between show() calls
   private currentUsageData: UsageInfo | undefined;
   // Cache for the most recent model data to display in details panel
-  private currentModelData: Model[] | undefined;
+  // Design decision: Store model data in a ModelData wrapper to match the expected type
+  // for panel.update(). This avoids type mismatches when passing data to the panel.
+  private currentModelData: ModelData | undefined;
 
   constructor(private context: vscode.ExtensionContext) {
     this.configManager = new ConfigurationManager(context);
@@ -111,6 +117,12 @@ export class SyntheticUsageTrackerExtension {
       config.refreshInterval,
       () => this.refreshUsage(),
     );
+    // Start model auto-refresh if model tracking is enabled
+    // Design decision: Separate timer from usage data because models change less frequently
+    // and use a different refresh interval. This allows independent refresh cycles.
+    if (config.enableModelTracking) {
+      this.startModelAutoRefresh(config.modelCheckInterval);
+    }
   }
 
   /**
@@ -309,12 +321,23 @@ export class SyntheticUsageTrackerExtension {
     );
 
     if (result === "Erase Key") {
-      await this.configManager.deleteApiKey();
-      // Design decision: Use setPleaseSetKey() instead of setIdle() to provide clear user guidance
-      // This displays "Please Set Key" message and properly clears all cached values
-      this.usageIndicator.setPleaseSetKey();
-      this.usageIndicator.stopAutoRefresh();
-      vscode.window.showInformationMessage("API key erased successfully");
+      try {
+        const apiKeyManager = this.configManager.getApiKeyManager();
+        const activeProfile = await apiKeyManager.getActiveProfile();
+        
+        if (activeProfile) {
+          await apiKeyManager.deleteProfile(activeProfile.id);
+        }
+        
+        // Design decision: Use setPleaseSetKey() instead of setIdle() to provide clear user guidance
+        // This displays "Please Set Key" message and properly clears all cached values
+        this.usageIndicator.setPleaseSetKey();
+        this.usageIndicator.stopAutoRefresh();
+        vscode.window.showInformationMessage("API key erased successfully");
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unknown error";
+        vscode.window.showErrorMessage(`Failed to erase API key: ${message}`);
+      }
     }
   }
 
@@ -414,8 +437,15 @@ export class SyntheticUsageTrackerExtension {
 
       const result = await this.modelManager.fetchAndUpdateModels(apiKey);
 
-      // Store model data for display in details panel
-      this.currentModelData = result.models;
+      // Store complete model data including changes and timestamp
+      // Design decision: Include all ModelData properties (models, changes, lastUpdated)
+      // to match the interface expected by DetailsPanel.update(). The ModelManager already
+      // provides changes detection, so we use it directly rather than reimplementing.
+      this.currentModelData = {
+        models: result.models,
+        changes: result.changes,
+        lastUpdated: new Date(),
+      };
 
       // Update indicator based on result
       if (result.hasChanges && !result.isFirstFetch) {
@@ -437,8 +467,8 @@ export class SyntheticUsageTrackerExtension {
 
       // Update details panel if it's open with models tab
       // Design decision: Panel is updated after indicator to ensure data consistency
-      if (DetailsPanel.currentPanel) {
-        DetailsPanel.currentPanel.update(undefined, result.models);
+      if (DetailsPanel.currentPanel && this.currentModelData) {
+        DetailsPanel.currentPanel.update(undefined, this.currentModelData);
       }
     } catch (error) {
       console.error("Failed to fetch models:", error);
@@ -509,9 +539,44 @@ export class SyntheticUsageTrackerExtension {
   }
 
   /**
+   * Start auto-refresh for model data
+   *
+   * Design decision: Separate timer from usage data because models change less frequently
+   * and use a different refresh interval. This allows independent refresh cycles.
+   */
+  private startModelAutoRefresh(intervalMinutes: number): void {
+    this.stopModelAutoRefresh(); // Clear existing timer first
+
+    // Convert minutes to milliseconds for setInterval
+    const intervalMs = intervalMinutes * 60 * 1000;
+
+    this.modelAutoRefreshTimer = setInterval(() => {
+      this.refreshModels();
+    }, intervalMs);
+  }
+
+  /**
+   * Stop auto-refresh for model data
+   *
+   * Design decision: Clear timer to prevent memory leaks and unnecessary API calls
+   * when the extension is deactivated or model tracking is disabled.
+   */
+  private stopModelAutoRefresh(): void {
+    if (this.modelAutoRefreshTimer) {
+      clearInterval(this.modelAutoRefreshTimer);
+      this.modelAutoRefreshTimer = null;
+    }
+  }
+
+  /**
    * Deactivate the extension
+   *
+   * Design decision: Stop model auto-refresh before disposing model indicator to prevent
+   * memory leaks and unnecessary API calls. Timers must be cleared before their callbacks
+   * are disposed to avoid accessing disposed resources.
    */
   deactivate(): void {
+    this.stopModelAutoRefresh(); // Clear model auto-refresh timer
     this.usageIndicator.dispose();
     this.configManager.dispose();
     this.sharedStateWatcherDisposable?.dispose();
