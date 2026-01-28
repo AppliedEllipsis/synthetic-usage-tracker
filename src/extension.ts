@@ -4,7 +4,8 @@ import { SyntheticService, ApiError, ApiErrorType, UsageInfo } from "./api/synth
 import { UsageIndicator } from "./statusBar/usageIndicator";
 import { ModelManager, ModelUpdateResult } from "./model/modelManager";
 import { ModelIndicator } from "./model/modelIndicator";
-import { DetailsPanel } from "./model/detailsPanel";
+import { PopupPanel } from "./ui/popupPanel";
+import { ApiKeyManagerPanel } from "./ui/apiKeyManagerPanel";
 import type { ModelData } from "./model/detailsPanel";
 
 /**
@@ -20,6 +21,12 @@ export class SyntheticUsageTrackerExtension {
   // consuming excessive status bar real estate
   private modelManager: ModelManager;
   private modelIndicator: ModelIndicator;
+  // Multi-pane popup panel for displaying usage and model information
+  // Design decision: Replaces DetailsPanel with a popup that appears as a modal overlay
+  // instead of opening in a new window. This provides a more integrated user experience.
+  // Note: PopupPanel uses static factory pattern with singleton, so we store reference
+  // to the current panel for updating data, but creation is done via PopupPanel.createOrShow()
+  private popupPanel: PopupPanel | null = null;
   // Track initialization state to prevent race conditions during early lifecycle events
   private isInitialized: boolean = false;
   // Prevent concurrent API requests that could lead to stale data or unnecessary load
@@ -32,11 +39,11 @@ export class SyntheticUsageTrackerExtension {
   // Design decision: Separate timer from usage data because models change less frequently
   // and use a different refresh interval. This allows independent refresh cycles.
   private modelAutoRefreshTimer: NodeJS.Timeout | null = null;
-  // Cache for the most recent usage data to display in details panel
+  // Cache for the most recent usage data to display in popup panel
   // Design decision: Store data in extension to bridge between API service and webview panel
   // The panel is recreated on demand, so we need to persist data between show() calls
   private currentUsageData: UsageInfo | undefined;
-  // Cache for the most recent model data to display in details panel
+  // Cache for the most recent model data to display in popup panel
   // Design decision: Store model data in a ModelData wrapper to match the expected type
   // for panel.update(). This avoids type mismatches when passing data to the panel.
   private currentModelData: ModelData | undefined;
@@ -46,6 +53,11 @@ export class SyntheticUsageTrackerExtension {
     this.usageIndicator = new UsageIndicator(context);
     this.modelManager = new ModelManager(context);
     this.modelIndicator = new ModelIndicator(context);
+    // Initialize panels - created on demand but stored for reuse
+    // Design decision: Panels are created lazily when first shown to avoid
+    // unnecessary resource allocation. The panels are then reused on subsequent
+    // shows to maintain state and improve performance.
+    this.popupPanel = null;
 
     // Register callbacks early in constructor to ensure we catch all configuration changes,
     // including those that might occur before activation completes
@@ -189,6 +201,31 @@ export class SyntheticUsageTrackerExtension {
       () => this.clearModelChanges(),
     );
     this.context.subscriptions.push(clearModelChangesCommand);
+
+    // API key management commands for multi-profile support
+    const manageApiKeysCommand = vscode.commands.registerCommand(
+      "syntheticUsageTracker.manageApiKeys",
+      () => this.manageApiKeys(),
+    );
+    this.context.subscriptions.push(manageApiKeysCommand);
+
+    const cycleApiKeyCommand = vscode.commands.registerCommand(
+      "syntheticUsageTracker.cycleApiKey",
+      () => this.cycleApiKey(),
+    );
+    this.context.subscriptions.push(cycleApiKeyCommand);
+
+    const addApiKeyCommand = vscode.commands.registerCommand(
+      "syntheticUsageTracker.addApiKey",
+      () => this.addApiKey(),
+    );
+    this.context.subscriptions.push(addApiKeyCommand);
+
+    const deleteApiKeyCommand = vscode.commands.registerCommand(
+      "syntheticUsageTracker.deleteApiKey",
+      () => this.deleteApiKey(),
+    );
+    this.context.subscriptions.push(deleteApiKeyCommand);
   }
 
   /**
@@ -228,11 +265,11 @@ export class SyntheticUsageTrackerExtension {
         enableNotifications: config.enableNotifications,
       });
 
-      // Update details panel if it's open
+      // Update popup panel if it's open
       // Design decision: Panel is updated after status bar to ensure data consistency
       // If panel doesn't exist, we skip this step (panel will get data when created)
-      if (DetailsPanel.currentPanel) {
-        DetailsPanel.currentPanel.update(usage);
+      if (this.popupPanel) {
+        this.popupPanel.updateUsage(usage);
       }
     } catch (error) {
       console.error("Failed to fetch usage:", error);
@@ -345,12 +382,12 @@ export class SyntheticUsageTrackerExtension {
    * Show usage details in the unified details panel
    */
   private async showUsageDetails(): Promise<void> {
-    // Design decision: Pass cached usage data when opening panel
-    // If no data exists yet (first open before refresh), panel shows loading state
-    // The panel will be updated automatically when refresh completes
-    const panel = DetailsPanel.createOrShow(this.context, "usage");
+    // Design decision: Use PopupPanel's static factory method to create or show panel
+    // The singleton pattern prevents duplicate panels and ensures consistent UX
+    // Panel will show cached usage data if available, or loading state otherwise
+    this.popupPanel = PopupPanel.createOrShow(this.context, "usage");
     if (this.currentUsageData) {
-      panel.update(this.currentUsageData);
+      this.popupPanel.updateUsage(this.currentUsageData);
     }
   }
 
@@ -377,6 +414,152 @@ export class SyntheticUsageTrackerExtension {
    */
   private subscribeWithDiscount(): void {
     vscode.env.openExternal(vscode.Uri.parse("https://synthetic.new/?referral=4JZcLOKgRmZ4o6k"));
+  }
+
+  /**
+   * Manage API keys - opens the API key manager panel
+   */
+  private async manageApiKeys(): Promise<void> {
+    // Design decision: Use static factory method to create or show the panel
+    // The singleton pattern prevents duplicate panels and ensures consistent UX
+    // Note: ApiKeyManagerPanel manages its own singleton instance internally
+    const apiKeyManager = this.configManager.getApiKeyManager();
+    ApiKeyManagerPanel.createOrShow(this.context.extensionUri, apiKeyManager);
+  }
+
+  /**
+   * Cycle API key - switch to the next profile
+   */
+  private async cycleApiKey(): Promise<void> {
+    try {
+      const apiKeyManager = this.configManager.getApiKeyManager();
+      const newActiveProfile = await apiKeyManager.cycleProfiles();
+
+      if (newActiveProfile) {
+        await this.refreshUsage();
+        const config = this.configManager.getConfig();
+        if (config.enableNotifications) {
+          vscode.window.showInformationMessage(
+            `Switched to profile: ${newActiveProfile.label}`,
+          );
+        }
+      } else {
+        vscode.window.showWarningMessage(
+          "No API key profiles configured. Please add an API key first.",
+        );
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      vscode.window.showErrorMessage(`Failed to cycle API key: ${message}`);
+    }
+  }
+
+  /**
+   * Add API key - prompt user to add a new API key
+   */
+  private async addApiKey(): Promise<void> {
+    try {
+      const apiKeyManager = this.configManager.getApiKeyManager();
+      const profiles = await apiKeyManager.getProfiles();
+
+      // Generate default label based on existing profile count
+      const defaultLabel = `Profile ${profiles.length + 1}`;
+
+      const label = await vscode.window.showInputBox({
+        prompt: "Enter a label for this API key",
+        placeHolder: defaultLabel,
+        validateInput: (value) => {
+          if (!value || value.trim().length === 0) {
+            return "Label cannot be empty";
+          }
+          return null;
+        },
+      });
+
+      if (!label) {
+        return; // User cancelled
+      }
+
+      const placeholder = "syn_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+      const input = await vscode.window.showInputBox({
+        prompt: "Enter your Synthetic.new API key",
+        placeHolder: placeholder,
+        password: true,
+        validateInput: (value) => {
+          if (!value || value.trim().length === 0) {
+            return "API key cannot be empty";
+          }
+          if (!value.startsWith("syn_")) {
+            return "Invalid API key format. API keys should start with 'syn_'";
+          }
+          return null;
+        },
+      });
+
+      if (input) {
+        await apiKeyManager.addProfile(input, label);
+        await this.refreshUsage();
+        vscode.window.showInformationMessage(
+          `API key "${label}" added successfully`,
+        );
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      vscode.window.showErrorMessage(`Failed to add API key: ${message}`);
+    }
+  }
+
+  /**
+   * Delete API key - delete the currently active profile
+   */
+  private async deleteApiKey(): Promise<void> {
+    try {
+      const apiKeyManager = this.configManager.getApiKeyManager();
+      const activeProfile = await apiKeyManager.getActiveProfile();
+
+      if (!activeProfile) {
+        vscode.window.showWarningMessage(
+          "No active API key profile to delete",
+        );
+        return;
+      }
+
+      const profiles = await apiKeyManager.getProfiles();
+      const profileCount = profiles.length;
+
+      // Design decision: Show different warning message based on whether it's the last profile
+      // This helps users understand the implications of deleting the last profile
+      const warningMessage =
+        profileCount === 1
+          ? "This is your only API key profile. Deleting it will remove all API keys. You will need to re-enter an API key to continue tracking usage."
+          : `Are you sure you want to delete the profile "${activeProfile.label}"? You have ${profileCount - 1} other profile(s).`;
+
+      const result = await vscode.window.showWarningMessage(
+        warningMessage,
+        { modal: true },
+        "Delete",
+      );
+
+      if (result === "Delete") {
+        await apiKeyManager.deleteProfile(activeProfile.id);
+
+        // Check if there are any remaining profiles
+        const remainingProfiles = await apiKeyManager.getProfiles();
+        if (remainingProfiles.length === 0) {
+          this.usageIndicator.setPleaseSetKey();
+          this.usageIndicator.stopAutoRefresh();
+        } else {
+          await this.refreshUsage();
+        }
+
+        vscode.window.showInformationMessage(
+          `Profile "${activeProfile.label}" deleted successfully`,
+        );
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      vscode.window.showErrorMessage(`Failed to delete API key: ${message}`);
+    }
   }
 
   /**
@@ -465,10 +648,10 @@ export class SyntheticUsageTrackerExtension {
         vscode.window.showInformationMessage(message);
       }
 
-      // Update details panel if it's open with models tab
+      // Update popup panel if it's open with models tab
       // Design decision: Panel is updated after indicator to ensure data consistency
-      if (DetailsPanel.currentPanel && this.currentModelData) {
-        DetailsPanel.currentPanel.update(undefined, this.currentModelData);
+      if (this.popupPanel && this.currentModelData) {
+        this.popupPanel.updateModels(this.currentModelData);
       }
     } catch (error) {
       console.error("Failed to fetch models:", error);
@@ -478,15 +661,15 @@ export class SyntheticUsageTrackerExtension {
   }
 
   /**
-   * Show models in the unified details panel
+   * Show models in the unified popup panel
    */
   private async showModels(): Promise<void> {
-    // Design decision: Pass cached model data when opening panel
-    // If no data exists yet (first open before refresh), panel shows loading state
-    // The panel will be updated automatically when refresh completes
-    const panel = DetailsPanel.createOrShow(this.context, "models");
+    // Design decision: Use PopupPanel's static factory method to create or show panel
+    // The singleton pattern prevents duplicate panels and ensures consistent UX
+    // Panel will show cached model data if available, or loading state otherwise
+    this.popupPanel = PopupPanel.createOrShow(this.context, "models");
     if (this.currentModelData) {
-      panel.update(undefined, this.currentModelData);
+      this.popupPanel.updateModels(this.currentModelData);
     }
 
     // Clear unread changes indicator after viewing
@@ -577,6 +760,7 @@ export class SyntheticUsageTrackerExtension {
    */
   deactivate(): void {
     this.stopModelAutoRefresh(); // Clear model auto-refresh timer
+    this.popupPanel?.dispose(); // Dispose popup panel if it exists
     this.usageIndicator.dispose();
     this.configManager.dispose();
     this.sharedStateWatcherDisposable?.dispose();

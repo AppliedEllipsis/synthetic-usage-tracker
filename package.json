@@ -157,6 +157,26 @@
         "command": "syntheticUsageTracker.subscribeWithDiscount",
         "title": "Subscribe with Discount",
         "category": "Synthetic Usage Tracker"
+      },
+      {
+        "command": "syntheticUsageTracker.manageApiKeys",
+        "title": "Manage API Keys",
+        "category": "Synthetic Usage Tracker"
+      },
+      {
+        "command": "syntheticUsageTracker.cycleApiKey",
+        "title": "Cycle API Key",
+        "category": "Synthetic Usage Tracker"
+      },
+      {
+        "command": "syntheticUsageTracker.addApiKey",
+        "title": "Add API Key",
+        "category": "Synthetic Usage Tracker"
+      },
+      {
+        "command": "syntheticUsageTracker.deleteApiKey",
+        "title": "Delete API Key",
+        "category": "Synthetic Usage Tracker"
       }
     ],
     "icons": {
