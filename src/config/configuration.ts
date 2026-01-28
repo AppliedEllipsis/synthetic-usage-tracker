@@ -11,6 +11,10 @@ export interface Configuration {
   enableNotifications: boolean;
   warningThreshold: number;
   criticalThreshold: number;
+  // Model tracking configuration
+  enableModelTracking: boolean;
+  modelCheckInterval: number;
+  enableModelChangeNotifications: boolean;
 }
 
 /**
@@ -58,6 +62,14 @@ export class ConfigurationManager {
       warningThreshold: config.get<number>("warningThreshold", 80),
       // Critical at 90% indicates immediate action needed
       criticalThreshold: config.get<number>("criticalThreshold", 90),
+      // Model tracking enabled by default
+      enableModelTracking: config.get<boolean>("enableModelTracking", true),
+      // Check for model updates every 6 hours (360 minutes)
+      // Design rationale: Model updates are infrequent, so checking less often
+      // reduces API load while still catching changes in a reasonable timeframe
+      modelCheckInterval: config.get<number>("modelCheckInterval", 360),
+      // Enable notifications for model changes by default
+      enableModelChangeNotifications: config.get<boolean>("enableModelChangeNotifications", true),
     };
   }
 
