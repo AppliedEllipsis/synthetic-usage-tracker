@@ -1,10 +1,11 @@
 import * as vscode from "vscode";
 import { ConfigurationManager } from "./config/configuration";
-import { SyntheticService, ApiError, ApiErrorType } from "./api/syntheticService";
+import { SyntheticService, ApiError, ApiErrorType, UsageInfo } from "./api/syntheticService";
 import { UsageIndicator } from "./statusBar/usageIndicator";
 import { ModelManager, ModelUpdateResult } from "./model/modelManager";
 import { ModelIndicator } from "./model/modelIndicator";
-import { ModelDetailsPanel } from "./model/modelDetailsPanel";
+import { DetailsPanel } from "./model/detailsPanel";
+import { Model } from "./api/modelService";
 
 /**
  * Main extension class
@@ -27,6 +28,12 @@ export class SyntheticUsageTrackerExtension {
   private sharedStateWatcherDisposable: vscode.Disposable | null = null;
   // Watcher for cross-window model updates
   private modelStateWatcherDisposable: vscode.Disposable | null = null;
+  // Cache for the most recent usage data to display in details panel
+  // Design decision: Store data in extension to bridge between API service and webview panel
+  // The panel is recreated on demand, so we need to persist data between show() calls
+  private currentUsageData: UsageInfo | undefined;
+  // Cache for the most recent model data to display in details panel
+  private currentModelData: Model[] | undefined;
 
   constructor(private context: vscode.ExtensionContext) {
     this.configManager = new ConfigurationManager(context);
@@ -197,6 +204,10 @@ export class SyntheticUsageTrackerExtension {
       const service = new SyntheticService(apiKey, config.apiEndpoint);
       const usage = await service.fetchQuota();
 
+      // Store usage data for display in details panel
+      this.currentUsageData = usage;
+
+      // Update status bar indicator
       this.usageIndicator.updateUsage(usage, {
         showPercentage: config.showPercentage,
         showRawNumbers: config.showRawNumbers,
@@ -204,6 +215,13 @@ export class SyntheticUsageTrackerExtension {
         criticalThreshold: config.criticalThreshold,
         enableNotifications: config.enableNotifications,
       });
+
+      // Update details panel if it's open
+      // Design decision: Panel is updated after status bar to ensure data consistency
+      // If panel doesn't exist, we skip this step (panel will get data when created)
+      if (DetailsPanel.currentPanel) {
+        DetailsPanel.currentPanel.update(usage);
+      }
     } catch (error) {
       console.error("Failed to fetch usage:", error);
       const message = error instanceof Error ? error.message : "Unknown error";
@@ -301,71 +319,15 @@ export class SyntheticUsageTrackerExtension {
   }
 
   /**
-   * Show usage details in a message box
-   *
-   * Design decision: Check error state before showing usage details. When the status bar
-   * is in an error state due to invalid API key or no subscription, prompt the user to
-   * enter a new API key instead of showing usage details. This provides a clear path
-   * for users to fix the issue and improves user experience by guiding them to the
-   * solution directly.
+   * Show usage details in the unified details panel
    */
   private async showUsageDetails(): Promise<void> {
-    // Check if status bar is in an error state due to authentication or no subscription
-    const errorType = this.usageIndicator.getErrorType();
-    if (errorType === "authentication" || errorType === "noSubscription") {
-      // Prompt user to enter a new API key with contextual message
-      await this.configureApiKey("Invalid API key or no active subscription. Please enter a valid API key.");
-      return;
-    }
-
-    const usage = this.usageIndicator.getCurrentUsage();
-    if (!usage) {
-      vscode.window.showInformationMessage("No usage data available. Try refreshing.");
-      return;
-    }
-
-    const percentageUsed = usage.percentageUsed.toFixed(1);
-    const percentageRemaining = ((1 - usage.percentageUsed / 100) * 100).toFixed(1);
-
-    const now = new Date();
-    const diff = usage.renewsAt.getTime() - now.getTime();
-    let timeRemaining = "0 hours and 0 minutes";
-    if (diff > 0) {
-      const hours = Math.floor(diff / (1000 * 60 * 60));
-      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-      const hourText = hours === 1 ? "hour" : "hours";
-      const minuteText = minutes === 1 ? "minute" : "minutes";
-      timeRemaining = `${hours} ${hourText} and ${minutes} ${minuteText}`;
-    }
-
-    const message = `
-Synthetic.new Usage Details
-━━━━━━━━━━━━━━━━━━━━━
-Requests Used: ${usage.requests.toLocaleString()}
-Requests Limit: ${usage.limit.toLocaleString()}
-Requests Remaining: ${usage.remaining.toLocaleString()}
-
-Percentage Used: ${percentageUsed}%
-Percentage Remaining: ${percentageRemaining}%
-
-Time Remaining: ${timeRemaining}
-Renews At: ${usage.renewsAtString}
-`.trim();
-
-    const result = await vscode.window.showInformationMessage(
-      message,
-      { modal: true },
-      "Refresh",
-      "Open Dashboard",
-      "Subscribe with Discount",
-    );
-
-    if (result === "Refresh") {
-      await this.refreshUsage();
-    } else if (result === "Open Dashboard") {
-      this.openDashboard();
-    } else if (result === "Subscribe with Discount") {
-      this.subscribeWithDiscount();
+    // Design decision: Pass cached usage data when opening panel
+    // If no data exists yet (first open before refresh), panel shows loading state
+    // The panel will be updated automatically when refresh completes
+    const panel = DetailsPanel.createOrShow(this.context, "usage");
+    if (this.currentUsageData) {
+      panel.update(this.currentUsageData);
     }
   }
 
@@ -452,6 +414,9 @@ Renews At: ${usage.renewsAtString}
 
       const result = await this.modelManager.fetchAndUpdateModels(apiKey);
 
+      // Store model data for display in details panel
+      this.currentModelData = result.models;
+
       // Update indicator based on result
       if (result.hasChanges && !result.isFirstFetch) {
         this.modelIndicator.setChangesDetected(result.changes);
@@ -469,6 +434,12 @@ Renews At: ${usage.renewsAtString}
             : `${changeCount} model changes detected. Click the models indicator to view details.`;
         vscode.window.showInformationMessage(message);
       }
+
+      // Update details panel if it's open with models tab
+      // Design decision: Panel is updated after indicator to ensure data consistency
+      if (DetailsPanel.currentPanel) {
+        DetailsPanel.currentPanel.update(undefined, result.models);
+      }
     } catch (error) {
       console.error("Failed to fetch models:", error);
       const message = error instanceof Error ? error.message : "Unknown error";
@@ -477,20 +448,16 @@ Renews At: ${usage.renewsAtString}
   }
 
   /**
-   * Show available models in a webview panel
+   * Show models in the unified details panel
    */
   private async showModels(): Promise<void> {
-    const models = this.modelManager.getCurrentModels();
-    const history = await this.modelManager.getHistory();
-
-    if (models.length === 0) {
-      vscode.window.showInformationMessage(
-        "No models available. Please configure your API key first.",
-      );
-      return;
+    // Design decision: Pass cached model data when opening panel
+    // If no data exists yet (first open before refresh), panel shows loading state
+    // The panel will be updated automatically when refresh completes
+    const panel = DetailsPanel.createOrShow(this.context, "models");
+    if (this.currentModelData) {
+      panel.update(undefined, this.currentModelData);
     }
-
-    ModelDetailsPanel.createOrShow(this.context, models, history.changes);
 
     // Clear unread changes indicator after viewing
     this.modelIndicator.clearChanges();
