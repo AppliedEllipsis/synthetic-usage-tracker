@@ -171,6 +171,41 @@ class ConfigurationManager {
 }
 ```
 
+### API Key Manager API
+
+#### `ApiKeyProfile`
+
+Interface representing an API key profile:
+
+```typescript
+interface ApiKeyProfile {
+  id: string;              // Unique identifier for the profile
+  key: string;             // Full API key
+  label: string;           // User-defined label for the profile
+  isActive: boolean;       // Whether this profile is currently active
+}
+```
+
+#### `ApiKeyManager`
+
+Multi-profile API key management class:
+
+```typescript
+class ApiKeyManager {
+  constructor(context: vscode.ExtensionContext);
+  getProfiles(): Promise<ApiKeyProfile[]>;
+  addProfile(key: string, label?: string): Promise<void>;
+  deleteProfile(id: string): Promise<void>;
+  setActiveProfile(id: string): Promise<void>;
+  getActiveProfile(): Promise<ApiKeyProfile | undefined>;
+  cycleProfiles(): Promise<ApiKeyProfile | undefined>;
+  onProfilesChanged(callback: () => void): void;
+  watchSharedStateChanges(pollInterval?: number): vscode.Disposable;
+  dispose(): void;
+  static getDisplayKey(key: string): string;
+}
+```
+
 ### Synthetic Service API
 
 #### `SyntheticService`
@@ -235,6 +270,59 @@ interface DisplayConfig {
 }
 ```
 
+### Popup Panel API
+
+#### `TabType`
+
+Type representing available tabs in the popup panel:
+
+```typescript
+type TabType = "usage" | "models";
+```
+
+#### `PopupPanel`
+
+Multi-pane popup interface for displaying usage and model data:
+
+```typescript
+class PopupPanel {
+  static createOrShow(context: vscode.ExtensionContext): PopupPanel;
+  onTabSwitch(callback: (tab: TabType) => void): void;
+  updateUsage(usage: UsageInfo): void;
+  updateModels(models: ModelInfo[]): void;
+  hide(): void;
+  dispose(): void;
+}
+```
+
+### API Key Manager Panel API
+
+#### `WebviewMessage`
+
+Discriminated union type for webview messages:
+
+```typescript
+type WebviewMessage =
+  | { type: "addProfile"; key: string; label?: string }
+  | { type: "deleteProfile"; id: string }
+  | { type: "setActiveProfile"; id: string }
+  | { type: "cycleProfiles" }
+  | { type: "switchTab"; tab: TabType }
+  | { type: "switchViewMode"; mode: "tabs" | "split" }
+  | { type: "refresh" };
+```
+
+#### `ApiKeyManagerPanel`
+
+API key management UI panel:
+
+```typescript
+class ApiKeyManagerPanel {
+  static createOrShow(context: vscode.ExtensionContext, apiKeyManager: ApiKeyManager): ApiKeyManagerPanel;
+  dispose(): void;
+}
+```
+
 ### Extension Commands
 
 The extension provides the following commands:
@@ -242,7 +330,12 @@ The extension provides the following commands:
 | Command ID | Description |
 |------------|-------------|
 | `syntheticUsageTracker.refresh` | Manually refresh usage data |
+| `syntheticUsageTracker.refreshModels` | Manually refresh model data |
 | `syntheticUsageTracker.configure` | Configure API key |
+| `syntheticUsageTracker.manageApiKeys` | Open API key manager panel |
+| `syntheticUsageTracker.addApiKey` | Add a new API key profile |
+| `syntheticUsageTracker.deleteApiKey` | Delete an API key profile |
+| `syntheticUsageTracker.cycleApiKey` | Cycle to the next API key profile |
 | `syntheticUsageTracker.showUsage` | Show detailed usage information |
 | `syntheticUsageTracker.toggleAutoRefresh` | Toggle auto-refresh on/off |
 | `syntheticUsageTracker.openDashboard` | Open Synthetic.new dashboard |
