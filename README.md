@@ -15,12 +15,15 @@ A VSCode extension that monitors your Synthetic.new API usage and quotas directl
 ## Features
 
 - **Real-time Usage Tracking**: Monitor your Synthetic.new API quota usage directly from the VSCode status bar
-- **Auto-refresh**: Automatically updates usage data at configurable intervals
+- **Model Tracking**: Track available models and detect changes with automatic notifications
+- **Multi-Profile API Key Management**: Store and manage multiple API keys with custom labels for different accounts or projects
+- **Auto-refresh**: Automatically updates usage and model data at configurable intervals
 - **Visual Indicators**: Color-coded status bar based on usage thresholds (warning/critical)
 - **Secure Storage**: API keys are stored securely using VSCode SecretStorage
 - **Configurable Thresholds**: Set custom warning and critical usage percentages
 - **Quick Actions**: Refresh, configure, and view details from the command palette or status bar
-- **Notifications**: Get notified when approaching quota limits
+- **Notifications**: Get notified when approaching quota limits or when models change
+- **Cross-Window Synchronization**: API key and usage data syncs across multiple VSCode windows
 
 ## Installation
 
@@ -108,15 +111,51 @@ The extension can be configured through VSCode settings:
 | `syntheticUsageTracker.warningThreshold`    | number  | `80`                           | Usage percentage threshold for warning notifications  |
 | `syntheticUsageTracker.criticalThreshold`   | number  | `90`                           | Usage percentage threshold for critical notifications |
 
+## Multi-Profile API Key Management
+
+The extension supports managing multiple API key profiles with custom labels, allowing you to easily switch between different accounts or projects.
+
+### Adding API Keys
+
+1. Press `Ctrl+Shift+P` (or `Cmd+Shift+P` on Mac)
+2. Type `Synthetic Usage Tracker: Add API Key`
+3. Enter your Synthetic.new API key (starts with `syn_`)
+4. Enter a label for the key (e.g., "Personal", "Work", "Project A")
+
+### Managing API Keys
+
+1. Press `Ctrl+Shift+P` (or `Cmd+Shift+P` on Mac)
+2. Type `Synthetic Usage Tracker: Manage API Keys`
+3. A panel will open showing all your saved API key profiles
+4. Use the buttons to add, delete, or select keys
+
+### Switching Between Keys
+
+- **Using Command Palette**: Run `Synthetic Usage Tracker: Cycle API Key` to switch to the next key in your profiles
+- **Using Management Panel**: Click on a key in the management panel to activate it
+
+### Cross-Window Synchronization
+
+API key changes made in one VSCode window automatically sync to all other open windows. The extension polls for changes every 5 seconds to ensure consistency across windows.
+
+### Security
+
+All API keys are stored securely using VSCode's SecretStorage API, which encrypts data at rest. Keys are never logged or displayed in plain text.
+
 ## Commands
 
-| Command                                             | Description                                      |
-| --------------------------------------------------- | ------------------------------------------------ |
-| `Synthetic Usage Tracker: Refresh Usage`            | Manually refresh the usage data                  |
-| `Synthetic Usage Tracker: Configure API Key`        | Configure or update your API key                 |
-| `Synthetic Usage Tracker: Show Usage Details`       | Display detailed usage information               |
-| `Synthetic Usage Tracker: Toggle Auto-Refresh`      | Enable/disable auto-refresh                      |
-| `Synthetic Usage Tracker: Open Synthetic Dashboard` | Open the Synthetic.new dashboard in your browser |
+| Command                                                   | Description                                            |
+| --------------------------------------------------------- | ------------------------------------------------------ |
+| `Synthetic Usage Tracker: Refresh Usage`                  | Manually refresh the usage data                        |
+| `Synthetic Usage Tracker: Refresh Models`                 | Manually refresh the model data                       |
+| `Synthetic Usage Tracker: Configure API Key`              | Configure or update your API key                       |
+| `Synthetic Usage Tracker: Manage API Keys`                | Open the API key management panel to add, delete, or cycle through keys |
+| `Synthetic Usage Tracker: Add API Key`                    | Add a new API key with a custom label                  |
+| `Synthetic Usage Tracker: Delete API Key`                 | Delete an API key from your profiles                   |
+| `Synthetic Usage Tracker: Cycle API Key`                  | Switch to the next API key in your profiles            |
+| `Synthetic Usage Tracker: Show Usage Details`             | Display detailed usage information                     |
+| `Synthetic Usage Tracker: Toggle Auto-Refresh`            | Enable/disable auto-refresh                            |
+| `Synthetic Usage Tracker: Open Synthetic Dashboard`        | Open the Synthetic.new dashboard in your browser       |
 
 ## Development
 

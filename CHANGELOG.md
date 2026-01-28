@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 ### Added
+- Multi-profile API key management system allowing users to store and manage multiple API keys with custom labels
+- Multi-pane popup interface replacing the new window UI for better user experience
+- API key management commands: Add, Delete, Cycle through profiles, and Manage keys
+- Model auto-refresh functionality that automatically updates model data at configured intervals
 - Model tracking feature with status bar indicator (priority 99, left of usage indicator)
 - Model details panel webview showing available models with metadata (provider, context window, cost)
 - Automatic model change detection with checksum-based comparison
@@ -24,12 +28,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Model check interval defaults to 30 minutes (1800 seconds) to reduce API load
 - Model endpoint uses v1 API (`https://api.synthetic.new/v1/models`)
 
+### Fixed
+- Details panel now properly updates when switching between Usage and Models tabs
+- Removed duplicate command definitions in package.json
+- Fixed 4 ESLint issues by replacing non-null assertions with explicit null checks and adding discriminated union types
+
 ### Design Notes
 - Model indicator shows model count and highlights changes with visual indicators
 - Clicking model indicator opens detailed model view with all available models
 - Change detection uses content checksums to identify actual model additions/removals
 - History maintained in globalState with automatic cleanup to prevent memory bloat
 - Polling-based cross-window sync since VS Code globalState doesn't support change events
+- Multi-profile API key system allows users to manage multiple Synthetic.new accounts from a single extension
+- Popup panel interface provides a more integrated experience compared to opening new windows
 
 ## [1.0.14] - 2026-01-26
 
