@@ -3,6 +3,18 @@ import { ApiKeyManager, ApiKeyProfile } from "../config/apiKeyManager";
 import { SyntheticService } from "../api/syntheticService";
 
 /**
+ * Webview message types for API key manager panel
+ *
+ * Design decision: Using discriminated union types provides compile-time safety
+ * for all possible message types, preventing runtime errors from unexpected messages.
+ */
+type WebviewMessage =
+  | { command: "addProfile" }
+  | { command: "deleteProfile"; id: string }
+  | { command: "setActiveProfile"; id: string }
+  | { command: "cycleProfiles" };
+
+/**
  * Webview panel for managing API key profiles
  *
  * Design decision: This panel provides a UI for users to add, delete, and switch
@@ -89,7 +101,7 @@ export class ApiKeyManagerPanel {
   /**
    * Handle messages from the webview
    */
-  private async handleMessage(message: any): Promise<void> {
+  private async handleMessage(message: WebviewMessage): Promise<void> {
     switch (message.command) {
       case "addProfile":
         await this.handleAddProfile();
@@ -488,7 +500,13 @@ export class ApiKeyManagerPanel {
       '"': "&quot;",
       "'": "&#39;",
     };
-    return text.replace(/[&<>"']/g, (char) => htmlEscapeMap[char]!);
+    return text.replace(/[&<>"']/g, (char) => {
+      const escaped = htmlEscapeMap[char];
+      if (escaped === undefined) {
+        return char;
+      }
+      return escaped;
+    });
   }
 
   /**

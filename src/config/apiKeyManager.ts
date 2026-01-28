@@ -150,7 +150,11 @@ export class ApiKeyManager {
     
     // If we deleted the active profile, activate the first remaining profile
     if (wasActive && remainingProfiles.length > 0) {
-      remainingProfiles[0]!.isActive = true;
+      // Safe to access index 0 because we checked length > 0
+      const firstRemaining = remainingProfiles[0];
+      if (firstRemaining) {
+        firstRemaining.isActive = true;
+      }
     }
 
     await this.saveProfiles(remainingProfiles);
@@ -215,11 +219,17 @@ export class ApiKeyManager {
     // Calculate next index (with wrap-around)
     const nextIndex = (currentIndex + 1) % profiles.length;
     
+    // Safe to access nextIndex because we checked profiles.length > 0 earlier
+    const nextProfile = profiles[nextIndex];
+    if (!nextProfile) {
+      return undefined;
+    }
+    
     // Set next profile as active
-    await this.setActiveProfile(profiles[nextIndex]!.id);
+    await this.setActiveProfile(nextProfile.id);
     
     // Return the newly activated profile
-    return profiles[nextIndex];
+    return nextProfile;
   }
 
   /**
