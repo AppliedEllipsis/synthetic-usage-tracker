@@ -8,7 +8,6 @@ import {
   detectChanges,
   generateChecksum,
 } from "../api/modelService";
-import { ApiError } from "../api/syntheticService";
 
 /**
  * Storage keys for model data in globalState
@@ -125,8 +124,11 @@ export class ModelManager {
     // Detect changes by comparing with last snapshot
     let changes: ModelChange[] = [];
     if (history.snapshots.length > 0) {
+      // Safe to access last element since we just checked length > 0
       const lastSnapshot = history.snapshots[history.snapshots.length - 1];
-      changes = detectChanges(lastSnapshot.models, models);
+      if (lastSnapshot !== undefined) {
+        changes = detectChanges(lastSnapshot.models, models);
+      }
     }
 
     // Save new snapshot
@@ -292,15 +294,17 @@ export class ModelManager {
         // Reload models from storage
         const history = await this.getHistory();
         if (history.snapshots.length > 0) {
-          const lastSnapshot =
-            history.snapshots[history.snapshots.length - 1];
-          this.currentModels = lastSnapshot.models;
-          this.onModelsUpdatedCallback?.({
-            models: lastSnapshot.models,
-            changes: [],
-            hasChanges: false,
-            isFirstFetch: false,
-          });
+          // Safe to access last element since we just checked length > 0
+          const lastSnapshot = history.snapshots[history.snapshots.length - 1];
+          if (lastSnapshot !== undefined) {
+            this.currentModels = lastSnapshot.models;
+            this.onModelsUpdatedCallback?.({
+              models: lastSnapshot.models,
+              changes: [],
+              hasChanges: false,
+              isFirstFetch: false,
+            });
+          }
         }
       }
     }, pollInterval);

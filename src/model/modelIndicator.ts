@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { Model, ModelChange } from "../api/modelService";
+import { ModelChange } from "../api/modelService";
 
 /**
  * Display state for the model indicator
@@ -20,7 +20,6 @@ export enum ModelIndicatorState {
  * display while following the same patterns as the existing usage indicator.
  */
 export class ModelIndicator {
-  private context: vscode.ExtensionContext;
   private statusBarItem: vscode.StatusBarItem;
   private currentState: ModelIndicatorState = ModelIndicatorState.Idle;
   private modelCount: number = 0;
@@ -29,9 +28,7 @@ export class ModelIndicator {
   private lastTooltip: string | null = null;
   private lastState: ModelIndicatorState | null = null;
 
-  constructor(context: vscode.ExtensionContext) {
-    this.context = context;
-
+  constructor(_context: vscode.ExtensionContext) {
     /**
      * Design decision: Use lower priority (99) than usage indicator (100)
      * so model indicator appears to the left of usage indicator in status bar.
@@ -42,7 +39,7 @@ export class ModelIndicator {
       99
     );
 
-    context.subscriptions.push(this.statusBarItem);
+    _context.subscriptions.push(this.statusBarItem);
     this.statusBarItem.show();
   }
 

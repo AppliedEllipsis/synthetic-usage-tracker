@@ -7,7 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-Nothing yet
+### Added
+- Model tracking feature with status bar indicator (priority 99, left of usage indicator)
+- Model details panel webview showing available models with metadata (provider, context window, cost)
+- Automatic model change detection with checksum-based comparison
+- Model change history tracking (last 100 changes, 30 history snapshots)
+- Three new commands: `Show Available Models`, `Check for Model Updates`, `Clear Model Change History`
+- Three new configuration options: `enableModelTracking`, `modelCheckInterval`, `enableModelChangeNotifications`
+- Cross-window model synchronization using polling (30-second interval)
+- Smart caching to prevent unnecessary status bar redraws
+- Error handling for model service API calls with retry logic
+- Webview uses VS Code theme colors and responsive layout
+
+### Changed
+- Model indicator positioned at priority 99 (left of usage indicator at priority 100) for compact display
+- Model check interval defaults to 30 minutes (1800 seconds) to reduce API load
+- Model endpoint uses v1 API (`https://api.synthetic.new/v1/models`)
+
+### Design Notes
+- Model indicator shows model count and highlights changes with visual indicators
+- Clicking model indicator opens detailed model view with all available models
+- Change detection uses content checksums to identify actual model additions/removals
+- History maintained in globalState with automatic cleanup to prevent memory bloat
+- Polling-based cross-window sync since VS Code globalState doesn't support change events
 
 ## [1.0.14] - 2026-01-26
 

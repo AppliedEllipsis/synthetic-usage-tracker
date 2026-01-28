@@ -2,6 +2,9 @@ import * as vscode from "vscode";
 import { ConfigurationManager } from "./config/configuration";
 import { SyntheticService, ApiError, ApiErrorType } from "./api/syntheticService";
 import { UsageIndicator } from "./statusBar/usageIndicator";
+import { ModelManager, ModelUpdateResult } from "./model/modelManager";
+import { ModelIndicator } from "./model/modelIndicator";
+import { ModelDetailsPanel } from "./model/modelDetailsPanel";
 
 /**
  * Main extension class
@@ -10,21 +13,33 @@ import { UsageIndicator } from "./statusBar/usageIndicator";
 export class SyntheticUsageTrackerExtension {
   private configManager: ConfigurationManager;
   private usageIndicator: UsageIndicator;
+  // Model tracking components - positioned left of usage indicator (priority 99 vs 100)
+  // Design decision: Model indicator at priority 99 ensures it appears immediately left of
+  // the usage indicator, creating a logical grouping of related information without
+  // consuming excessive status bar real estate
+  private modelManager: ModelManager;
+  private modelIndicator: ModelIndicator;
   // Track initialization state to prevent race conditions during early lifecycle events
   private isInitialized: boolean = false;
   // Prevent concurrent API requests that could lead to stale data or unnecessary load
   private isFetching: boolean = false;
   // Watcher for cross-window key updates - kept as reference for proper cleanup on deactivation
   private sharedStateWatcherDisposable: vscode.Disposable | null = null;
+  // Watcher for cross-window model updates
+  private modelStateWatcherDisposable: vscode.Disposable | null = null;
 
   constructor(private context: vscode.ExtensionContext) {
     this.configManager = new ConfigurationManager(context);
     this.usageIndicator = new UsageIndicator(context);
+    this.modelManager = new ModelManager(context);
+    this.modelIndicator = new ModelIndicator(context);
 
     // Register callbacks early in constructor to ensure we catch all configuration changes,
     // including those that might occur before activation completes
     this.configManager.onConfigChange(() => this.handleConfigChange());
     this.configManager.onKeysRefreshed(() => this.handleKeysRefreshed());
+    // Register model change callback for cross-window synchronization
+    this.modelManager.onModelsUpdated((result) => this.handleModelsUpdated(result));
   }
 
   /**
@@ -40,6 +55,8 @@ export class SyntheticUsageTrackerExtension {
       this.registerCommands();
       // Start watching for cross-window key updates immediately to ensure synchronization
       this.sharedStateWatcherDisposable = this.configManager.watchSharedStateChanges();
+      // Start watching for cross-window model updates for multi-window consistency
+      this.modelStateWatcherDisposable = this.modelManager.watchSharedStateChanges();
       await this.initialize();
 
       this.isInitialized = true;
@@ -78,6 +95,8 @@ export class SyntheticUsageTrackerExtension {
 
     // Fetch initial usage data before starting auto-refresh to ensure UI has valid data immediately
     await this.refreshUsage();
+    // Fetch models in parallel with usage data - uses minimal real-estate via status bar indicator
+    await this.refreshModels();
 
     const config = this.configManager.getConfig();
     // Start auto-refresh only after successful initial fetch to avoid continuous error cycles
@@ -132,6 +151,25 @@ export class SyntheticUsageTrackerExtension {
       () => this.subscribeWithDiscount(),
     );
     this.context.subscriptions.push(subscribeWithDiscountCommand);
+
+    // Model-related commands
+    const showModelsCommand = vscode.commands.registerCommand(
+      "syntheticUsageTracker.showModels",
+      () => this.showModels(),
+    );
+    this.context.subscriptions.push(showModelsCommand);
+
+    const checkModelUpdatesCommand = vscode.commands.registerCommand(
+      "syntheticUsageTracker.checkModelUpdates",
+      () => this.checkModelUpdates(),
+    );
+    this.context.subscriptions.push(checkModelUpdatesCommand);
+
+    const clearModelChangesCommand = vscode.commands.registerCommand(
+      "syntheticUsageTracker.clearModelChanges",
+      () => this.clearModelChanges(),
+    );
+    this.context.subscriptions.push(clearModelChangesCommand);
   }
 
   /**
@@ -398,12 +436,120 @@ Renews At: ${usage.renewsAtString}
   }
 
   /**
+   * Refresh models data from the API
+   *
+   * Design decision: Fetch models separately from usage data to allow independent
+   * refresh cycles. Models change less frequently than usage, so they use a longer
+   * refresh interval. This minimizes API calls while keeping information current.
+   */
+  private async refreshModels(): Promise<void> {
+    try {
+      const apiKey = await this.configManager.getApiKey();
+      if (!apiKey) {
+        this.modelIndicator.setIdle();
+        return;
+      }
+
+      const result = await this.modelManager.fetchAndUpdateModels(apiKey);
+
+      // Update indicator based on result
+      if (result.hasChanges && !result.isFirstFetch) {
+        this.modelIndicator.setChangesDetected(result.changes);
+      } else {
+        this.modelIndicator.setReady(result.models.length);
+      }
+
+      // Show notification for new changes if enabled and not first fetch
+      const config = this.configManager.getConfig();
+      if (result.hasChanges && !result.isFirstFetch && config.enableNotifications) {
+        const changeCount = result.changes.length;
+        const message =
+          changeCount === 1
+            ? "1 model change detected. Click the models indicator to view details."
+            : `${changeCount} model changes detected. Click the models indicator to view details.`;
+        vscode.window.showInformationMessage(message);
+      }
+    } catch (error) {
+      console.error("Failed to fetch models:", error);
+      const message = error instanceof Error ? error.message : "Unknown error";
+      this.modelIndicator.setError(message);
+    }
+  }
+
+  /**
+   * Show available models in a webview panel
+   */
+  private async showModels(): Promise<void> {
+    const models = this.modelManager.getCurrentModels();
+    const history = await this.modelManager.getHistory();
+
+    if (models.length === 0) {
+      vscode.window.showInformationMessage(
+        "No models available. Please configure your API key first.",
+      );
+      return;
+    }
+
+    ModelDetailsPanel.createOrShow(this.context, models, history.changes);
+
+    // Clear unread changes indicator after viewing
+    this.modelIndicator.clearChanges();
+  }
+
+  /**
+   * Manually check for model updates
+   */
+  private async checkModelUpdates(): Promise<void> {
+    this.modelIndicator.setLoading();
+    await this.refreshModels();
+    vscode.window.showInformationMessage("Model update check completed.");
+  }
+
+  /**
+   * Clear model change notifications
+   */
+  private clearModelChanges(): void {
+    this.modelIndicator.clearChanges();
+    vscode.window.showInformationMessage("Model change notifications cleared.");
+  }
+
+  /**
+   * Handle model updates from cross-window synchronization
+   */
+  private async handleModelsUpdated(_result: ModelUpdateResult): Promise<void> {
+    if (!this.isInitialized) {
+      return;
+    }
+
+    try {
+      const models = this.modelManager.getCurrentModels();
+      if (models.length === 0) {
+        this.modelIndicator.setIdle();
+        return;
+      }
+
+      this.modelIndicator.setReady(models.length);
+
+      const config = this.configManager.getConfig();
+      if (config.enableNotifications) {
+        vscode.window.showInformationMessage(
+          "Models updated in another window. Model data refreshed.",
+        );
+      }
+    } catch (error) {
+      console.error("Failed to handle models updated:", error);
+    }
+  }
+
+  /**
    * Deactivate the extension
    */
   deactivate(): void {
     this.usageIndicator.dispose();
     this.configManager.dispose();
     this.sharedStateWatcherDisposable?.dispose();
+    this.modelIndicator.dispose();
+    this.modelStateWatcherDisposable?.dispose();
   }
 }
 

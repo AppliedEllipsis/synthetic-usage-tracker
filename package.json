@@ -85,6 +85,26 @@
           "maximum": 100,
           "description": "Usage percentage threshold for showing critical notifications",
           "order": 9
+        },
+        "syntheticUsageTracker.enableModelTracking": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable model tracking and change notifications",
+          "order": 10
+        },
+        "syntheticUsageTracker.modelCheckInterval": {
+          "type": "number",
+          "default": 360,
+          "minimum": 60,
+          "maximum": 1440,
+          "description": "Model check interval in minutes (minimum 60, maximum 1440)",
+          "order": 11
+        },
+        "syntheticUsageTracker.enableModelChangeNotifications": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show notifications when models are added, removed, or changed",
+          "order": 12
         }
       }
     },
@@ -109,6 +129,21 @@
         "title": "Toggle Auto-Refresh"
       },
       {
+        "command": "syntheticUsageTracker.showModels",
+        "title": "Show Models",
+        "category": "Synthetic Usage Tracker"
+      },
+      {
+        "command": "syntheticUsageTracker.checkModelUpdates",
+        "title": "Check for Model Updates",
+        "category": "Synthetic Usage Tracker"
+      },
+      {
+        "command": "syntheticUsageTracker.clearModelChanges",
+        "title": "Clear Model Change History",
+        "category": "Synthetic Usage Tracker"
+      },
+      {
         "command": "syntheticUsageTracker.eraseKey",
         "title": "Erase API Key",
         "category": "Synthetic Usage Tracker"
@@ -121,6 +156,21 @@
       {
         "command": "syntheticUsageTracker.subscribeWithDiscount",
         "title": "Subscribe with Discount",
+        "category": "Synthetic Usage Tracker"
+      },
+      {
+        "command": "syntheticUsageTracker.showModels",
+        "title": "Show Model Details",
+        "category": "Synthetic Usage Tracker"
+      },
+      {
+        "command": "syntheticUsageTracker.checkModelUpdates",
+        "title": "Check Model Updates",
+        "category": "Synthetic Usage Tracker"
+      },
+      {
+        "command": "syntheticUsageTracker.clearModelChanges",
+        "title": "Clear Model Change History",
         "category": "Synthetic Usage Tracker"
       }
     ],
