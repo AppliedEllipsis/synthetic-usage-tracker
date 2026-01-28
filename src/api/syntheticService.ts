@@ -56,7 +56,7 @@ export class ApiError extends Error {
  * Design decision: Encapsulate retry parameters to make them configurable
  * and testable. This allows adjustment without modifying core logic.
  */
-interface RetryConfig {
+export interface RetryConfig {
   maxRetries: number;
   initialDelay: number;
   maxDelay: number;
