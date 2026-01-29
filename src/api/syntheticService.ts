@@ -1,8 +1,26 @@
 /**
+ * Tool call quota information from Synthetic.new API
+ *
+ * Design decision: Separate tool quotas from request quotas to provide granular
+ * visibility into different usage types. This allows users to track both total
+ * API requests and individual tool call allocations separately.
+ */
+export interface ToolQuota {
+  toolName: string;
+  limit: number;
+  requests: number;
+  remaining: number;
+  percentageUsed: number;
+  renewsAt: string;
+}
+
+/**
  * Synthetic.new API quota response structure
  *
  * Design decision: subscription is optional to handle cases where API keys exist
- * but have no active subscription (returns empty object {})
+ * but have no active subscription (returns empty object {}). Tool call quotas
+ * are optional to maintain backward compatibility with accounts that don't have
+ * tool-specific quotas configured.
  */
 export interface QuotaResponse {
   subscription?: {
@@ -10,10 +28,14 @@ export interface QuotaResponse {
     requests: number;
     renewsAt: string;
   };
+  toolQuotas?: ToolQuota[];
 }
 
 /**
  * Usage information derived from quota response
+ *
+ * Design decision: Extended to include tool call quotas for comprehensive usage tracking.
+ * Tool quotas are stored as optional array to maintain backward compatibility.
  */
 export interface UsageInfo {
   limit: number;
@@ -22,6 +44,7 @@ export interface UsageInfo {
   percentageUsed: number;
   renewsAt: Date;
   renewsAtString: string;
+  toolQuotas?: ToolQuota[];
 }
 
 /**
@@ -206,6 +229,10 @@ export class SyntheticService {
    * Design decision: Check for missing subscription data to handle API keys that
    * exist but have no active subscription. The API returns an empty object {} in
    * this case, which we detect and throw a specific error.
+   *
+   * Tool quotas are optional in the response to maintain backward compatibility.
+   * If toolQuotas is not present, the usage info will have an undefined toolQuotas
+   * field, which display components handle gracefully.
    */
   private parseQuotaResponse(data: QuotaResponse): UsageInfo {
     if (!data.subscription) {
@@ -219,6 +246,14 @@ export class SyntheticService {
     const remaining = Math.max(0, limit - requests);
     const percentageUsed = limit > 0 ? (requests / limit) * 100 : 0;
 
+    // Parse tool quotas if present in response
+    const toolQuotas = data.toolQuotas?.map((toolQuota) => ({
+      ...toolQuota,
+      percentageUsed: toolQuota.limit > 0
+        ? Math.round((toolQuota.requests / toolQuota.limit) * 100)
+        : 0,
+    }));
+
     return {
       limit,
       requests,
@@ -226,6 +261,7 @@ export class SyntheticService {
       percentageUsed: Math.round(percentageUsed * 100) / 100,
       renewsAt: new Date(renewsAt),
       renewsAtString: new Date(renewsAt).toLocaleString(),
+      toolQuotas: toolQuotas ?? undefined,
     };
   }
 

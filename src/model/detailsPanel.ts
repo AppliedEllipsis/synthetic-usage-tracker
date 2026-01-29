@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import type { UsageInfo } from "../api/syntheticService";
+import type { UsageInfo, ToolQuota } from "../api/syntheticService";
 import { type Model, type ModelChange, ModelChangeType } from "../api/modelService";
 
 /**
