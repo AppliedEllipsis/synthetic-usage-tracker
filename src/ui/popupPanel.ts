@@ -51,6 +51,8 @@ export class PopupPanel {
   public static createOrShow(
     context: vscode.ExtensionContext,
     activeTab?: TabType,
+    usage?: UsageInfo,
+    models?: ModelData,
   ): PopupPanel {
     // If we already have a panel, show it and switch to requested tab
     if (PopupPanel.currentPanel) {
@@ -58,6 +60,15 @@ export class PopupPanel {
       if (activeTab) {
         PopupPanel.currentPanel._activeTab = activeTab;
         PopupPanel.currentPanel._update();
+      }
+      // Design decision: Update data when reusing an existing panel to ensure
+      // the panel displays current information. Without this, a reused panel
+      // would show stale data or an empty state, causing user confusion.
+      if (usage) {
+        PopupPanel.currentPanel.updateUsage(usage);
+      }
+      if (models) {
+        PopupPanel.currentPanel.updateModels(models);
       }
       return PopupPanel.currentPanel;
     }

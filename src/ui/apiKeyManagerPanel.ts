@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { ApiKeyManager, ApiKeyProfile } from "../config/apiKeyManager";
 import { SyntheticService } from "../api/syntheticService";
+import { formatApiKeySuffix } from "../utils/apiKeyUtils";
 
 /**
  * Webview message types for API key manager panel
@@ -477,12 +478,13 @@ export class ApiKeyManagerPanel {
    *
    * Design decision: Only show the last 6 characters for security
    * This allows users to distinguish between keys without exposing sensitive data
+   *
+   * Security: Use the shared formatApiKeySuffix utility to ensure consistent
+   * masking across the entire extension. Only the last 6 characters are shown
+   * to prevent full key exposure.
    */
   private maskApiKey(key: string): string {
-    if (key.length <= 10) {
-      return "syn_..." + key.substring(key.length - 6);
-    }
-    return `${key.substring(0, 4)}...${key.substring(key.length - 6)}`;
+    return formatApiKeySuffix(key);
   }
 
   /**

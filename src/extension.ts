@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { ConfigurationManager } from "./config/configuration";
 import { SyntheticService, ApiError, ApiErrorType, UsageInfo } from "./api/syntheticService";
 import { UsageIndicator } from "./statusBar/usageIndicator";
+import { formatApiKeySuffix } from "./utils/apiKeyUtils";
 import { ModelManager, ModelUpdateResult } from "./model/modelManager";
 import { ModelIndicator } from "./model/modelIndicator";
 import { PopupPanel } from "./ui/popupPanel";
@@ -256,6 +257,10 @@ export class SyntheticUsageTrackerExtension {
       // Store usage data for display in details panel
       this.currentUsageData = usage;
 
+      // Format API key suffix for display in tooltip
+      // Security decision: Only show the last 6 characters to prevent full key exposure
+      const apiKeySuffix = formatApiKeySuffix(apiKey);
+
       // Update status bar indicator
       this.usageIndicator.updateUsage(usage, {
         showPercentage: config.showPercentage,
@@ -263,7 +268,7 @@ export class SyntheticUsageTrackerExtension {
         warningThreshold: config.warningThreshold,
         criticalThreshold: config.criticalThreshold,
         enableNotifications: config.enableNotifications,
-      });
+      }, apiKeySuffix);
 
       // Update popup panel if it's open
       // Design decision: Panel is updated after status bar to ensure data consistency

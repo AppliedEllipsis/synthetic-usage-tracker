@@ -29,9 +29,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Model endpoint uses v1 API (`https://api.synthetic.new/v1/models`)
 
 ### Fixed
+- Fixed models view not displaying any models when the panel is reused
 - Details panel now properly updates when switching between Usage and Models tabs
 - Removed duplicate command definitions in package.json
 - Fixed 4 ESLint issues by replacing non-null assertions with explicit null checks and adding discriminated union types
+
+### Added
+- Display last 6 characters of API key in status bar tooltip (format: "...xxxxxx")
+- Multi-profile API key management system allowing users to store and manage multiple API keys with custom labels
 
 ### Design Notes
 - Model indicator shows model count and highlights changes with visual indicators

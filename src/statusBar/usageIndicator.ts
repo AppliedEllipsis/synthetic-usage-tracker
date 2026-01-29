@@ -45,6 +45,7 @@ export class UsageIndicator {
   private lastText: string | null = null;
   private lastTooltip: string | null = null;
   private lastDisplayState: DisplayState | null = null;
+  private lastApiKeySuffix: string | null = null;
 
   constructor(context: vscode.ExtensionContext) {
     this.statusBarItem = vscode.window.createStatusBarItem(
@@ -71,6 +72,11 @@ export class UsageIndicator {
    * State priority: Critical > Warning > Success ensures the most severe state
    * is always displayed, which is appropriate for quota tracking where users need
    * immediate visibility of approaching limits.
+   *
+   * Security decision: Only the API key suffix (last 6 characters with "..." prefix)
+   * is stored and displayed. This allows users to identify which key is configured
+   * without exposing the full key, preventing shoulder surfing or accidental exposure
+   * in screenshots or screen sharing sessions.
    */
   updateUsage(
     usage: UsageInfo,
@@ -81,6 +87,7 @@ export class UsageIndicator {
       criticalThreshold: number;
       enableNotifications: boolean;
     },
+    apiKeySuffix?: string,
   ): void {
     this.currentUsage = usage;
 
@@ -97,7 +104,7 @@ export class UsageIndicator {
     // Clear error type when successfully updating usage
     this.errorType = null;
 
-    this.updateStatusBarItem(usage, config);
+    this.updateStatusBarItem(usage, config, apiKeySuffix);
   }
 
   getErrorType(): "authentication" | "noSubscription" | "other" | null {
@@ -111,17 +118,19 @@ export class UsageIndicator {
     this.lastText = null;
     this.lastTooltip = null;
     this.lastDisplayState = null;
+    this.lastApiKeySuffix = null;
   }
 
   /**
    * Update the status bar item with usage information
-   */
+    */
   private updateStatusBarItem(
     usage: UsageInfo,
     config: {
       showPercentage: boolean;
       showRawNumbers: boolean;
     },
+    apiKeySuffix?: string,
   ): void {
     const timeRemaining = this.calculateTimeRemaining(usage.renewsAt);
 
@@ -138,13 +147,14 @@ export class UsageIndicator {
       text += ` (${usage.requests}/${usage.limit})`;
     }
 
-    const tooltip = this.buildTooltip(usage, timeRemaining);
+    const tooltip = this.buildTooltip(usage, timeRemaining, apiKeySuffix);
 
     // Only update if values have actually changed to prevent blinking/redraw
     const needsUpdate =
       this.lastText !== text ||
       this.lastTooltip !== tooltip ||
-      this.lastDisplayState !== this.displayState;
+      this.lastDisplayState !== this.displayState ||
+      this.lastApiKeySuffix !== apiKeySuffix;
 
     if (needsUpdate) {
       this.statusBarItem.text = text;
@@ -156,6 +166,7 @@ export class UsageIndicator {
       this.lastText = text;
       this.lastTooltip = tooltip;
       this.lastDisplayState = this.displayState;
+      this.lastApiKeySuffix = apiKeySuffix ?? null;
     }
   }
 
@@ -188,7 +199,7 @@ export class UsageIndicator {
     }
   }
 
-  private buildTooltip(usage: UsageInfo, timeRemaining: string): string {
+  private buildTooltip(usage: UsageInfo, timeRemaining: string, apiKeySuffix?: string): string {
     // Design decision: Show comprehensive usage information in tooltip to match message box content.
     // This provides users with full visibility into their API quota without requiring a click.
     // Using plain text with Unicode separator for better visual appearance.
@@ -196,9 +207,13 @@ export class UsageIndicator {
     const percentageUsed = usage.percentageUsed.toFixed(1);
     const percentageRemaining = (100 - usage.percentageUsed).toFixed(1);
 
+    // Include API key suffix to help users identify which key is currently configured
+    // Security decision: Only show the last 6 characters to prevent full key exposure
+    const apiKeyLine = apiKeySuffix ? `API Key: ${apiKeySuffix}\n` : "";
+
     return `Synthetic.new Usage (${percentageUsed}%)
 ───────────────────
-Time Remaining: ${timeRemaining}
+${apiKeyLine}Time Remaining: ${timeRemaining}
 Renews: ${usage.renewsAtString}
 
 Used: ${usage.requests.toLocaleString()} (${percentageUsed}%)
