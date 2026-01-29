@@ -4,7 +4,24 @@ This document describes the Synthetic.new API used by the extension and the exte
 
 ## Synthetic.new API
 
-### Endpoint
+### API Versioning Overview
+
+The Synthetic.new API uses versioned endpoints to provide different functionality:
+
+- **v2 endpoints** (`/v2/*`) - Internal Synthetic.new features for quota and usage tracking
+  - `/v2/quotas` - Fetch quota information and usage data
+  - Includes subscription details and per-tool quota tracking
+
+- **v1 endpoints** (`/v1/*`) - OpenAI-compatible API for models and completions
+  - `/v1/models` - List available models
+  - `/v1/chat/completions` - Chat completion requests
+  - `/v1/embeddings` - Embedding requests
+
+This extension primarily uses:
+- **v2 `/quotas`** endpoint to display usage information in the status bar
+- **v1 `/models`** endpoint to populate the models panel with available models
+
+### Quota Endpoint (v2)
 
 ```
 GET https://api.synthetic.new/v2/quotas
@@ -27,15 +44,29 @@ Authorization: Bearer syn_your_api_key_here
 
 ### Response Format
 
-The API returns a JSON object with the following structure:
+The API returns a JSON object containing subscription and tool-specific quota information:
 
 ```typescript
 {
   "subscription": {
+    "id": string,           // Subscription identifier
+    "status": string,       // Subscription status (e.g., "active")
+    "plan": string,         // Plan name
     "limit": number,        // Total request limit
     "requests": number,     // Number of requests used
+    "remaining": number,    // Requests remaining
     "renewsAt": string      // ISO 8601 date string
-  }
+  },
+  "toolQuotas": [
+    {
+      "toolId": string,     // Tool identifier (e.g., "browser")
+      "toolName": string,   // Display name (e.g., "Browser")
+      "limit": number,      // Tool-specific request limit
+      "requests": number,   // Tool-specific requests used
+      "remaining": number,  // Tool-specific requests remaining
+      "renewsAt": string    // ISO 8601 date string
+    }
+  ]
 }
 ```
 
@@ -44,10 +75,24 @@ The API returns a JSON object with the following structure:
 ```json
 {
   "subscription": {
-    "limit": 135,
-    "requests": 0,
-    "renewsAt": "2025-09-21T14:36:14.288Z"
-  }
+    "id": "sub_abc123",
+    "status": "active",
+    "plan": "Pro",
+    "limit": 1000,
+    "requests": 150,
+    "remaining": 850,
+    "renewsAt": "2026-02-01T00:00:00Z"
+  },
+  "toolQuotas": [
+    {
+      "toolId": "browser",
+      "toolName": "Browser",
+      "limit": 500,
+      "requests": 75,
+      "remaining": 425,
+      "renewsAt": "2026-02-01T00:00:00Z"
+    }
+  ]
 }
 ```
 
@@ -72,6 +117,54 @@ The extension implements client-side rate limiting through:
 - Configurable refresh intervals (minimum 10 seconds)
 - Exponential backoff retry logic
 - Graceful error handling
+
+### Models Endpoint (v1)
+
+```
+GET https://api.synthetic.new/v1/models
+```
+
+#### Response Format
+
+The API returns a JSON object containing an array of available models:
+
+```typescript
+{
+  "models": [
+    {
+      "id": string,           // Model identifier
+      "name": string,         // Display name
+      "description": string,  // Model description
+      "pricing": {
+        "input": number,      // Input price per token
+        "output": number      // Output price per token
+      },
+      "capabilities": string[],  // Array of capability flags
+      "contextWindow": number    // Maximum context window size
+    }
+  ]
+}
+```
+
+#### Example Response
+
+```json
+{
+  "models": [
+    {
+      "id": "synthetic-beta",
+      "name": "Synthetic Beta",
+      "description": "Latest Synthetic model with enhanced reasoning capabilities",
+      "pricing": {
+        "input": 0.001,
+        "output": 0.002
+      },
+      "capabilities": ["streaming", "function-calling", "json-mode"],
+      "contextWindow": 128000
+    }
+  ]
+}
+```
 
 ## Internal Extension API
 
@@ -121,6 +214,34 @@ interface UsageInfo {
   percentageUsed: number;     // Percentage used (0-100)
   renewsAt: Date;            // Renewal date
   renewsAtString: string;    // Formatted renewal date string
+  toolQuotas?: ToolQuota[];  // Tool-specific quota information
+}
+
+interface ToolQuota {
+  toolId: string;            // Tool identifier (e.g., "browser")
+  toolName: string;          // Display name (e.g., "Browser")
+  limit: number;             // Tool-specific request limit
+  requests: number;          // Tool-specific requests used
+  remaining: number;         // Tool-specific requests remaining
+  renewsAt: string;          // ISO 8601 date string
+}
+```
+
+#### `Model`
+
+Model information from the v1 models endpoint:
+
+```typescript
+interface Model {
+  id: string;                // Model identifier (e.g., "synthetic-beta")
+  name: string;              // Display name (e.g., "Synthetic Beta")
+  description?: string;      // Model description
+  pricing?: {
+    input: number;           // Input price per token
+    output: number;          // Output price per token
+  };
+  capabilities?: string[];   // Supported features (e.g., "streaming", "function-calling")
+  contextWindow?: number;    // Maximum context length in tokens
 }
 ```
 

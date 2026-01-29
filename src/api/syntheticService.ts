@@ -247,12 +247,13 @@ export class SyntheticService {
     const percentageUsed = limit > 0 ? (requests / limit) * 100 : 0;
 
     // Parse tool quotas if present in response
-    const toolQuotas = data.toolQuotas?.map((toolQuota) => ({
+    // Use empty array fallback to satisfy exactOptionalPropertyTypes type checking
+    const toolQuotas: ToolQuota[] = data.toolQuotas?.map((toolQuota) => ({
       ...toolQuota,
       percentageUsed: toolQuota.limit > 0
         ? Math.round((toolQuota.requests / toolQuota.limit) * 100)
         : 0,
-    }));
+    })) ?? [];
 
     return {
       limit,
@@ -261,7 +262,7 @@ export class SyntheticService {
       percentageUsed: Math.round(percentageUsed * 100) / 100,
       renewsAt: new Date(renewsAt),
       renewsAtString: new Date(renewsAt).toLocaleString(),
-      toolQuotas: toolQuotas ?? undefined,
+      toolQuotas,
     };
   }
 
