@@ -404,12 +404,18 @@ export class SyntheticUsageTrackerExtension {
     // Fetch models if possible and update panel data payload
     if (this.modelService) {
       try {
+        console.log("[DEBUG] Extension: Fetching models...");
         const models = await this.modelService?.fetchModels?.();
+        console.log("[DEBUG] Extension: Models fetched:", models);
         // Convert to ModelData shape expected by popup panel if needed
         if (models) {
+          console.log("[DEBUG] Extension: Converting models to ModelData...");
+          console.log("[DEBUG] Extension: models.length:", models.length);
           this.currentModelData = models as any;
+          console.log("[DEBUG] Extension: currentModelData set:", this.currentModelData);
         }
-      } catch {
+      } catch (error) {
+        console.error("[DEBUG] Extension: Error fetching models:", error);
         // ignore model fetch errors for now; panel can render without models
       }
     }

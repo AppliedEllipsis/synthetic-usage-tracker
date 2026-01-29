@@ -224,12 +224,20 @@ export class ModelService {
         },
       });
 
-      if (!response.ok) {
-        await this.handleErrorResponse(response);
-      }
+    if (!response.ok) {
+      await this.handleErrorResponse(response);
+    }
 
-      const data = (await response.json()) as ModelsResponse;
-      return data.data;
+    const responseData = await response.json();
+    console.log("[DEBUG] ModelService: Raw API response:", responseData);
+    const data = responseData as ModelsResponse;
+    console.log("[DEBUG] ModelService: Parsed data.data:", data.data);
+    console.log("[DEBUG] ModelService: data.data type:", typeof data.data);
+    console.log("[DEBUG] ModelService: data.data is array:", Array.isArray(data.data));
+    if (data.data) {
+      console.log("[DEBUG] ModelService: data.data.length:", data.data.length);
+    }
+    return data.data;
     } catch (error) {
       if (error instanceof ApiError) {
         throw error;

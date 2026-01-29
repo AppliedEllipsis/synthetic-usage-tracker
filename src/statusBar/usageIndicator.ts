@@ -233,7 +233,10 @@ ${toolQuotasSection}`;
    * and understanding usage patterns.
    */
   private buildToolQuotasSection(usage: UsageInfo): string {
+    console.log("[DEBUG] UsageIndicator: buildToolQuotasSection called");
+    console.log("[DEBUG] UsageIndicator: usage.toolQuotas:", usage.toolQuotas);
     if (!usage.toolQuotas || usage.toolQuotas.length === 0) {
+      console.log("[DEBUG] UsageIndicator: toolQuotas is falsy or empty, returning empty string");
       return "";
     }
 
