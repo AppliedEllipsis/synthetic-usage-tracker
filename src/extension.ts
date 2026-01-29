@@ -5,7 +5,6 @@ import { UsageIndicator } from "./statusBar/usageIndicator";
 import { formatApiKeySuffix } from "./utils/apiKeyUtils";
 import { ModelManager, ModelUpdateResult } from "./model/modelManager";
 import { ModelService } from "./api/modelService";
-import { ModelIndicator } from "./model/modelIndicator";
 import { PopupPanel } from "./ui/popupPanel";
 import { ApiKeyManagerPanel } from "./ui/apiKeyManagerPanel";
 import type { ModelData } from "./model/detailsPanel";
@@ -35,8 +34,6 @@ export class SyntheticUsageTrackerExtension {
   private isFetching: boolean = false;
   // Watcher for cross-window key updates - kept as reference for proper cleanup on deactivation
   private sharedStateWatcherDisposable: vscode.Disposable | null = null;
-  // Watcher for cross-window model updates
-  private modelStateWatcherDisposable: vscode.Disposable | null = null;
   // Auto-refresh timer for model data
   // Design decision: Separate timer from usage data because models change less frequently
   // and use a different refresh interval. This allows independent refresh cycles.
@@ -81,13 +78,9 @@ export class SyntheticUsageTrackerExtension {
       this.registerCommands();
       // Start watching for cross-window key updates immediately to ensure synchronization
       this.sharedStateWatcherDisposable = this.configManager.watchSharedStateChanges();
-      // Start watching for cross-window model updates for multi-window consistency
-      this.modelStateWatcherDisposable = this.modelManager.watchSharedStateChanges();
 
       // Design decision: Set isInitialized to true BEFORE calling initialize() to ensure
-      // that any callbacks triggered during initialization (like model updates from the
-      // modelManager) are properly handled. Without this, the handleModelsUpdated callback
-      // would silently ignore updates because isInitialized is still false.
+      // that any callbacks triggered during initialization are properly handled.
       this.isInitialized = true;
 
       await this.initialize();
@@ -646,7 +639,6 @@ export class SyntheticUsageTrackerExtension {
     try {
       const apiKey = await this.configManager.getApiKey();
       if (!apiKey) {
-        this.modelIndicator.setIdle();
         return;
       }
 
@@ -662,33 +654,24 @@ export class SyntheticUsageTrackerExtension {
         lastUpdated: new Date(),
       };
 
-      // Update indicator based on result
-      if (result.hasChanges && !result.isFirstFetch) {
-        this.modelIndicator.setChangesDetected(result.changes);
-      } else {
-        this.modelIndicator.setReady(result.models.length);
-      }
-
       // Show notification for new changes if enabled and not first fetch
       const config = this.configManager.getConfig();
       if (result.hasChanges && !result.isFirstFetch && config.enableNotifications) {
         const changeCount = result.changes.length;
         const message =
           changeCount === 1
-            ? "1 model change detected. Click the models indicator to view details."
-            : `${changeCount} model changes detected. Click the models indicator to view details.`;
+            ? "1 model change detected. Click to view details."
+            : `${changeCount} model changes detected. Click to view details.`;
         vscode.window.showInformationMessage(message);
       }
 
       // Update popup panel if it's open with models tab
-      // Design decision: Panel is updated after indicator to ensure data consistency
+      // Design decision: Panel is updated after data fetch to ensure data consistency
       if (this.popupPanel && this.currentModelData) {
         this.popupPanel.updateModels(this.currentModelData);
       }
     } catch (error) {
       console.error("Failed to fetch models:", error);
-      const message = error instanceof Error ? error.message : "Unknown error";
-      this.modelIndicator.setError(message);
     }
   }
 
@@ -704,15 +687,14 @@ export class SyntheticUsageTrackerExtension {
       this.popupPanel.updateModels(this.currentModelData);
     }
 
-    // Clear unread changes indicator after viewing
-    this.modelIndicator.clearChanges();
+    // Note: Clear unread changes indicator after viewing
+    // (ModelIndicator was removed - this functionality is no longer needed)
   }
 
   /**
    * Manually check for model updates
    */
   private async checkModelUpdates(): Promise<void> {
-    this.modelIndicator.setLoading();
     await this.refreshModels();
     vscode.window.showInformationMessage("Model update check completed.");
   }
@@ -721,7 +703,6 @@ export class SyntheticUsageTrackerExtension {
    * Clear model change notifications
    */
   private clearModelChanges(): void {
-    this.modelIndicator.clearChanges();
     vscode.window.showInformationMessage("Model change notifications cleared.");
   }
 
@@ -736,11 +717,8 @@ export class SyntheticUsageTrackerExtension {
     try {
       const models = this.modelManager.getCurrentModels();
       if (models.length === 0) {
-        this.modelIndicator.setIdle();
         return;
       }
-
-      this.modelIndicator.setReady(models.length);
 
       const config = this.configManager.getConfig();
       if (config.enableNotifications) {
@@ -786,7 +764,7 @@ export class SyntheticUsageTrackerExtension {
   /**
    * Deactivate the extension
    *
-   * Design decision: Stop model auto-refresh before disposing model indicator to prevent
+   * Design decision: Stop model auto-refresh before disposing UI components to prevent
    * memory leaks and unnecessary API calls. Timers must be cleared before their callbacks
    * are disposed to avoid accessing disposed resources.
    */
@@ -796,8 +774,6 @@ export class SyntheticUsageTrackerExtension {
     this.usageIndicator.dispose();
     this.configManager.dispose();
     this.sharedStateWatcherDisposable?.dispose();
-    this.modelIndicator.dispose();
-    this.modelStateWatcherDisposable?.dispose();
   }
 }
 

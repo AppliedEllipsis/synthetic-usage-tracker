@@ -235,6 +235,12 @@ export class SyntheticService {
    * field, which display components handle gracefully.
    */
   private parseQuotaResponse(data: QuotaResponse): UsageInfo {
+    // Debug: Log the raw quota response structure
+    console.log("[DEBUG] SyntheticService: Raw quota response:", JSON.stringify(data, null, 2));
+    console.log("[DEBUG] SyntheticService: data.subscription:", data.subscription);
+    console.log("[DEBUG] SyntheticService: data.toolQuotas:", data.toolQuotas);
+    console.log("[DEBUG] SyntheticService: All keys in data:", Object.keys(data));
+
     if (!data.subscription) {
       throw new ApiError(
         ApiErrorType.NoSubscription,
@@ -254,6 +260,8 @@ export class SyntheticService {
         ? Math.round((toolQuota.requests / toolQuota.limit) * 100)
         : 0,
     })) ?? [];
+
+    console.log("[DEBUG] SyntheticService: Parsed toolQuotas:", toolQuotas);
 
     return {
       limit,
