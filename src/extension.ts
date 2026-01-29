@@ -83,9 +83,14 @@ export class SyntheticUsageTrackerExtension {
       this.sharedStateWatcherDisposable = this.configManager.watchSharedStateChanges();
       // Start watching for cross-window model updates for multi-window consistency
       this.modelStateWatcherDisposable = this.modelManager.watchSharedStateChanges();
-      await this.initialize();
 
+      // Design decision: Set isInitialized to true BEFORE calling initialize() to ensure
+      // that any callbacks triggered during initialization (like model updates from the
+      // modelManager) are properly handled. Without this, the handleModelsUpdated callback
+      // would silently ignore updates because isInitialized is still false.
       this.isInitialized = true;
+
+      await this.initialize();
     } catch (error) {
       console.error("Failed to activate extension:", error);
       this.usageIndicator.setError("Failed to initialize extension");

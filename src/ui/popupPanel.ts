@@ -30,6 +30,14 @@ export class PopupPanel {
   private _activeTab: TabType = "usage";
   private _viewMode: "tabs" | "split" = "tabs";
   private _onTabSwitchCallback?: (tab: TabType) => void;
+  /**
+   * Track disposal state to prevent operations on disposed webviews
+   *
+   * Design decision: This flag prevents "webview is disposed" errors that occur when
+   * async operations attempt to access the webview after it has been closed. Without
+   * this guard, the _update() method could throw errors if called after dispose().
+   */
+  private _isDisposed: boolean = false;
 
   /**
    * Register a callback to be invoked when tabs are switched
@@ -165,8 +173,16 @@ export class PopupPanel {
 
   /**
    * Update the webview content with current data
+   *
+   * Design decision: Check _isDisposed flag before accessing webview to prevent
+   * "webview is disposed" errors during async operations. This ensures that
+   * concurrent update requests after disposal are safely ignored.
    */
   private _update(): void {
+    // Guard against operations on disposed webview
+    if (this._isDisposed) {
+      return;
+    }
     const webview = this._panel.webview;
     this._panel.webview.html = this._getHtmlForWebview(webview);
   }
@@ -175,6 +191,8 @@ export class PopupPanel {
    * Dispose of resources when panel is closed
    */
   public dispose(): void {
+    // Set disposed flag first to prevent concurrent operations
+    this._isDisposed = true;
     PopupPanel.currentPanel = undefined;
 
     this._panel.dispose();

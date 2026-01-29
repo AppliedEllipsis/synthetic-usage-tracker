@@ -27,6 +27,14 @@ export class ApiKeyManagerPanel {
   private readonly panel: vscode.WebviewPanel;
   private disposables: vscode.Disposable[] = [];
   private profiles: ApiKeyProfile[] = [];
+  /**
+   * Track disposal state to prevent operations on disposed webviews
+   *
+   * Design decision: This flag prevents "webview is disposed" errors that occur when
+   * async operations attempt to access the webview after it has been closed. Without
+   * this guard, the _update() method could throw errors if called after dispose().
+   */
+  private _isDisposed: boolean = false;
 
   private static readonly viewType = "syntheticApiKeyManager";
 
@@ -188,8 +196,15 @@ export class ApiKeyManagerPanel {
 
   /**
    * Update the webview content
+   *
+   * Design decision: Check _isDisposed flag before accessing webview to prevent
+   * "webview is disposed" errors during async operations.
    */
   private _update(): void {
+    // Guard against operations on disposed webview
+    if (this._isDisposed) {
+      return;
+    }
     this.panel.webview.html = this._getHtmlForWebview(this.panel.webview);
   }
 
