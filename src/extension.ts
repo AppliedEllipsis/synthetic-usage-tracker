@@ -4,6 +4,7 @@ import { SyntheticService, ApiError, ApiErrorType, UsageInfo } from "./api/synth
 import { UsageIndicator } from "./statusBar/usageIndicator";
 import { formatApiKeySuffix } from "./utils/apiKeyUtils";
 import { ModelManager, ModelUpdateResult } from "./model/modelManager";
+import { ModelService } from "./api/modelService";
 import { ModelIndicator } from "./model/modelIndicator";
 import { PopupPanel } from "./ui/popupPanel";
 import { ApiKeyManagerPanel } from "./ui/apiKeyManagerPanel";
@@ -21,13 +22,13 @@ export class SyntheticUsageTrackerExtension {
   // the usage indicator, creating a logical grouping of related information without
   // consuming excessive status bar real estate
   private modelManager: ModelManager;
-  private modelIndicator: ModelIndicator;
   // Multi-pane popup panel for displaying usage and model information
   // Design decision: Replaces DetailsPanel with a popup that appears as a modal overlay
   // instead of opening in a new window. This provides a more integrated user experience.
   // Note: PopupPanel uses static factory pattern with singleton, so we store reference
   // to the current panel for updating data, but creation is done via PopupPanel.createOrShow()
   private popupPanel: PopupPanel | null = null;
+  private modelService?: ModelService;
   // Track initialization state to prevent race conditions during early lifecycle events
   private isInitialized: boolean = false;
   // Prevent concurrent API requests that could lead to stale data or unnecessary load
@@ -53,7 +54,6 @@ export class SyntheticUsageTrackerExtension {
     this.configManager = new ConfigurationManager(context);
     this.usageIndicator = new UsageIndicator(context);
     this.modelManager = new ModelManager(context);
-    this.modelIndicator = new ModelIndicator(context);
     // Initialize panels - created on demand but stored for reuse
     // Design decision: Panels are created lazily when first shown to avoid
     // unnecessary resource allocation. The panels are then reused on subsequent
@@ -394,11 +394,27 @@ export class SyntheticUsageTrackerExtension {
   private async showUsageDetails(): Promise<void> {
     // Design decision: Use PopupPanel's static factory method to create or show panel
     // The singleton pattern prevents duplicate panels and ensures consistent UX
-    // Panel will show cached usage data if available, or loading state otherwise
-    this.popupPanel = PopupPanel.createOrShow(this.context, "usage");
-    if (this.currentUsageData) {
-      this.popupPanel.updateUsage(this.currentUsageData);
+    // Ensure models data is up to date by fetching models if API key is available
+    if (!this.modelService) {
+      const apiKey = await this.configManager.getApiKey();
+      if (apiKey) {
+        this.modelService = new ModelService(apiKey);
+      }
     }
+    // Fetch models if possible and update panel data payload
+    if (this.modelService) {
+      try {
+        const models = await this.modelService?.fetchModels?.();
+        // Convert to ModelData shape expected by popup panel if needed
+        if (models) {
+          this.currentModelData = models as any;
+        }
+      } catch {
+        // ignore model fetch errors for now; panel can render without models
+      }
+    }
+    // Panel will show cached usage data if available, or loading state otherwise
+    this.popupPanel = PopupPanel.createOrShow(this.context, "usage", this.currentUsageData, this.currentModelData);
   }
 
   /**

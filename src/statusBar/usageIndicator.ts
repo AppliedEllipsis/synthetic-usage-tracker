@@ -211,15 +211,41 @@ export class UsageIndicator {
     // Security decision: Only show the last 6 characters to prevent full key exposure
     const apiKeyLine = apiKeySuffix ? `API Key: ${apiKeySuffix}\n` : "";
 
+    // Build tool quotas section if available
+    const toolQuotasSection = this.buildToolQuotasSection(usage);
+
     return `Synthetic.new Usage (${percentageUsed}%)
-───────────────────
+─────────────────────
 ${apiKeyLine}Time Remaining: ${timeRemaining}
 Renews: ${usage.renewsAtString}
 
 Used: ${usage.requests.toLocaleString()} (${percentageUsed}%)
 Remaining: ${usage.remaining.toLocaleString()} (${percentageRemaining}%)
 Limit: ${usage.limit.toLocaleString()}
-`;
+${toolQuotasSection}`;
+  }
+
+  /**
+   * Build the tool quotas section for the tooltip
+   *
+   * Design decision: Display individual tool usage to give users visibility into
+   * how their quota is being consumed by different tools. This helps with debugging
+   * and understanding usage patterns.
+   */
+  private buildToolQuotasSection(usage: UsageInfo): string {
+    if (!usage.toolQuotas || usage.toolQuotas.length === 0) {
+      return "";
+    }
+
+    const toolLines = usage.toolQuotas.map((tool) => {
+      const percentage = tool.percentageUsed.toFixed(1);
+      const barLength = 10;
+      const filledLength = Math.round((tool.percentageUsed / 100) * barLength);
+      const bar = "█".repeat(filledLength) + "░".repeat(barLength - filledLength);
+      return `${bar} ${tool.toolName}: ${percentage}% (${tool.requests}/${tool.limit})`;
+    });
+
+    return `\n─────────────────────\nTool Usage:\n${toolLines.join("\n")}`;
   }
 
   private calculateTimeRemaining(renewsAt: Date): string {
