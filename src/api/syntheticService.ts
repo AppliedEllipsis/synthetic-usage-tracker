@@ -18,9 +18,9 @@ export interface ToolQuota {
  * Synthetic.new API quota response structure
  *
  * Design decision: subscription is optional to handle cases where API keys exist
- * but have no active subscription (returns empty object {}). Tool call quotas
+ * but have no active subscription (returns empty object {}). Tool calls and search
  * are optional to maintain backward compatibility with accounts that don't have
- * tool-specific quotas configured.
+ * these quotas configured.
  */
 export interface QuotaResponse {
   subscription?: {
@@ -28,7 +28,18 @@ export interface QuotaResponse {
     requests: number;
     renewsAt: string;
   };
-  toolQuotas?: ToolQuota[];
+  search?: {
+    hourly: {
+      limit: number;
+      requests: number;
+      renewsAt: string;
+    };
+  };
+  toolCalls?: {
+    limit: number;
+    requests: number;
+    renewsAt: string;
+  };
 }
 
 /**
@@ -230,17 +241,11 @@ export class SyntheticService {
    * exist but have no active subscription. The API returns an empty object {} in
    * this case, which we detect and throw a specific error.
    *
-   * Tool quotas are optional in the response to maintain backward compatibility.
-   * If toolQuotas is not present, the usage info will have an undefined toolQuotas
-   * field, which display components handle gracefully.
+   * Tool quotas are transformed from the API response format to the internal format.
+   * The API returns `toolCalls` (singular object) with structure { limit, requests, renewsAt },
+   * which we transform into a ToolQuota[] array for consistency with other quota data.
    */
   private parseQuotaResponse(data: QuotaResponse): UsageInfo {
-    // Debug: Log the raw quota response structure
-    console.log("[DEBUG] SyntheticService: Raw quota response:", JSON.stringify(data, null, 2));
-    console.log("[DEBUG] SyntheticService: data.subscription:", data.subscription);
-    console.log("[DEBUG] SyntheticService: data.toolQuotas:", data.toolQuotas);
-    console.log("[DEBUG] SyntheticService: All keys in data:", Object.keys(data));
-
     if (!data.subscription) {
       throw new ApiError(
         ApiErrorType.NoSubscription,
@@ -252,16 +257,39 @@ export class SyntheticService {
     const remaining = Math.max(0, limit - requests);
     const percentageUsed = limit > 0 ? (requests / limit) * 100 : 0;
 
-    // Parse tool quotas if present in response
-    // Use empty array fallback to satisfy exactOptionalPropertyTypes type checking
-    const toolQuotas: ToolQuota[] = data.toolQuotas?.map((toolQuota) => ({
-      ...toolQuota,
-      percentageUsed: toolQuota.limit > 0
-        ? Math.round((toolQuota.requests / toolQuota.limit) * 100)
-        : 0,
-    })) ?? [];
+    // Transform toolCalls (singular object) and search into toolQuotas array
+    // The API returns toolCalls and search as single objects, but we need an array format
+    const toolQuotas: ToolQuota[] = [];
 
-    console.log("[DEBUG] SyntheticService: Parsed toolQuotas:", toolQuotas);
+    // Add search quota if present
+    if (data.search?.hourly) {
+      toolQuotas.push({
+        toolName: "Search (Hourly)",
+        limit: data.search.hourly.limit,
+        requests: data.search.hourly.requests,
+        remaining: Math.max(0, data.search.hourly.limit - data.search.hourly.requests),
+        percentageUsed:
+          data.search.hourly.limit > 0
+            ? Math.round((data.search.hourly.requests / data.search.hourly.limit) * 100)
+            : 0,
+        renewsAt: data.search.hourly.renewsAt,
+      });
+    }
+
+    // Add tool calls quota if present
+    if (data.toolCalls) {
+      toolQuotas.push({
+        toolName: "Tool Calls",
+        limit: data.toolCalls.limit,
+        requests: data.toolCalls.requests,
+        remaining: Math.max(0, data.toolCalls.limit - data.toolCalls.requests),
+        percentageUsed:
+          data.toolCalls.limit > 0
+            ? Math.round((data.toolCalls.requests / data.toolCalls.limit) * 100)
+            : 0,
+        renewsAt: data.toolCalls.renewsAt,
+      });
+    }
 
     return {
       limit,

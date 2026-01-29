@@ -269,10 +269,11 @@ export class SyntheticUsageTrackerExtension {
       }, apiKeySuffix);
 
       // Update popup panel if it's open
-      // Design decision: Panel is updated after status bar to ensure data consistency
-      // If panel doesn't exist, we skip this step (panel will get data when created)
-      if (this.popupPanel) {
-        this.popupPanel.updateUsage(usage);
+      // Design decision: Use PopupPanel.currentPanel singleton to check if panel is open
+      // The PopupPanel class uses a singleton pattern with a static currentPanel property
+      // to track the currently active panel instance across the extension lifecycle.
+      if (PopupPanel.currentPanel) {
+        PopupPanel.currentPanel.updateUsage(usage);
       }
     } catch (error) {
       console.error("Failed to fetch usage:", error);
