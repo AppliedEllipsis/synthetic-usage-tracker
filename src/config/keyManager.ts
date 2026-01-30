@@ -134,10 +134,11 @@ export class KeyManager {
     // Fallback to legacy format
     const legacyKey = await this.context.secrets.get(SECRET_STORAGE_KEYS.API_KEY_LEGACY);
     if (legacyKey) {
-      // Migrate to new format
+      // Migrate to new format with generated ID
       const collection: ApiKeyCollection = {
         keys: [
           {
+            id: this.generateKeyId(),
             key: legacyKey,
             label: "Default Key",
             statistics: { ...DEFAULT_KEY_STATISTICS },
@@ -166,6 +167,18 @@ export class KeyManager {
   }
 
   /**
+   * Generate a unique key ID
+   *
+   * Design decision: Use timestamp-based ID generation for simplicity and uniqueness.
+   * This provides sufficient uniqueness for key identification without requiring
+   * external dependencies like UUID libraries.
+   */
+  private generateKeyId(): string {
+    // Use timestamp + random number for uniqueness
+    return `key_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+  }
+
+  /**
    * Add a new API key to the collection
    *
    * Design rationale: Validate key format before storage to prevent invalid keys from
@@ -191,8 +204,9 @@ export class KeyManager {
       throw new Error("This API key is already in your collection.");
     }
 
-    // Create new key entry
+    // Create new key entry with generated ID
     const newEntry: ApiKeyEntry = {
+      id: this.generateKeyId(),
       key,
       label: label || `Key ${collection.keys.length + 1}`,
       statistics: { ...DEFAULT_KEY_STATISTICS },
@@ -351,6 +365,24 @@ export class KeyManager {
 
     // Save collection
     await this.saveCollection(collection);
+  }
+
+  /**
+   * Get statistics for a specific key
+   *
+   * Design decision: Return a copy of the statistics to prevent external code from
+   * modifying the internal state directly. This ensures data integrity.
+   */
+  async getKeyStatistics(key: string): Promise<KeyStatistics | undefined> {
+    const collection = await this.getCollection();
+    const entry = collection.keys.find((e) => e.key === key);
+
+    if (!entry) {
+      return undefined;
+    }
+
+    // Return a copy to prevent external mutation
+    return { ...entry.statistics };
   }
 
   /**

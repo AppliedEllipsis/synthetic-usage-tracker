@@ -11,6 +11,11 @@
  */
 export interface ApiKeyEntry {
   /**
+   * Unique identifier for this key entry
+   */
+  id: string;
+
+  /**
    * The API key string (sensitive data)
    */
   key: string;
@@ -60,6 +65,16 @@ export interface KeyStatistics {
    * Total number of failures for this key
    */
   totalFailures: number;
+
+  /**
+   * Array of recent failure timestamps for health tracking
+   */
+  failures: number[];
+
+  /**
+   * History of activations for this key
+   */
+  activationHistory: ActivationEntry[];
 
   /**
    * Timestamp of the last successful API request
@@ -430,6 +445,8 @@ export const DEFAULT_KEY_STATISTICS: KeyStatistics = {
   quota: null,
   consecutiveFailures: 0,
   totalFailures: 0,
+  failures: [],
+  activationHistory: [],
   lastSuccessTimestamp: null,
   lastFailureTimestamp: null,
   lastActivatedTimestamp: null,
