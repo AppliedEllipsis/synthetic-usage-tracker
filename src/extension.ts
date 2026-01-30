@@ -16,16 +16,10 @@ export class SyntheticUsageTrackerExtension {
   private isFetching: boolean = false;
   // Watcher for cross-window key updates - kept as reference for proper cleanup on deactivation
   private sharedStateWatcherDisposable: vscode.Disposable | null = null;
-  // Multi-key cycling infrastructure
-  // Design decision: KeyManager handles storage and retrieval of multiple API keys
-  private keyManager: KeyManager;
-  // Design decision: KeyCyclingService orchestrates key selection and cycling logic
-  private keyCyclingService: KeyCyclingService | null = null;
 
   constructor(private context: vscode.ExtensionContext) {
     this.configManager = new ConfigurationManager(context);
     this.usageIndicator = new UsageIndicator(context);
-    this.keyManager = new KeyManager(context);
 
     // Register callbacks early in constructor to ensure we catch all configuration changes,
     // including those that might occur before activation completes
@@ -65,44 +59,16 @@ export class SyntheticUsageTrackerExtension {
     const apiKey = await this.configManager.getApiKey();
 
     // Design decision: Prompt for API key on first launch if missing or empty
-    // If the key is explicitly set to "none", don't prompt and show "Please Set Key" status
     if (!apiKey || apiKey.trim().length === 0) {
       // Prompt user to set API key
       await this.configureApiKey();
-    } else if (apiKey === "none") {
-      // User explicitly set key to "none", show prompt status without asking
-      this.usageIndicator.setPleaseSetKey();
-      return;
     }
 
     // Re-check key configuration after prompt attempt
     const finalApiKey = await this.configManager.getApiKey();
-    if (!finalApiKey || finalApiKey.trim().length === 0 || finalApiKey === "none") {
-      this.usageIndicator.setPleaseSetKey();
+    if (!finalApiKey || finalApiKey.trim().length === 0) {
+      this.usageIndicator.setIdle();
       return;
-    }
-
-    // Initialize key cycling service if enabled
-    // Design decision: Create the cycling service after confirming we have a valid API key
-    // to ensure the service has at least one key available for cycling
-    const config = this.configManager.getConfig();
-    if (config.enableKeyCycling) {
-      // Design decision: Pass configuration parameters to the cycling service constructor
-      // The service needs to know the cycling strategy and threshold from user settings
-      this.keyCyclingService = new KeyCyclingService(
-        {
-          strategy: config.cyclingStrategy as CyclingStrategy,
-          autoCycleThreshold: config.autoCycleThreshold,
-        },
-        {
-          onKeyCycled: async (result) => {
-            // Handle key cycling events - refresh usage when keys are cycled
-            if (result.didCycle) {
-              await this.refreshUsage();
-            }
-          },
-        },
-      );
     }
 
     // Fetch initial usage data before starting auto-refresh to ensure UI has valid data immediately
@@ -214,97 +180,10 @@ export class SyntheticUsageTrackerExtension {
     this.isFetching = true;
 
     try {
-      let apiKey: string | undefined;
-      let apiKeySuffix: string | undefined;
-
-      // Declare variables for multi-key display information
-      // Design decision: These variables are declared at the outer scope so they can be used
-      // whether or not key cycling is enabled. This allows the status bar to display consistent
-      // information regardless of the cycling mode.
-      let multiKeyInfo: MultiKeyDisplayInfo;
-      let keys: ApiKeyEntry[] = [];
-      let activeEntry: ApiKeyEntry | null = null;
-      let activeIndex: number = 0;
-      let selectionResult: KeySelectionResult | null = null;
-
-      // Use key cycling service if enabled
-      // Design decision: When key cycling is enabled, the cycling service handles key selection
-      // and automatic cycling based on the configured strategy. This provides a seamless experience
-      // for users with multiple API keys without requiring manual intervention.
-      if (this.keyCyclingService) {
-        keys = await this.keyManager.getAllKeys();
-        activeEntry = (await this.keyManager.getActiveEntry()) ?? null;
-        activeIndex = activeEntry ? await this.keyManager.getActiveIndex() : 0;
-
-        // Design decision: Use AutomaticThreshold as the reason for initial key selection
-        // during refresh. This indicates the key is being selected for an API call, which
-        // may trigger automatic cycling if the current key is unhealthy or quota is exceeded.
-        selectionResult = await this.keyCyclingService.selectKey(
-          keys,
-          activeIndex,
-          ActivationReason.AutomaticThreshold,
-        );
-
-        if (!selectionResult || !selectionResult.entry.key) {
-          this.usageIndicator.setIdle();
-          return;
-        }
-
-        apiKey = selectionResult.entry.key;
-
-        // Extract last 4 characters of API key suffix from the key itself
-        // Design decision: Only display the last 4 characters to help users identify
-        // which key they're using without exposing the full key for security reasons.
-        // This is particularly useful when users cycle through multiple API keys.
-        //
-        // Security considerations:
-        // - Only the last 4 characters are extracted and passed
-        // - The full key is never logged or exposed
-        // - If the key is shorter than 4 characters, use all available characters
-        //
-        // Alternative considered: Display full key
-        // Rejected: Major security risk - full keys could be captured in screenshots,
-        // logs, or shared inadvertently.
-        apiKeySuffix = apiKey.length >= 4
-          ? apiKey.slice(-4)
-          : apiKey.length > 0
-            ? apiKey
-            : undefined;
-
-        // Record successful API call for key health tracking
-        // Design rationale: Tracking successful calls helps the cycling service maintain
-        // accurate health scores for each key, informing future key selection decisions.
-        const statistics = await this.keyManager.getKeyStatistics(apiKey);
-        if (statistics) {
-          const updatedStatistics = this.keyCyclingService.recordSuccess(statistics);
-          await this.keyManager.updateKeyStatistics(apiKey, updatedStatistics);
-        }
-      } else {
-        // Fallback to single-key mode when key cycling is disabled
-        apiKey = await this.configManager.getApiKey();
-        if (!apiKey) {
-          this.usageIndicator.setIdle();
-          return;
-        }
-
-        // Extract last 4 characters of API key for display in tooltip
-        // Design decision: Only display the last 4 characters to help users identify
-        // which key they're using without exposing the full key for security reasons.
-        // This is particularly useful when users cycle through multiple API keys.
-        //
-        // Security considerations:
-        // - Only the last 4 characters are extracted and passed
-        // - The full key is never logged or exposed
-        // - If the key is shorter than 4 characters, use all available characters
-        //
-        // Alternative considered: Display full key
-        // Rejected: Major security risk - full keys could be captured in screenshots,
-        // logs, or shared inadvertently.
-        apiKeySuffix = apiKey.length >= 4
-          ? apiKey.slice(-4)
-          : apiKey.length > 0
-            ? apiKey
-            : undefined;
+      const apiKey = await this.configManager.getApiKey();
+      if (!apiKey) {
+        this.usageIndicator.setIdle();
+        return;
       }
 
       const config = this.configManager.getConfig();
@@ -312,74 +191,16 @@ export class SyntheticUsageTrackerExtension {
       const service = new SyntheticService(apiKey, config.apiEndpoint);
       const usage = await service.fetchQuota();
 
-      // Build multi-key display information for the status bar
-      // Design rationale: Provide rich display of key cycling status including
-      // key label, suffix, index, and health score to help users understand
-      // which key is currently active and its health status.
-        let healthScore: number | null = null;
-        if (activeEntry && this.keyCyclingService) {
-          // Health scores are calculated dynamically by checkHealth() method, not stored in KeyStatistics
-          const healthResult = this.keyCyclingService.checkHealth(activeEntry);
-          healthScore = healthResult.score;
-        }
-
-      multiKeyInfo = {
-        keyLabel: activeEntry?.label ?? null,
-        keySuffix: apiKeySuffix ?? null,
-        totalKeys: keys.length,
-        currentIndex: activeIndex,
-        healthScore,
-        cyclingEnabled: config.enableKeyCycling,
-      };
-
       this.usageIndicator.updateUsage(usage, {
         showPercentage: config.showPercentage,
         showRawNumbers: config.showRawNumbers,
         warningThreshold: config.warningThreshold,
         criticalThreshold: config.criticalThreshold,
         enableNotifications: config.enableNotifications,
-      }, multiKeyInfo);
-
-      // Update key statistics with quota information when key cycling is enabled
-      // Design decision: Track quota per key to enable informed key selection decisions
-      // in the LeastUsed cycling strategy. This ensures the cycling service can select
-      // the key with the most available quota.
-      //
-      // Design rationale: Store subscription quota in statistics since it represents
-      // the overall subscription limit and is the primary quota users care about.
-      // Search and tool calls have their own separate limits that renew on different schedules.
-      if (this.keyCyclingService && apiKey) {
-        const statistics = await this.keyManager.getKeyStatistics(apiKey);
-        if (statistics) {
-          await this.keyManager.updateKeyStatistics(apiKey, {
-            quota: {
-              limit: usage.subscription.limit,
-              requests: usage.subscription.requests,
-              remaining: usage.subscription.remaining,
-              percentageUsed: usage.subscription.percentageUsed,
-              renewsAt: usage.subscription.renewsAt,
-            },
-          });
-        }
-      }
+      });
     } catch (error) {
       console.error("Failed to fetch usage:", error);
       const message = error instanceof Error ? error.message : "Unknown error";
-
-      // Record API failure for key health tracking when key cycling is enabled
-      // Design rationale: Tracking failures helps the cycling service maintain accurate
-      // health scores for each key. Keys with frequent failures will be deprioritized
-      // during automatic cycling.
-      if (this.keyCyclingService && error instanceof ApiError) {
-        const activeEntry = await this.keyManager.getActiveEntry();
-        if (activeEntry) {
-          const statistics = await this.keyManager.getKeyStatistics(activeEntry.key);
-          if (statistics) {
-            const updatedStatistics = this.keyCyclingService.recordFailure(statistics, error);
-            await this.keyManager.updateKeyStatistics(activeEntry.key, updatedStatistics);
-          }
-        }
-      }
 
       // Map ApiErrorType to UsageIndicator error type strings
       // Design rationale: This mapping enables contextual error handling when users click the status bar.
