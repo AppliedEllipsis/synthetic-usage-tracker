@@ -27,35 +27,36 @@ Authorization: Bearer syn_your_api_key_here
 
 ### Response Format
 
-The API returns a JSON object with the following structure:
+The API returns a JSON object with three distinct quota categories:
 
 ```typescript
 {
   "subscription": {
     "limit": number,        // Total request limit
     "requests": number,     // Number of requests used
-    "renewsAt": string      // ISO 8601 date string
+    "renewAt": string       // ISO 8601 date string (note: "renewAt" not "renewsAt")
   },
-  "categories": {
-    "tools": {
-      "limit": number,
-      "requests": number
-    },
-    "search": {
-      "limit": number,
-      "requests": number
-    },
-    "chat": {
-      "limit": number,
-      "requests": number
-    },
-    "other": {
-      "limit": number,
-      "requests": number
+  "search": {
+    "hourly": {
+      "limit": number,     // Hourly search limit
+      "requests": number,  // Search requests used
+      "renewAt": string    // ISO 8601 date string
     }
+  },
+  "toolCalls": {
+    "limit": number,       // Tool calls limit
+    "requests": number,    // Tool calls used
+    "renewAt": string      // ISO 8601 date string
   }
 }
 ```
+
+**Key observations:**
+1. Three distinct quota categories: `subscription`, `search`, and `toolCalls`
+2. `search` quota is uniquely wrapped in an `hourly` object
+3. Each category has `limit`, `requests`, and `renewAt` fields (note: the API uses `renewAt` not `renewsAt`)
+4. No calculated fields - `remaining` and `percentageUsed` are computed client-side
+5. Different renewal cycles for each category
 
 ### Models Endpoint
 
@@ -87,8 +88,20 @@ The API returns 18 available models, all with `hf:` prefix indicating Hugging Fa
 {
   "subscription": {
     "limit": 135,
-    "requests": 0,
-    "renewsAt": "2025-09-21T14:36:14.288Z"
+    "requests": 33,
+    "renewAt": "2026-01-30T20:20:59.408Z"
+  },
+  "search": {
+    "hourly": {
+      "limit": 250,
+      "requests": 0,
+      "renewAt": "2026-01-30T20:25:50.409Z"
+    }
+  },
+  "toolCalls": {
+    "limit": 1620,
+    "requests": 271,
+    "renewAt": "2026-01-31T10:17:00.411Z"
   }
 }
 ```
@@ -140,68 +153,83 @@ interface Configuration {
 
 ### API Types
 
-#### `UsageCategory`
+#### `QuotaCategory`
 
-Enumeration of usage categories:
+Base interface for a quota category:
 
 ```typescript
-enum UsageCategory {
-  Tools = "tools",
-  Search = "search",
-  Chat = "chat",
-  Other = "other",
+interface QuotaCategory {
+  limit: number;              // Total request limit for the category
+  requests: number;           // Number of requests used
+  renewAt: string;            // ISO 8601 date string (note: "renewAt" not "renewsAt")
 }
 ```
 
-#### `CategoryUsage`
+#### `SubscriptionQuota`
 
-Usage information for a specific category:
+Direct quota category for subscription usage:
 
 ```typescript
-interface CategoryUsage {
-  limit: number;              // Category-specific limit
-  requests: number;           // Requests used in category
-  remaining: number;          // Requests remaining in category
-  percentageUsed: number;     // Percentage used (0-100)
+interface SubscriptionQuota extends QuotaCategory {
+  // Direct quota category - no nesting
+}
+```
+
+#### `SearchQuota`
+
+Quota category wrapped in hourly object:
+
+```typescript
+interface SearchQuota {
+  hourly: QuotaCategory;      // Search quota is uniquely wrapped in an hourly object
+}
+```
+
+#### `ToolCallsQuota`
+
+Direct quota category for tool calls usage:
+
+```typescript
+interface ToolCallsQuota extends QuotaCategory {
+  // Direct quota category - no nesting
 }
 ```
 
 #### `QuotaResponse`
 
-Raw API response structure:
+Raw API response structure with three distinct quota categories:
 
 ```typescript
 interface QuotaResponse {
-  subscription: {
-    limit: number;
-    requests: number;
-    renewsAt: string;
-  };
-  categories?: {
-    tools: { limit: number; requests: number };
-    search: { limit: number; requests: number };
-    chat: { limit: number; requests: number };
-    other: { limit: number; requests: number };
-  };
+  subscription: QuotaCategory;  // Subscription quota
+  search: SearchQuota;          // Search quota (wrapped in hourly object)
+  toolCalls: QuotaCategory;     // Tool calls quota
+}
+```
+
+#### `CategoryUsageInfo`
+
+Enhanced quota category with client-side calculated fields:
+
+```typescript
+interface CategoryUsageInfo extends QuotaCategory {
+  renewAt: Date;              // Parsed renewal date
+  remaining: number;          // Calculated: limit - requests
+  percentageUsed: number;     // Calculated: (requests / limit) * 100
 }
 ```
 
 #### `UsageInfo`
 
-Parsed usage information:
+Parsed usage information with all three quota categories:
 
 ```typescript
 interface UsageInfo {
-  limit: number;              // Total request limit
-  requests: number;           // Requests used
-  remaining: number;          // Requests remaining
-  percentageUsed: number;     // Percentage used (0-100)
-  renewsAt: Date;            // Renewal date
-  renewsAtString: string;    // Formatted renewal date string
-  categories?: {              // Category-specific usage (optional)
-    [key in UsageCategory]: CategoryUsage;
-  };
+  subscription: CategoryUsageInfo;  // Subscription usage
+  search: CategoryUsageInfo;        // Search usage (extracted from hourly wrapper)
+  toolCalls: CategoryUsageInfo;     // Tool calls usage
 }
+```
 
 #### `ApiErrorType`
 

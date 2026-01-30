@@ -1,197 +1,107 @@
 import assert from "node:assert";
 import { suite, test } from "mocha";
 import { SyntheticService, ApiError, ApiErrorType } from "../../../src/api/syntheticService";
-import type { UsageInfo, CategoryUsage } from "../../../src/api/syntheticService";
+import type { UsageInfo, CategoryUsageInfo } from "../../../src/api/syntheticService";
 
 /**
  * Unit tests for SyntheticService
- * Tests the new category-based API response parsing and backward compatibility
+ * Tests the three-category API response parsing (subscription, search, toolCalls)
  */
 
-suite("SyntheticService - parseCategories", () => {
+suite("SyntheticService - parseCategory", () => {
   test("should parse valid category data", () => {
     // Design decision: Use reflection to test private method for comprehensive coverage
     // This allows us to test the parsing logic without making it publicly accessible
     const service = new SyntheticService("syn_test123");
-    const categories: Record<string, CategoryUsage> = {
-      tools: { limit: 1000, used: 500 },
-      search: { limit: 500, used: 100 },
-      chat: { limit: 2000, used: 1500 },
+    const category = {
+      limit: 1000,
+      requests: 500,
+      renewAt: "2026-01-30T20:20:59.408Z",
     };
 
     // Access private method via TypeScript type assertion for testing
-    const parseCategories = (service as any).parseCategories.bind(service);
-    const result = parseCategories(categories);
+    const parseCategory = (service as any).parseCategory.bind(service);
+    const result = parseCategory(category);
 
-    assert.strictEqual(result.tools.limit, 1000);
-    assert.strictEqual(result.tools.used, 500);
-    assert.strictEqual(result.tools.remaining, 500);
-    assert.strictEqual(result.tools.percentageUsed, 50);
-
-    assert.strictEqual(result.search.limit, 500);
-    assert.strictEqual(result.search.used, 100);
-    assert.strictEqual(result.search.remaining, 400);
-    assert.strictEqual(result.search.percentageUsed, 20);
-
-    assert.strictEqual(result.chat.limit, 2000);
-    assert.strictEqual(result.chat.used, 1500);
-    assert.strictEqual(result.chat.remaining, 500);
-    assert.strictEqual(result.chat.percentageUsed, 75);
+    assert.strictEqual(result.limit, 1000);
+    assert.strictEqual(result.requests, 500);
+    assert.strictEqual(result.remaining, 500);
+    assert.strictEqual(result.percentageUsed, 50);
+    assert.ok(result.renewAt instanceof Date);
   });
 
   test("should handle category with zero limit", () => {
     const service = new SyntheticService("syn_test123");
-    const categories: Record<string, CategoryUsage> = {
-      tools: { limit: 0, used: 0 },
+    const category = {
+      limit: 0,
+      requests: 0,
+      renewAt: "2026-01-30T20:20:59.408Z",
     };
 
-    const parseCategories = (service as any).parseCategories.bind(service);
-    const result = parseCategories(categories);
+    const parseCategory = (service as any).parseCategory.bind(service);
+    const result = parseCategory(category);
 
     // Design rationale: When limit is 0, percentageUsed should be 0 to avoid division by zero
-    assert.strictEqual(result.tools.limit, 0);
-    assert.strictEqual(result.tools.used, 0);
-    assert.strictEqual(result.tools.remaining, 0);
-    assert.strictEqual(result.tools.percentageUsed, 0);
+    assert.strictEqual(result.limit, 0);
+    assert.strictEqual(result.requests, 0);
+    assert.strictEqual(result.remaining, 0);
+    assert.strictEqual(result.percentageUsed, 0);
   });
 
   test("should handle category exceeding limit", () => {
     const service = new SyntheticService("syn_test123");
-    const categories: Record<string, CategoryUsage> = {
-      tools: { limit: 100, used: 150 },
+    const category = {
+      limit: 100,
+      requests: 150,
+      renewAt: "2026-01-30T20:20:59.408Z",
     };
 
-    const parseCategories = (service as any).parseCategories.bind(service);
-    const result = parseCategories(categories);
+    const parseCategory = (service as any).parseCategory.bind(service);
+    const result = parseCategory(category);
 
     // Design rationale: remaining should be clamped to 0, not negative
-    assert.strictEqual(result.tools.limit, 100);
-    assert.strictEqual(result.tools.used, 150);
-    assert.strictEqual(result.tools.remaining, 0);
-    assert.strictEqual(result.tools.percentageUsed, 150);
-  });
-
-  test("should skip categories with missing limit field", () => {
-    const service = new SyntheticService("syn_test123");
-    const categories = {
-      tools: { limit: 100, used: 50 },
-      // @ts-expect-error - Testing invalid data
-      invalid: { used: 10 }, // Missing 'limit' field
-    };
-
-    const parseCategories = (service as any).parseCategories.bind(service);
-    const result = parseCategories(categories);
-
-    // Design decision: Skip invalid categories silently to fail gracefully
-    assert.strictEqual("tools" in result, true);
-    assert.strictEqual("invalid" in result, false);
-    assert.strictEqual(result.tools.limit, 100);
-  });
-
-  test("should skip categories with missing used field", () => {
-    const service = new SyntheticService("syn_test123");
-    const categories = {
-      tools: { limit: 100, used: 50 },
-      // @ts-expect-error - Testing invalid data
-      invalid: { limit: 50 }, // Missing 'used' field
-    };
-
-    const parseCategories = (service as any).parseCategories.bind(service);
-    const result = parseCategories(categories);
-
-    assert.strictEqual("tools" in result, true);
-    assert.strictEqual("invalid" in result, false);
-  });
-
-  test("should skip categories with non-numeric limit", () => {
-    const service = new SyntheticService("syn_test123");
-    const categories = {
-      tools: { limit: 100, used: 50 },
-      // @ts-expect-error - Testing invalid data
-      invalid: { limit: "invalid", used: 10 },
-    };
-
-    const parseCategories = (service as any).parseCategories.bind(service);
-    const result = parseCategories(categories);
-
-    assert.strictEqual("tools" in result, true);
-    assert.strictEqual("invalid" in result, false);
-  });
-
-  test("should return empty object for empty categories", () => {
-    const service = new SyntheticService("syn_test123");
-    const categories: Record<string, CategoryUsage> = {};
-
-    const parseCategories = (service as any).parseCategories.bind(service);
-    const result = parseCategories(categories);
-
-    assert.deepStrictEqual(result, {});
+    assert.strictEqual(result.limit, 100);
+    assert.strictEqual(result.requests, 150);
+    assert.strictEqual(result.remaining, 0);
+    assert.strictEqual(result.percentageUsed, 150);
   });
 
   test("should handle percentage rounding", () => {
     const service = new SyntheticService("syn_test123");
-    const categories: Record<string, CategoryUsage> = {
-      tools: { limit: 3, used: 1 }, // 33.333...%
-      search: { limit: 7, used: 2 }, // 28.571...%
+    const category = {
+      limit: 3,
+      requests: 1, // 33.333...%
+      renewAt: "2026-01-30T20:20:59.408Z",
     };
 
-    const parseCategories = (service as any).parseCategories.bind(service);
-    const result = parseCategories(categories);
+    const parseCategory = (service as any).parseCategory.bind(service);
+    const result = parseCategory(category);
 
     // Design rationale: Round to 2 decimal places for consistent display
-    assert.strictEqual(result.tools.percentageUsed, 33.33);
-    assert.strictEqual(result.search.percentageUsed, 28.57);
+    assert.strictEqual(result.percentageUsed, 33.33);
   });
 });
 
-suite("SyntheticService - backward compatibility", () => {
-  test("should handle response without categories field", async () => {
+suite("SyntheticService - parseQuotaResponse", () => {
+  test("should parse all three categories", async () => {
     // Design decision: Mock global fetch to test API response parsing without network calls
-    const mockResponse: UsageInfo = {
-      limit: 10000,
-      requests: 5000,
-      remaining: 5000,
-      percentageUsed: 50,
-      renewsAt: new Date("2026-02-01T00:00:00Z"),
-      categories: undefined,
-    };
-
     const mockJson = Promise.resolve({
-      limit: 10000,
-      requests: 5000,
-      remaining: 5000,
-      percentageUsed: 50,
-      renewsAt: "2026-02-01T00:00:00Z",
-    });
-
-    const mockFetch = Promise.resolve({
-      ok: true,
-      json: () => mockJson,
-    } as Response);
-
-    // @ts-expect-error - Mocking global fetch
-    global.fetch = () => mockFetch;
-
-    const service = new SyntheticService("syn_test123");
-    const result = await service.fetchQuota();
-
-    assert.strictEqual(result.limit, 10000);
-    assert.strictEqual(result.requests, 5000);
-    assert.strictEqual(result.remaining, 5000);
-    assert.strictEqual(result.percentageUsed, 50);
-    assert.strictEqual(result.categories, undefined);
-  });
-
-  test("should handle response with categories field", async () => {
-    const mockJson = Promise.resolve({
-      limit: 10000,
-      requests: 5000,
-      remaining: 5000,
-      percentageUsed: 50,
-      renewsAt: "2026-02-01T00:00:00Z",
-      categories: {
-        tools: { limit: 1000, used: 500 },
-        search: { limit: 500, used: 100 },
+      subscription: {
+        limit: 135,
+        requests: 33,
+        renewAt: "2026-01-30T20:20:59.408Z",
+      },
+      search: {
+        hourly: {
+          limit: 250,
+          requests: 0,
+          renewAt: "2026-01-30T20:25:50.409Z",
+        },
+      },
+      toolCalls: {
+        limit: 1620,
+        requests: 271,
+        renewAt: "2026-01-31T10:17:00.411Z",
       },
     });
 
@@ -206,13 +116,87 @@ suite("SyntheticService - backward compatibility", () => {
     const service = new SyntheticService("syn_test123");
     const result = await service.fetchQuota();
 
-    assert.strictEqual(result.categories?.tools.limit, 1000);
-    assert.strictEqual(result.categories?.tools.remaining, 500);
-    assert.strictEqual(result.categories?.tools.percentageUsed, 50);
+    // Verify subscription category
+    assert.strictEqual(result.subscription.limit, 135);
+    assert.strictEqual(result.subscription.requests, 33);
+    assert.strictEqual(result.subscription.remaining, 102);
+    assert.strictEqual(result.subscription.percentageUsed, 24.44);
 
-    assert.strictEqual(result.categories?.search.limit, 500);
-    assert.strictEqual(result.categories?.search.remaining, 400);
-    assert.strictEqual(result.categories?.search.percentageUsed, 20);
+    // Verify search category (unwrapped from hourly object)
+    assert.strictEqual(result.search.limit, 250);
+    assert.strictEqual(result.search.requests, 0);
+    assert.strictEqual(result.search.remaining, 250);
+    assert.strictEqual(result.search.percentageUsed, 0);
+
+    // Verify toolCalls category
+    assert.strictEqual(result.toolCalls.limit, 1620);
+    assert.strictEqual(result.toolCalls.requests, 271);
+    assert.strictEqual(result.toolCalls.remaining, 1349);
+    assert.strictEqual(result.toolCalls.percentageUsed, 16.73);
+  });
+
+  test("should handle missing search category", async () => {
+    const mockJson = Promise.resolve({
+      subscription: {
+        limit: 100,
+        requests: 50,
+        renewAt: "2026-01-30T20:20:59.408Z",
+      },
+      toolCalls: {
+        limit: 1000,
+        requests: 200,
+        renewAt: "2026-01-31T10:17:00.411Z",
+      },
+    });
+
+    const mockFetch = Promise.resolve({
+      ok: true,
+      json: () => mockJson,
+    } as Response);
+
+    // @ts-expect-error - Mocking global fetch
+    global.fetch = () => mockFetch;
+
+    const service = new SyntheticService("syn_test123");
+    const result = await service.fetchQuota();
+
+    assert.strictEqual(result.subscription.limit, 100);
+    assert.strictEqual(result.toolCalls.limit, 1000);
+    // Search should not be present if missing from response
+    assert.strictEqual(result.search, undefined);
+  });
+
+  test("should handle missing subscription category", async () => {
+    const mockJson = Promise.resolve({
+      search: {
+        hourly: {
+          limit: 250,
+          requests: 0,
+          renewAt: "2026-01-30T20:25:50.409Z",
+        },
+      },
+      toolCalls: {
+        limit: 1620,
+        requests: 271,
+        renewAt: "2026-01-31T10:17:00.411Z",
+      },
+    });
+
+    const mockFetch = Promise.resolve({
+      ok: true,
+      json: () => mockJson,
+    } as Response);
+
+    // @ts-expect-error - Mocking global fetch
+    global.fetch = () => mockFetch;
+
+    const service = new SyntheticService("syn_test123");
+    const result = await service.fetchQuota();
+
+    assert.strictEqual(result.search.limit, 250);
+    assert.strictEqual(result.toolCalls.limit, 1620);
+    // Subscription should not be present if missing from response
+    assert.strictEqual(result.subscription, undefined);
   });
 });
 

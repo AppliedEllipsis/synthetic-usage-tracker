@@ -1,11 +1,7 @@
 import * as vscode from "vscode";
 import { ConfigurationManager } from "./config/configuration";
-import { SyntheticService, ApiError, ApiErrorType } from "./api/syntheticService";
-import { UsageIndicator, type MultiKeyDisplayInfo } from "./statusBar/usageIndicator";
-import { KeyManager } from "./config/keyManager";
-import { KeyCyclingService } from "./api/keyCyclingService";
-import type { CyclingStrategy, ApiKeyEntry, KeySelectionResult } from "./types/keys";
-import { ActivationReason } from "./types/keys";
+import { SyntheticService, ApiError, ApiErrorType, type UsageInfo } from "./api/syntheticService";
+import { UsageIndicator } from "./statusBar/usageIndicator";
 
 /**
  * Main extension class

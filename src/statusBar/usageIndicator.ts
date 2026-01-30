@@ -124,9 +124,6 @@ export class UsageIndicator {
    */
   private buildText(usage: UsageInfo, config: Config): string {
     const subscription = usage.subscription;
-    const search = usage.search;
-    const toolCalls = usage.toolCalls;
-
     // Build warning symbols for categories
     const symbols = this.buildCategoryWarningSymbols(usage, config);
 
@@ -159,13 +156,13 @@ export class UsageIndicator {
     let tooltip = "### Synthetic.new Usage\n\n";
 
     // Subscription category
-    tooltip += this.buildCategoryTooltip("Subscription", subscription, config, false);
+    tooltip += this.buildCategoryTooltip("Subscription", subscription, config);
 
     // Search category (hourly)
-    tooltip += this.buildCategoryTooltip("Search (hourly)", search, config, false);
+    tooltip += this.buildCategoryTooltip("Search (hourly)", search, config);
 
     // Tool Calls category
-    tooltip += this.buildCategoryTooltip("Tool Calls", toolCalls, config, true);
+    tooltip += this.buildCategoryTooltip("Tool Calls", toolCalls, config);
 
     return tooltip;
   }
@@ -177,14 +174,12 @@ export class UsageIndicator {
     name: string,
     category: CategoryUsageInfo,
     config: Config,
-    isLast: boolean,
   ): string {
     const percentageUsed = category.percentageUsed.toFixed(1);
     const percentageRemaining = (100 - category.percentageUsed).toFixed(1);
-    const timeRemaining = this.calculateTimeRemaining(category.renewsAt);
 
     let section = `**${name}**\n`;
-    section += `Renews: ${category.renewsAtString}\n`;
+    section += `Renews: ${category.renewAtString}\n`;
     section += `Used: ${category.requests.toLocaleString()} (${percentageUsed}%)\n`;
     section += `Remaining: ${category.remaining.toLocaleString()} (${percentageRemaining}%)\n`;
     section += `Limit: ${category.limit.toLocaleString()}\n`;
@@ -249,30 +244,6 @@ export class UsageIndicator {
 
     const bar = color.repeat(filled) + "░".repeat(empty);
     return `[${bar}]`;
-  }
-
-  /**
-   * Calculate time remaining until quota renewal
-   */
-  private calculateTimeRemaining(renewsAt: Date): string {
-    const now = new Date();
-    const diff = renewsAt.getTime() - now.getTime();
-
-    if (diff <= 0) {
-      return "Renews soon";
-    }
-
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-
-    if (days > 0) {
-      return `${days}d ${hours}h ${minutes}m`;
-    } else if (hours > 0) {
-      return `${hours}h ${minutes}m`;
-    } else {
-      return `${minutes}m`;
-    }
   }
 
   /**

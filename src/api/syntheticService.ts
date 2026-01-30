@@ -291,15 +291,15 @@ export class SyntheticService {
     const remaining = Math.max(0, category.limit - category.requests);
     const percentageUsed =
       category.limit > 0 ? (category.requests / category.limit) * 100 : 0;
-    const renewsAt = new Date(category.renewAt);
+    const renewAt = new Date(category.renewAt);
 
     return {
       limit: category.limit,
       requests: category.requests,
       remaining,
       percentageUsed: Math.round(percentageUsed * 100) / 100,
-      renewsAt,
-      renewsAtString: renewsAt.toLocaleString(),
+      renewAt,
+      renewAtString: renewAt.toLocaleString(),
     };
   }
 
