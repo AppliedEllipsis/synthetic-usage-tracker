@@ -348,16 +348,20 @@ export class SyntheticUsageTrackerExtension {
       // Design decision: Track quota per key to enable informed key selection decisions
       // in the LeastUsed cycling strategy. This ensures the cycling service can select
       // the key with the most available quota.
+      //
+      // Design rationale: Store subscription quota in statistics since it represents
+      // the overall subscription limit and is the primary quota users care about.
+      // Search and tool calls have their own separate limits that renew on different schedules.
       if (this.keyCyclingService && apiKey) {
         const statistics = await this.keyManager.getKeyStatistics(apiKey);
         if (statistics) {
           await this.keyManager.updateKeyStatistics(apiKey, {
             quota: {
-              limit: usage.limit,
-              requests: usage.requests,
-              remaining: usage.remaining,
-              percentageUsed: usage.percentageUsed,
-              renewsAt: usage.renewsAt,
+              limit: usage.subscription.limit,
+              requests: usage.subscription.requests,
+              remaining: usage.subscription.remaining,
+              percentageUsed: usage.subscription.percentageUsed,
+              renewsAt: usage.subscription.renewsAt,
             },
           });
         }

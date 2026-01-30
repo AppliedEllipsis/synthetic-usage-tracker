@@ -1,79 +1,85 @@
 /**
- * Category-specific usage breakdown
- *
- * Design decision: Each category tracks its own usage metrics independently.
- * This allows users to see detailed breakdowns by service type (tools, search, etc.).
- * Categories are optional to handle partial data or missing categories.
+ * Base quota category interface
+ * 
+ * Design decision: Common structure for all quota categories with limit, requests,
+ * and renewal timestamp. Each category has independent limits and renewal cycles.
  */
-export interface CategoryUsage {
+export interface QuotaCategory {
   limit: number;
-  used: number;
-  remaining: number;
-  percentageUsed: number;
+  requests: number;
+  renewAt: string;
 }
 
 /**
- * Known usage categories
- *
- * Design decision: Use string literal union for known categories to provide
- * type safety while remaining extensible for future categories. The API may
- * add new categories over time, so we use a flexible structure.
+ * Subscription quota - direct quota category
+ * 
+ * Design decision: Subscription quota is a direct category without wrapping,
+ * representing the overall subscription usage.
  */
-export type UsageCategory = 'tools' | 'search' | 'chat' | 'other' | string;
+export interface SubscriptionQuota extends QuotaCategory {}
 
 /**
- * Synthetic.new API quota response structure with category breakdowns
- *
- * Design decision: Support both legacy and new payload formats:
- * - Legacy format: { subscription: { limit, requests, renewsAt } }
- * - New format: { subscription: { limit, requests, renewsAt, categories: {...} } }
- *
- * The subscription field is optional to handle cases where API keys exist
- * but have no active subscription (returns empty object {}). The categories
- * field is also optional for backward compatibility with API keys that don't
- * have category breakdowns yet.
+ * Search quota - wrapped in hourly object
+ * 
+ * Design decision: Search quota is uniquely wrapped in an hourly object to
+ * indicate its hourly renewal cycle. This structure differs from other categories.
+ */
+export interface SearchQuota {
+  hourly: QuotaCategory;
+}
+
+/**
+ * Tool calls quota - direct quota category
+ * 
+ * Design decision: Tool calls quota is a direct category representing tool
+ * invocation usage.
+ */
+export interface ToolCallsQuota extends QuotaCategory {}
+
+/**
+ * Synthetic.new API quota response structure
+ * 
+ * Design decision: The API returns three distinct quota categories:
+ * - subscription: Overall subscription usage
+ * - search: Hourly search quota (wrapped in hourly object)
+ * - toolCalls: Tool invocation usage
+ * 
+ * Each category has limit, requests, and renewAt fields. The API uses "renewAt"
+ * (not "renewsAt") as the field name. Calculated fields (remaining, percentageUsed)
+ * must be computed client-side.
  */
 export interface QuotaResponse {
-  subscription?: {
-    limit: number;
-    requests: number;
-    renewsAt: string;
-    /**
-     * Optional category breakdowns by usage type
-     * Key is the category name (e.g., "tools", "search", "chat")
-     * Value contains usage metrics for that category
-     */
-    categories?: Record<UsageCategory, CategoryUsage>;
-  };
+  subscription: SubscriptionQuota;
+  search: SearchQuota;
+  toolCalls: ToolCallsQuota;
 }
 
 /**
- * Usage information derived from quota response
- *
- * Design decision: Maintain backward compatibility by keeping the original
- * fields while adding optional category breakdowns. This ensures existing UI
- * code continues to work without modification, while new UI can take advantage
- * of the detailed category data when available.
+ * Category usage information with calculated fields
+ * 
+ * Design decision: Extend the base QuotaCategory with calculated fields
+ * (remaining, percentageUsed) that are computed client-side from the API response.
  */
-export interface UsageInfo {
-  // Overall usage (aggregated across all categories)
+export interface CategoryUsageInfo {
   limit: number;
   requests: number;
   remaining: number;
   percentageUsed: number;
-  renewsAt: Date;
-  renewsAtString: string;
+  renewAt: Date;
+  renewAtString: string;
+}
 
-  /**
-   * Optional category-specific usage breakdowns
-   * Only populated if the API returns category data
-   *
-   * Design decision: Use optional field to gracefully handle cases where:
-   * - API returns legacy format without categories
-   * - API key doesn't have category breakdowns enabled
-   * - Some categories are missing from the response
-   */
-  categories?: Record<UsageCategory, CategoryUsage>;
+/**
+ * Usage information for all quota categories
+ * 
+ * Design decision: Aggregate all three quota categories into a single type
+ * for easy consumption by the UI. Each category is optional to handle cases
+ * where the API might not return all categories.
+ */
+export interface UsageInfo {
+  subscription: CategoryUsageInfo;
+  search: CategoryUsageInfo;
+  toolCalls: CategoryUsageInfo;
 }
 
 /**
@@ -121,7 +127,7 @@ interface RetryConfig {
  * Design rationale:
  * - maxRetries: 3 attempts balance reliability with responsiveness
  * - initialDelay: 1000ms gives transient failures time to recover
- * - maxDelay: 10000s prevents excessively long wait times
+ * - maxDelay: 10000ms prevents excessively long wait times
  * - backoffFactor: 2 follows standard exponential backoff to reduce server load
  */
 const DEFAULT_RETRY_CONFIG: RetryConfig = {
@@ -199,7 +205,7 @@ export class SyntheticService {
         await this.handleErrorResponse(response);
       }
 
-      const data = await response.json() as QuotaResponse;
+      const data = (await response.json()) as QuotaResponse;
       return this.parseQuotaResponse(data);
     } catch (error) {
       if (error instanceof ApiError) {
@@ -255,97 +261,54 @@ export class SyntheticService {
   /**
    * Parse quota response into usage information
    *
-   * Design decision: Support both legacy and new API response formats:
-   * - Legacy: { subscription: { limit, requests, renewsAt } }
-   * - New: { subscription: { limit, requests, renewsAt, categories: {...} } }
-   *
-   * Check for missing subscription data to handle API keys that exist but have no
-   * active subscription. The API returns an empty object {} in this case, which
-   * we detect and throw a specific error.
-   *
-   * Category breakdowns are optional - if present, we parse and calculate
-   * percentages for each category. If absent, we return the legacy format
-   * without category data, ensuring backward compatibility.
+   * Design decision: Parse all three quota categories (subscription, search, toolCalls)
+   * and calculate remaining and percentageUsed for each. The search category is uniquely
+   * wrapped in an hourly object, which we extract and convert to the common format.
+   * 
+   * Alternative considered: Only parse subscription and ignore other categories
+   * Rejected: Users need visibility into all quota types to make informed decisions
+   * about API usage. The multi-category structure provides valuable insights.
    */
   private parseQuotaResponse(data: QuotaResponse): UsageInfo {
-    if (!data.subscription) {
-      throw new ApiError(
-        ApiErrorType.NoSubscription,
-        "No subscription data detected. Please check your Synthetic.new account."
-      );
-    }
-
-    const { limit, requests, renewsAt, categories } = data.subscription;
-    const remaining = Math.max(0, limit - requests);
-    const percentageUsed = limit > 0 ? (requests / limit) * 100 : 0;
-
-    /**
-     * Design decision: Build the return object conditionally to handle exactOptionalPropertyTypes
-     * TypeScript's strict mode requires that optional properties not be assigned undefined.
-     * Instead, we only include the categories property when it has a value.
-     */
-    const result: UsageInfo = {
-      limit,
-      requests,
-      remaining,
-      percentageUsed: Math.round(percentageUsed * 100) / 100,
-      renewsAt: new Date(renewsAt),
-      renewsAtString: new Date(renewsAt).toLocaleString(),
+    return {
+      subscription: this.parseCategory(data.subscription),
+      search: this.parseCategory(data.search.hourly),
+      toolCalls: this.parseCategory(data.toolCalls),
     };
-
-    // Only add categories if present in the response
-    if (categories) {
-      result.categories = this.parseCategories(categories);
-    }
-
-    return result;
   }
 
   /**
-   * Parse category breakdowns and calculate percentages for each
+   * Parse a single quota category and calculate derived fields
    *
-   * Design decision: Calculate remaining and percentage for each category
-   * to provide consistent data structure across all categories. This ensures
-   * the UI doesn't need to perform these calculations.
-   *
-   * Gracefully handle partial data - if a category is missing required fields,
-   * we skip it rather than failing the entire response.
+   * Design decision: Calculate remaining and percentageUsed client-side since
+   * the API only provides limit and requests. This ensures consistent calculations
+   * across all categories regardless of API changes.
+   * 
+   * The API uses "renewAt" (not "renewsAt") as the field name - we use the exact
+   * field name from the API to maintain consistency.
    */
-  private parseCategories(
-    categories: Record<UsageCategory, CategoryUsage>
-  ): Record<UsageCategory, CategoryUsage> {
-    const parsed: Record<UsageCategory, CategoryUsage> = {};
+  private parseCategory(category: QuotaCategory): CategoryUsageInfo {
+    const remaining = Math.max(0, category.limit - category.requests);
+    const percentageUsed =
+      category.limit > 0 ? (category.requests / category.limit) * 100 : 0;
+    const renewsAt = new Date(category.renewAt);
 
-    for (const [categoryName, categoryData] of Object.entries(categories)) {
-      // Validate that category has required fields
-      if (
-        typeof categoryData.limit === "number" &&
-        typeof categoryData.used === "number"
-      ) {
-        const remaining = Math.max(0, categoryData.limit - categoryData.used);
-        const percentageUsed =
-          categoryData.limit > 0 ? (categoryData.used / categoryData.limit) * 100 : 0;
-
-        parsed[categoryName] = {
-          limit: categoryData.limit,
-          used: categoryData.used,
-          remaining,
-          percentageUsed: Math.round(percentageUsed * 100) / 100,
-        };
-      }
-      // Skip categories with invalid data - design decision: fail gracefully
-      // rather than throwing an error, as partial category data is better than none
-    }
-
-    return parsed;
+    return {
+      limit: category.limit,
+      requests: category.requests,
+      remaining,
+      percentageUsed: Math.round(percentageUsed * 100) / 100,
+      renewsAt,
+      renewsAtString: renewsAt.toLocaleString(),
+    };
   }
 
   /**
    * Execute fetch with retry logic using exponential backoff
    *
-   * Design decision: Don't retry on authentication errors, no subscription errors, or
-   * the last attempt. This prevents wasting time on requests that will never succeed
-   * and provides faster feedback to users.
+   * Design decision: Don't retry on authentication errors or the last attempt.
+   * This prevents wasting time on requests that will never succeed and provides
+   * faster feedback to users.
    */
   private async retryFetch<T>(fetchFn: () => Promise<T>): Promise<T> {
     let lastError: Error | undefined;
@@ -358,11 +321,6 @@ export class SyntheticService {
 
         // Don't retry on authentication errors - they won't succeed
         if (lastError instanceof ApiError && lastError.type === ApiErrorType.Authentication) {
-          throw lastError;
-        }
-
-        // Don't retry on no subscription errors - account state won't change
-        if (lastError instanceof ApiError && lastError.type === ApiErrorType.NoSubscription) {
           throw lastError;
         }
 

@@ -1,58 +1,39 @@
 import * as vscode from "vscode";
-import type { UsageInfo } from "../api/syntheticService";
+import { UsageInfo, CategoryUsageInfo } from "../api/syntheticService";
 
 /**
- * Status bar item display states
- *
- * Design decision: Use enum for type safety and to ensure all states are
- * explicitly handled in switch statements. This prevents typos and makes
- * the code more maintainable when adding new states.
+ * Configuration interface for the usage indicator
  */
-enum DisplayState {
+export interface Config {
+  showPercentage: boolean;
+  showRawNumbers: boolean;
+  warningThreshold: number;
+  criticalThreshold: number;
+}
+
+/**
+ * Display state enum for status bar
+ */
+export enum DisplayState {
   Loading = "loading",
   Idle = "idle",
   Success = "success",
   Warning = "warning",
-  Error = "error",
   Critical = "critical",
+  Error = "error",
 }
 
 /**
- * Multi-key display information for the status bar
+ * Usage Indicator - Manages status bar display for Synthetic.new API usage
  *
- * Design decision: Encapsulate multi-key state in a separate type to keep
- * the UsageIndicator interface clean and to make it easy to extend with
- * additional multi-key features in the future.
- */
-export interface MultiKeyDisplayInfo {
-  keyLabel: string | null;
-  keySuffix: string | null;
-  totalKeys: number;
-  currentIndex: number;
-  healthScore: number | null;
-  cyclingEnabled: boolean;
-}
-
-/**
- * Status bar usage indicator for displaying Synthetic.new usage information
- *
- * Design decision: Encapsulate all status bar logic including display states,
- * auto-refresh management, and UI updates. This keeps the main extension class
- * focused on coordination rather than UI details.
+ * Design decision: Cache last rendered values to prevent unnecessary status bar
+ * redraws, which can cause visual flickering. This improves UX and performance
+ * during frequent updates (e.g., auto-refresh cycles).
  */
 export class UsageIndicator {
   private statusBarItem: vscode.StatusBarItem;
-  private displayState: DisplayState = DisplayState.Idle;
-  private currentUsage: UsageInfo | null = null;
   private autoRefreshTimer: NodeJS.Timeout | null = null;
-  private isAutoRefreshEnabled: boolean = true;
-
-  // Track error type to provide contextual guidance when status bar is clicked
-  // Design rationale: When users click the status bar in an error state, we need to
-  // know whether the error is due to an invalid key or no subscription to provide
-  // the appropriate prompt message. This tracking enables better user experience by
-  // offering targeted guidance for fixing the issue.
-  private errorType: "authentication" | "noSubscription" | "other" | null = null;
+  private isAutoRefreshEnabled: boolean = false;
 
   // Cache to prevent unnecessary redraws
   // Design rationale: VS Code status bar updates can cause visual flickering
@@ -61,145 +42,62 @@ export class UsageIndicator {
   private lastText: string | null = null;
   private lastTooltip: string | null = null;
   private lastDisplayState: DisplayState | null = null;
-
-  // Track multi-key display state
-  // Design rationale: Store multi-key information separately to enable rich
-  // display of key cycling status in the status bar without requiring changes
-  // to the core usage update logic.
-  private multiKeyInfo: MultiKeyDisplayInfo = {
-    keyLabel: null,
-    keySuffix: null,
-    totalKeys: 1,
-    currentIndex: 0,
-    healthScore: null,
-    cyclingEnabled: false,
-  };
+  private currentUsage: UsageInfo | null = null;
 
   constructor(context: vscode.ExtensionContext) {
     this.statusBarItem = vscode.window.createStatusBarItem(
       vscode.StatusBarAlignment.Right,
-      // Priority 100 ensures this appears near the right side, alongside other common items
       100,
     );
-
+    this.statusBarItem.command = "syntheticUsageTracker.showUsage";
     context.subscriptions.push(this.statusBarItem);
-
-    // Design decision: Start in idle state instead of loading state to avoid showing
-    // the spinning icon during extension initialization. The status bar will update
-    // when new data arrives, providing a cleaner user experience.
-    this.setIdle();
     this.statusBarItem.show();
   }
 
   /**
-   * Update the usage indicator with new data
-   *
-   * Design decision: Determine display state before updating UI. This separation
-   * allows for easy testing of state logic independent of rendering.
-   *
-   * State priority: Critical > Warning > Success ensures the most severe state
-   * is always displayed, which is appropriate for quota tracking where users need
-   * immediate visibility of approaching limits.
-   *
-   * Multi-key support: The method accepts optional multi-key display information
-   * to enable rich display of key cycling status in the status bar and tooltip.
+   * Update usage data and refresh status bar display
    */
-  updateUsage(
-    usage: UsageInfo,
-    config: {
-      showPercentage: boolean;
-      showRawNumbers: boolean;
-      warningThreshold: number;
-      criticalThreshold: number;
-      enableNotifications: boolean;
-    },
-    multiKeyInfo?: MultiKeyDisplayInfo,
-  ): void {
+  updateUsage(usage: UsageInfo, config: Config): void {
     this.currentUsage = usage;
 
-    // Update multi-key information if provided
-    // Design rationale: Store multi-key state separately to enable rich display
-    // of key cycling status without requiring changes to the core usage update logic.
-    if (multiKeyInfo) {
-      this.multiKeyInfo = multiKeyInfo;
-    }
+    // Determine display state based on highest usage across all categories
+    this.updateDisplayState(usage, config);
 
-    // Use cascading if-else to ensure only one state is selected
-    // Critical takes precedence over warning, which takes precedence over success
-    if (usage.percentageUsed >= config.criticalThreshold) {
+    // Update status bar item
+    this.updateStatusBarItem(usage, config);
+  }
+
+  /**
+   * Determine display state based on usage across all categories
+   *
+   * Design decision: Check all three categories (subscription, search, toolCalls)
+   * and set the display state to the most severe condition. Critical takes
+   * precedence over warning, which takes precedence over success.
+   */
+  private updateDisplayState(usage: UsageInfo, config: Config): void {
+    const maxPercentage = Math.max(
+      usage.subscription.percentageUsed,
+      usage.search.percentageUsed,
+      usage.toolCalls.percentageUsed,
+    );
+
+    if (maxPercentage >= config.criticalThreshold) {
       this.displayState = DisplayState.Critical;
-    } else if (usage.percentageUsed >= config.warningThreshold) {
+    } else if (maxPercentage >= config.warningThreshold) {
       this.displayState = DisplayState.Warning;
     } else {
       this.displayState = DisplayState.Success;
     }
-
-    // Clear error type when successfully updating usage
-    this.errorType = null;
-
-    this.updateStatusBarItem(usage, config, this.multiKeyInfo);
-  }
-
-  getErrorType(): "authentication" | "noSubscription" | "other" | null {
-    return this.errorType;
-  }
-
-  /**
-   * Clear the cached values to force an update
-   */
-  private clearCache(): void {
-    this.lastText = null;
-    this.lastTooltip = null;
-    this.lastDisplayState = null;
   }
 
   /**
    * Update the status bar item with usage information
    */
-  private updateStatusBarItem(
-    usage: UsageInfo,
-    config: {
-      showPercentage: boolean;
-      showRawNumbers: boolean;
-      warningThreshold: number;
-      criticalThreshold: number;
-    },
-    multiKeyInfo?: MultiKeyDisplayInfo,
-  ): void {
-    const timeRemaining = this.calculateTimeRemaining(usage.renewsAt);
+  private updateStatusBarItem(usage: UsageInfo, config: Config): void {
+    const text = this.buildText(usage, config);
+    const tooltip = this.buildTooltip(usage, config);
 
-    // Using custom icon defined in package.json contributes.icons section
-    // Design rationale: Custom icon provides better visual identity for the extension
-    let text = "$(synthetic-status-icon)";
-
-    // Add key index if in multi-key mode and more than one key is configured
-    // Design rationale: Visual indicator helps users quickly identify which key is active
-    // without needing to check the tooltip. Shows as [1/3] format for clarity.
-    if (multiKeyInfo && multiKeyInfo.totalKeys > 1 && multiKeyInfo.currentIndex !== null) {
-      text += ` [${multiKeyInfo.currentIndex}/${multiKeyInfo.totalKeys}]`;
-    }
-
-    if (config.showPercentage) {
-      const percentage = usage.percentageUsed.toFixed(0);
-      text += ` ${percentage}%`;
-    }
-
-    if (config.showRawNumbers) {
-      text += ` (${usage.requests}/${usage.limit})`;
-    }
-
-    // Add warning symbols based on overall usage thresholds
-    // Design rationale: Visual indicators help users quickly identify when quotas are approaching limits
-    // without needing to check the tooltip. Symbols are placed after the usage info to maintain
-    // readability while providing immediate visual feedback.
-    const warningSymbols = this.buildWarningSymbols(usage, config);
-    if (warningSymbols) {
-      text += ` ${warningSymbols}`;
-    }
-
-    const tooltip = this.buildTooltip(usage, timeRemaining, multiKeyInfo);
-
-    // Only update if values have actually changed to prevent blinking/redraw
+    // Only update if values have actually changed
     const needsUpdate =
       this.lastText !== text ||
       this.lastTooltip !== tooltip ||
@@ -209,7 +107,6 @@ export class UsageIndicator {
       this.statusBarItem.text = text;
       this.statusBarItem.tooltip = tooltip;
       this.updateStatusColor();
-      this.statusBarItem.command = "syntheticUsageTracker.showUsage";
 
       // Update cache
       this.lastText = text;
@@ -219,115 +116,171 @@ export class UsageIndicator {
   }
 
   /**
-   * Build warning symbols string based on usage thresholds
+   * Build status bar text showing overall usage
    *
-   * Design rationale:
-   * - Overall threshold symbols: Warning (⚠️) and critical (🔴) emojis provide clear visual feedback
-   * - Category symbols: Single-letter abbreviations (T, S, C) for tools, search, chat etc.
-   * - Symbol placement: Overall symbols come first, followed by category-specific warnings
-   * - Limit to 3 category symbols: Prevents status bar from becoming too cluttered
-   * - Sort by severity: Critical categories shown before warning categories
-   *
-   * Alternative considered: Show all category warnings regardless of overall usage
-   * Rejected: Would clutter the status bar when overall usage is low. Category warnings
-   * are most relevant when overall usage is elevated.
-   *
-   * Alternative considered: Use color-coded text instead of emojis
-   * Rejected: Status bar text color is controlled by backgroundColor, not individual
-   * characters. Emojis provide better visual distinction.
+   * Design decision: Display subscription usage as the primary indicator since
+   * it represents the overall subscription quota. Add warning symbols for
+   * categories exceeding thresholds to provide quick visual feedback.
    */
-  private buildWarningSymbols(
-    usage: UsageInfo,
-    config: {
-      warningThreshold: number;
-      criticalThreshold: number;
-    }
-  ): string {
-    const symbols: string[] = [];
+  private buildText(usage: UsageInfo, config: Config): string {
+    const subscription = usage.subscription;
+    const search = usage.search;
+    const toolCalls = usage.toolCalls;
 
-    // Add overall usage warning symbol
-    // Design decision: Overall threshold warnings are shown first as they represent
-    // the most critical information for users to monitor.
-    if (usage.percentageUsed >= config.criticalThreshold) {
-      symbols.push("🔴");
-    } else if (usage.percentageUsed >= config.warningThreshold) {
-      symbols.push("⚠️");
+    // Build warning symbols for categories
+    const symbols = this.buildCategoryWarningSymbols(usage, config);
+
+    let text = `$(cloud-upload) ${subscription.percentageUsed.toFixed(0)}%`;
+
+    if (config.showRawNumbers) {
+      text += ` (${subscription.requests}/${subscription.limit})`;
     }
 
-    // Add category-specific warning symbols
-    // Design rationale: Category warnings help identify which specific services are
-    // over quota. Only shown when overall usage is at warning level or higher to
-    // avoid unnecessary clutter during normal usage.
-    if (usage.categories && (usage.percentageUsed >= config.warningThreshold || symbols.length > 0)) {
-      const categoryWarnings = this.buildCategoryWarningSymbols(usage.categories);
-      symbols.push(...categoryWarnings);
+    // Add warning symbols if any category is over threshold
+    if (symbols.length > 0) {
+      text += ` ${symbols.join("")}`;
     }
 
-    // Limit to 3 symbols total to prevent status bar clutter
-    // Design rationale: VS Code status bar has limited horizontal space. Too many symbols
-    // would make the text hard to read and could overflow on smaller screens.
-    return symbols.slice(0, 3).join("");
+    return text;
   }
 
   /**
-   * Build category-specific warning symbols
+   * Build tooltip with detailed usage information for all categories
    *
-   * Design rationale:
-   * - Single-letter abbreviations: T (tools), S (search), C (chat), O (other)
-   * - Symbol indicates severity: ⚠️ for warning (≥80%), 🔴 for critical (≥100%)
-   * - Sorted by severity: Critical categories first, then warnings
-   * - Limit to 2 category symbols: Leaves room for overall warning symbol
-   *
-   * Alternative considered: Use full category names
-   * Rejected: Would make status bar text too long. Abbreviations are more concise
-   * and users can see full names in the tooltip.
+   * Design decision: Display all three quota categories (Subscription, Search, Tool Calls)
+   * with individual progress bars and detailed metrics. This provides users with
+   * comprehensive visibility into their API usage across all quota types.
    */
-  private buildCategoryWarningSymbols(
-    categories: Record<string, { percentageUsed: number }>
-  ): string[] {
-    const categorySymbols: Array<{ symbol: string; severity: number }> = [];
+  private buildTooltip(usage: UsageInfo, config: Config): string {
+    const subscription = usage.subscription;
+    const search = usage.search;
+    const toolCalls = usage.toolCalls;
 
-    // Define category abbreviations for known categories
-    const categoryAbbreviations: Record<string, string> = {
-      tools: "T",
-      search: "S",
-      chat: "C",
-      other: "O",
-    };
+    let tooltip = "### Synthetic.new Usage\n\n";
 
-    for (const [categoryName, categoryData] of Object.entries(categories)) {
-      // Only show warnings for categories at or above 100% usage (over quota)
-      // Design decision: Category warnings are only shown when the category has
-      // exceeded its limit (≥100%). This is more useful than showing warnings at
-      // the same threshold as overall usage, as individual categories can hit
-      // their limits even when overall usage is low.
-      if (categoryData.percentageUsed >= 100) {
-        const abbreviation = categoryAbbreviations[categoryName] || categoryName.charAt(0).toUpperCase();
-        
-        // Use critical symbol for over-limit categories (≥100%)
-        categorySymbols.push({
-          symbol: `🔴${abbreviation}`,
-          severity: categoryData.percentageUsed,
-        });
+    // Subscription category
+    tooltip += this.buildCategoryTooltip("Subscription", subscription, config, false);
+
+    // Search category (hourly)
+    tooltip += this.buildCategoryTooltip("Search (hourly)", search, config, false);
+
+    // Tool Calls category
+    tooltip += this.buildCategoryTooltip("Tool Calls", toolCalls, config, true);
+
+    return tooltip;
+  }
+
+  /**
+   * Build tooltip section for a single category
+   */
+  private buildCategoryTooltip(
+    name: string,
+    category: CategoryUsageInfo,
+    config: Config,
+    isLast: boolean,
+  ): string {
+    const percentageUsed = category.percentageUsed.toFixed(1);
+    const percentageRemaining = (100 - category.percentageUsed).toFixed(1);
+    const timeRemaining = this.calculateTimeRemaining(category.renewsAt);
+
+    let section = `**${name}**\n`;
+    section += `Renews: ${category.renewsAtString}\n`;
+    section += `Used: ${category.requests.toLocaleString()} (${percentageUsed}%)\n`;
+    section += `Remaining: ${category.remaining.toLocaleString()} (${percentageRemaining}%)\n`;
+    section += `Limit: ${category.limit.toLocaleString()}\n`;
+    section += `${this.buildProgressBar(category.percentageUsed, config)}\n\n`;
+
+    return section;
+  }
+
+  /**
+   * Build warning symbols for categories exceeding thresholds
+   *
+   * Design decision: Show warning symbols for each category that exceeds
+   * the warning threshold, with different symbols for warning vs critical.
+   * This provides quick visual feedback about which categories need attention.
+   */
+  private buildCategoryWarningSymbols(usage: UsageInfo, config: Config): string[] {
+    const symbols: string[] = [];
+
+    // Check subscription
+    if (usage.subscription.percentageUsed >= config.criticalThreshold) {
+      symbols.push("🔴");
+    } else if (usage.subscription.percentageUsed >= config.warningThreshold) {
+      symbols.push("🟡");
+    }
+
+    // Check search
+    if (usage.search.percentageUsed >= config.criticalThreshold) {
+      symbols.push("🔴");
+    } else if (usage.search.percentageUsed >= config.warningThreshold) {
+      symbols.push("🟡");
+    }
+
+    // Check tool calls
+    if (usage.toolCalls.percentageUsed >= config.criticalThreshold) {
+      symbols.push("🔴");
+    } else if (usage.toolCalls.percentageUsed >= config.warningThreshold) {
+      symbols.push("🟡");
+    }
+
+    return symbols;
+  }
+
+  /**
+   * Build a visual progress bar
+   */
+  private buildProgressBar(percentageUsed: number, config?: Config): string {
+    const width = 20;
+    const filled = Math.round((percentageUsed / 100) * width);
+    const empty = width - filled;
+
+    // Determine color based on thresholds
+    let color = "▓";
+    if (config) {
+      if (percentageUsed >= config.criticalThreshold) {
+        color = "🔴";
+      } else if (percentageUsed >= config.warningThreshold) {
+        color = "🟡";
+      } else {
+        color = "▓";
       }
     }
 
-    // Sort by severity (highest percentage first) and return top 2
-    // Design rationale: Show the most severe category warnings first.
-    // Limit to 2 symbols to prevent status bar clutter.
-    return categorySymbols
-      .sort((a, b) => b.severity - a.severity)
-      .slice(0, 2)
-      .map((item) => item.symbol);
+    const bar = color.repeat(filled) + "░".repeat(empty);
+    return `[${bar}]`;
   }
 
   /**
-   * Update status bar color based on display state
+   * Calculate time remaining until quota renewal
+   */
+  private calculateTimeRemaining(renewsAt: Date): string {
+    const now = new Date();
+    const diff = renewsAt.getTime() - now.getTime();
+
+    if (diff <= 0) {
+      return "Renews soon";
+    }
+
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+    if (days > 0) {
+      return `${days}d ${hours}h ${minutes}m`;
+    } else if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    } else {
+      return `${minutes}m`;
+    }
+  }
+
+  /**
+   * Update the status bar color based on display state
    */
   private updateStatusColor(): void {
     switch (this.displayState) {
       case DisplayState.Critical:
-      case DisplayState.Error:
         this.statusBarItem.backgroundColor = new vscode.ThemeColor(
           "statusBarItem.errorBackground",
         );
@@ -337,226 +290,49 @@ export class UsageIndicator {
           "statusBarItem.warningBackground",
         );
         break;
-      case DisplayState.Success:
-        this.statusBarItem.backgroundColor = undefined;
-        break;
-      case DisplayState.Loading:
-        this.statusBarItem.backgroundColor = new vscode.ThemeColor(
-          "statusBarItem.prominentBackground",
-        );
-        break;
       default:
         this.statusBarItem.backgroundColor = undefined;
     }
   }
 
   /**
-   * Build an ASCII progress bar for usage visualization
-   *
-   * Design decision: Use block characters (█ and ░) for a clean, monospace-compatible
-   * progress bar that renders consistently across different terminals and fonts.
-   * 
-   * Design rationale:
-   * - Width of 50 characters provides good visual granularity without being too wide
-   * - Block characters (U+2588, U+2591) are widely supported and render cleanly
-   * - Clamping at 100% prevents overflow for over-limit usage scenarios
-   * - This approach is aesthetically pleasing and provides clear visual feedback
+   * Set loading state
    */
-  private buildProgressBar(percentage: number, width: number = 50): string {
-    const clampedPercentage = Math.min(100, Math.max(0, percentage));
-    const filledBlocks = Math.round((clampedPercentage / 100) * width);
-    const emptyBlocks = width - filledBlocks;
-    
-    // Using block characters for filled portion and light shade for empty
-    const filledChar = '█';
-    const emptyChar = '░';
-    
-    return `[${filledChar.repeat(filledBlocks)}${emptyChar.repeat(emptyBlocks)}]`;
-  }
-
-  private buildTooltip(usage: UsageInfo, timeRemaining: string, multiKeyInfo?: MultiKeyDisplayInfo): string {
-    // Design decision: Show comprehensive usage information in tooltip to match message box content.
-    // This provides users with full visibility into their API quota without requiring a click.
-    // Using plain text with Unicode separator for better visual appearance.
-    // Adding extra line breaks to match popup dialog spacing.
-    const percentageUsed = usage.percentageUsed.toFixed(1);
-    const percentageRemaining = (100 - usage.percentageUsed).toFixed(1);
-
-    /**
-     * Design decision: Include multi-key information in tooltip when available to help users
-     * identify which key they're using when cycling through multiple keys.
-     *
-     * Rationale: When users have multiple API keys (e.g., production vs. development),
-     * they need a way to distinguish which key is currently active without exposing
-     * the full key for security reasons.
-     *
-     * Security considerations:
-     * - Only the last 4 characters are displayed
-     * - The parameter is optional, so the tooltip works without it
-     * - The full key is never logged or exposed anywhere
-     *
-     * Alternative considered: Display no key identifier
-     * Rejected: Users cycling through keys have no way to verify which key is active
-     * without making API requests or checking configuration.
-     */
-    let tooltip: string;
-    if (multiKeyInfo && multiKeyInfo.totalKeys > 1) {
-      const keySuffix = multiKeyInfo.keySuffix || "";
-      const keyLabel = multiKeyInfo.keyLabel || `Key ${multiKeyInfo.currentIndex + 1}`;
-      const keyInfo = keySuffix ? `${keyLabel} (****${keySuffix})` : keyLabel;
-      const healthInfo = multiKeyInfo.healthScore !== null
-        ? `\nHealth Score: ${multiKeyInfo.healthScore}/100`
-        : "";
-      const cyclingInfo = multiKeyInfo.cyclingEnabled
-        ? `\nCycling: Enabled`
-        : "";
-
-      tooltip = `Synthetic.new Usage (${percentageUsed}%, ${keyInfo}) [${multiKeyInfo.currentIndex + 1}/${multiKeyInfo.totalKeys}]
-───────────────────
-Time Remaining: ${timeRemaining}
-Renews: ${usage.renewsAtString}${healthInfo}${cyclingInfo}
-
-Used: ${usage.requests.toLocaleString()} (${percentageUsed}%)
-Remaining: ${usage.remaining.toLocaleString()} (${percentageRemaining}%)
-Limit: ${usage.limit.toLocaleString()}
-`;
-    } else if (multiKeyInfo && multiKeyInfo.keySuffix) {
-      // Single key mode with suffix
-      tooltip = `Synthetic.new Usage (${percentageUsed}%, Key: ****${multiKeyInfo.keySuffix})
-───────────────────
-Time Remaining: ${timeRemaining}
-Renews: ${usage.renewsAtString}
-
-Used: ${usage.requests.toLocaleString()} (${percentageUsed}%)
-Remaining: ${usage.remaining.toLocaleString()} (${percentageRemaining}%)
-Limit: ${usage.limit.toLocaleString()}
-`;
-    } else {
-      // No multi-key info
-      tooltip = `Synthetic.new Usage (${percentageUsed}%)
-───────────────────
-Time Remaining: ${timeRemaining}
-Renews: ${usage.renewsAtString}
-
-Used: ${usage.requests.toLocaleString()} (${percentageUsed}%)
-Remaining: ${usage.remaining.toLocaleString()} (${percentageRemaining}%)
-Limit: ${usage.limit.toLocaleString()}
-`;
-    }
-
-    // Add category breakdowns if available
-    // Design decision: Categories are optional to maintain backward compatibility
-    // with API responses that don't include category data yet.
-    if (usage.categories && Object.keys(usage.categories).length > 0) {
-      tooltip += `
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Category Breakdown
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-`;
-      
-      // Sort categories alphabetically for consistent display order
-      const sortedCategories = Object.entries(usage.categories).sort(
-        ([a], [b]) => a.localeCompare(b)
-      );
-      
-      for (const [categoryName, categoryData] of sortedCategories) {
-        const categoryPercentage = categoryData.percentageUsed.toFixed(1);
-        const warningSymbol = categoryData.percentageUsed >= 100 ? ' ⚠️' : '';
-        
-        // Pad category name to 10 characters for alignment
-        const paddedName = categoryName.padEnd(10);
-        
-        tooltip += `${paddedName}${categoryData.used.toLocaleString()} / ${categoryData.limit.toLocaleString()} (${categoryPercentage}%)${warningSymbol}
-${this.buildProgressBar(categoryData.percentageUsed)}
-
-`;
-      }
-    }
-
-    return tooltip;
-  }
-
-  private calculateTimeRemaining(renewsAt: Date): string {
-    const now = new Date();
-    const diff = renewsAt.getTime() - now.getTime();
-
-    if (diff <= 0) {
-      return "0h 0m";
-    }
-
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-
-    return `${hours}h ${minutes}m`;
-  }
-
   setLoading(): void {
     this.displayState = DisplayState.Loading;
-    // Using custom loading icon for visual feedback during data fetch
-    this.statusBarItem.text = "$(synthetic-status-loading)";
-    this.statusBarItem.backgroundColor = new vscode.ThemeColor(
-      "statusBarItem.prominentBackground",
-    );
-    this.statusBarItem.tooltip = "Loading Synthetic.new usage...";
-
-    // Clear cache to force update
-    this.clearCache();
-  }
-
-  setError(message: string, errorType?: "authentication" | "noSubscription" | "other"): void {
-    this.displayState = DisplayState.Error;
-    // Track error type to provide contextual guidance when status bar is clicked
-    this.errorType = errorType || "other";
-    // Using custom icon defined in package.json contributes.icons section
-    this.statusBarItem.text = "$(synthetic-status-icon)";
-    this.statusBarItem.backgroundColor = new vscode.ThemeColor(
-      "statusBarItem.errorBackground",
-    );
-    this.statusBarItem.tooltip = `Error: ${message}`;
-
-    // Clear cache to force update
-    this.clearCache();
-  }
-
-  setIdle(): void {
-    this.displayState = DisplayState.Idle;
-    // Clear error type when transitioning to idle state
-    // Design rationale: When transitioning to idle, any previous error state
-    // is no longer relevant. Clearing the error type ensures that if the user
-    // clicks the status bar later, they get the standard configuration flow
-    // rather than an error-specific prompt.
-    this.errorType = null;
-    // Using custom icon defined in package.json contributes.icons section
-    this.statusBarItem.text = "$(synthetic-status-icon)";
+    this.statusBarItem.text = "$(loading~spin) Synthetic.new";
+    this.statusBarItem.tooltip = "Loading usage data...";
     this.statusBarItem.backgroundColor = undefined;
-    this.statusBarItem.tooltip =
-      "Configure your Synthetic.new API key to track usage";
-
-    // Clear cache to force update
     this.clearCache();
-    // Clear multi-key info when transitioning to idle
-    this.clearMultiKeyInfo();
   }
 
   /**
-   * Set status bar to show "Please Set Key" message
-   * Used when API key is explicitly set to "none" or after key is erased
+   * Set idle state (no API key configured)
    */
-  setPleaseSetKey(): void {
+  setIdle(): void {
     this.displayState = DisplayState.Idle;
-    this.statusBarItem.text = "$(synthetic-status-icon) Please Set Key";
+    this.statusBarItem.text = "$(cloud-upload) Synthetic.new";
+    this.statusBarItem.tooltip = "Configure API key to track usage";
     this.statusBarItem.backgroundColor = undefined;
-    this.statusBarItem.tooltip =
-      "Click to configure your Synthetic.new API key";
-    this.statusBarItem.command = "syntheticUsageTracker.configure";
-
-    // Clear cache to force update
     this.clearCache();
-    // Clear multi-key info when transitioning to please set key state
-    this.clearMultiKeyInfo();
   }
 
+  /**
+   * Set error state
+   */
+  setError(message: string): void {
+    this.displayState = DisplayState.Error;
+    this.statusBarItem.text = "$(error) Synthetic.new";
+    this.statusBarItem.tooltip = message;
+    this.statusBarItem.backgroundColor = new vscode.ThemeColor(
+      "statusBarItem.errorBackground",
+    );
+    this.clearCache();
+  }
+
+  /**
+   * Start auto-refresh with specified interval
+   */
   startAutoRefresh(intervalSeconds: number, refreshCallback: () => void): void {
     this.stopAutoRefresh();
     this.isAutoRefreshEnabled = true;
@@ -567,53 +343,52 @@ ${this.buildProgressBar(categoryData.percentageUsed)}
     }, intervalSeconds * 1000);
   }
 
+  /**
+   * Stop auto-refresh
+   */
   stopAutoRefresh(): void {
     if (this.autoRefreshTimer) {
       clearInterval(this.autoRefreshTimer);
       this.autoRefreshTimer = null;
     }
-  }
-
-  toggleAutoRefresh(): boolean {
-    this.isAutoRefreshEnabled = !this.isAutoRefreshEnabled;
-    return this.isAutoRefreshEnabled;
-  }
-
-  isAutoRefreshActive(): boolean {
-    return this.isAutoRefreshEnabled;
-  }
-
-  updateAutoRefreshInterval(
-    intervalSeconds: number,
-    refreshCallback: () => void,
-  ): void {
-    if (this.isAutoRefreshEnabled) {
-      this.startAutoRefresh(intervalSeconds, refreshCallback);
-    }
+    this.isAutoRefreshEnabled = false;
   }
 
   /**
-   * Clear multi-key display information
-   *
-   * Design decision: Reset multi-key info to default values when transitioning
-   * to idle or error states. This ensures the status bar doesn't display stale
-   * multi-key information when no keys are configured.
+   * Clear cache to force next update
    */
-  private clearMultiKeyInfo(): void {
-    this.multiKeyInfo = {
-      keyLabel: null,
-      keySuffix: null,
-      totalKeys: 1,
-      currentIndex: 0,
-      healthScore: null,
-      cyclingEnabled: false,
-    };
+  private clearCache(): void {
+    this.lastText = null;
+    this.lastTooltip = null;
+    this.lastDisplayState = null;
   }
 
+  /**
+   * Get current display state
+   */
+  get displayState(): DisplayState {
+    return this._displayState || DisplayState.Idle;
+  }
+
+  /**
+   * Set display state
+   */
+  set displayState(state: DisplayState) {
+    this._displayState = state;
+  }
+
+  private _displayState: DisplayState = DisplayState.Idle;
+
+  /**
+   * Get current usage data
+   */
   getCurrentUsage(): UsageInfo | null {
     return this.currentUsage;
   }
 
+  /**
+   * Dispose of resources
+   */
   dispose(): void {
     this.stopAutoRefresh();
     this.statusBarItem.dispose();

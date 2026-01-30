@@ -1,52 +1,109 @@
-# Synthetic.new API Payload Analysis
+# API Payload Analysis
 
-**Date**: 2026-01-30
-**Purpose**: Examine the actual usage payload structure from Synthetic.new API endpoints to understand how the updated usage endpoint works with tools, search, and other usage categories.
+This document provides detailed analysis of the Synthetic.new API payloads and their structure.
 
-**Update**: 2026-01-30 - Added findings about OpenAI-compatible models endpoints discovered during comprehensive API testing.
+## Quotas Endpoint (`/v2/quotas`)
 
-## Executive Summary
+### Curl Command Used
 
-This document presents findings from testing the Synthetic.new API endpoints to discover the actual payload structures. The testing revealed that the current API implementation does **not** include the new payload structures for tools, search, and other usage categories that were expected based on user reports.
+```bash
+curl -X GET "https://api.synthetic.new/v2/quotas" \
+  -H "Authorization: Bearer syn_7e4511d110c48a6ea01f162cf5ad2aa3" \
+  -H "Content-Type: application/json" \
+  -s
+```
 
-**Key Finding**: The `/quotas` endpoint currently returns an empty object `{}` with HTTP 200 OK, and no alternative endpoints were found that provide usage breakdown by type (tools, search, chat, etc.).
+### Complete API Response
 
-## Test Environment
-
-- **API Key**: Test API key retrieved from `.env` file (masked for security)
-- **API Base URL**: `https://api.synthetic.new/v2`
-- **Test Date**: 2026-01-30
-- **Node.js Version**: Native fetch API used (Node.js 18+)
-
-## Tested Endpoints
-
-### 1. `/quotas` Endpoint
-
-**URL**: `https://api.synthetic.new/v2/quotas`  
-**Method**: `GET`  
-**Authentication**: Bearer token
-
-**Response**:
 ```json
 {
-  "status": 200,
-  "data": {}
+  "subscription": {
+    "limit": 135,
+    "requests": 33,
+    "renewsAt": "2026-01-30T20:20:59.408Z"
+  },
+  "search": {
+    "hourly": {
+      "limit": 250,
+      "requests": 0,
+      "renewsAt": "2026-01-30T20:25:50.409Z"
+    }
+  },
+  "toolCalls": {
+    "limit": 1620,
+    "requests": 271,
+    "renewsAt": "2026-01-31T10:17:00.411Z"
+  }
 }
 ```
 
-**Analysis**:
-- The endpoint returns HTTP 200 OK, indicating successful authentication
-- The response body is an empty object `{}`
-- No usage data, tools, search, or other categories are present
-- This suggests either:
-  - The test API key does not have an active subscription
-  - The endpoint structure has changed
-  - The new payload structures mentioned by the user are not yet implemented
+### Structure Analysis
 
-**Expected Structure (from current code)**:
+The `/v2/quotas` endpoint returns a **hierarchical structure** with three distinct usage categories:
+
+#### 1. Subscription Category
 ```typescript
-interface QuotaResponse {
-  subscription?: {
+interface SubscriptionQuota {
+  limit: number;      // Total subscription requests allowed
+  requests: number;   // Requests used in current billing period
+  renewsAt: string;   // ISO 8601 timestamp when quota renews
+}
+```
+
+**Example values:**
+- `limit`: 135
+- `requests`: 33
+- `renewsAt`: "2026-01-30T20:20:59.408Z"
+
+#### 2. Search Category
+```typescript
+interface SearchQuota {
+  hourly: {
+    limit: number;      // Hourly search request limit
+    requests: number;   // Search requests used in current hour
+    renewsAt: string;   // ISO 8601 timestamp when hourly quota renews
+  };
+}
+```
+
+**Example values:**
+- `hourly.limit`: 250
+- `hourly.requests`: 0
+- `hourly.renewsAt`: "2026-01-30T20:25:50.409Z"
+
+**Key characteristic:** The search quota is wrapped in an `hourly` object, indicating it operates on an hourly renewal cycle.
+
+#### 3. Tool Calls Category
+```typescript
+interface ToolCallsQuota {
+  limit: number;      // Total tool calls allowed
+  requests: number;   // Tool calls used in current period
+  renewsAt: string;   // ISO 8601 timestamp when quota renews
+}
+```
+
+**Example values:**
+- `limit`: 1620
+- `requests`: 271
+- `renewsAt`: "2026-01-31T10:17:00.411Z"
+
+### Complete Type Definition
+
+```typescript
+interface QuotasResponse {
+  subscription: {
+    limit: number;
+    requests: number;
+    renewsAt: string;
+  };
+  search: {
+    hourly: {
+      limit: number;
+      requests: number;
+      renewsAt: string;
+    };
+  };
+  toolCalls: {
     limit: number;
     requests: number;
     renewsAt: string;
@@ -54,325 +111,57 @@ interface QuotaResponse {
 }
 ```
 
-**Discrepancy**: The actual response does not match the expected structure. The current extension code in [`src/api/syntheticService.ts`](../src/api/syntheticService.ts) already handles this case by throwing a `NoSubscription` error when the response is empty.
-
-### 2. `/usage` Endpoint
-
-**URL**: `https://api.synthetic.new/v2/usage`  
-**Method**: `GET`  
-**Authentication**: Bearer token
-
-**Response**:
-```json
-{
-  "status": 404,
-  "error": "API route not found: '/v2/usage'. (HINT: Is the URL spelled correctly?)"
-}
-```
-
-**Analysis**:
-- Endpoint does not exist (404 Not Found)
-- No alternative usage endpoint found at this path
-
-### 3. `/subscription` Endpoint
-
-**URL**: `https://api.synthetic.new/v2/subscription`  
-**Method**: `GET`  
-**Authentication**: Bearer token
-
-**Response**:
-```json
-{
-  "status": 404,
-  "error": "API route not found: '/v2/subscription'. (HINT: Is the URL spelled correctly?)"
-}
-```
-
-**Analysis**:
-- Endpoint does not exist (404 Not Found)
-
-### 4. `/account` Endpoint
-
-**URL**: `https://api.synthetic.new/v2/account`  
-**Method**: `GET`  
-**Authentication**: Bearer token
-
-**Response**:
-```json
-{
-  "status": 404,
-  "error": "API route not found: '/v2/account'. (HINT: Is the URL spelled correctly?)"
-}
-```
-
-**Analysis**:
-- Endpoint does not exist (404 Not Found)
-
-### 5. `/me` Endpoint
-
-**URL**: `https://api.synthetic.new/v2/me`  
-**Method**: `GET`  
-**Authentication**: Bearer token
-
-**Response**:
-```json
-{
-  "status": 404,
-  "error": "API route not found: '/v2/me'. (HINT: Is the URL spelled correctly?)"
-}
-```
-
-**Analysis**:
-- Endpoint does not exist (404 Not Found)
-
-### 6. `/v1/quotas` Endpoint
-
-**URL**: `https://api.synthetic.new/v1/quotas`  
-**Method**: `GET`  
-**Authentication**: Bearer token
-
-**Response**:
-```json
-{
-  "status": 404,
-  "error": "API route not found: '/v1/quotas'. (HINT: Is the URL spelled correctly?)"
-}
-```
-
-**Analysis**:
-- V1 API endpoint does not exist
-- Only V2 API is available
-
-### 7. `/quotas/tools` Endpoint
-
-**URL**: `https://api.synthetic.new/v2/quotas/tools`  
-**Method**: `GET`  
-**Authentication**: Bearer token
-
-**Response**:
-```json
-{
-  "status": 404,
-  "error": "API route not found: '/v2/quotas/tools'. (HINT: Is the URL spelled correctly?)"
-}
-```
-
-**Analysis**:
-- Hypothetical tools-specific endpoint does not exist
-- No evidence of usage breakdown by tool type
-
-### 8. `/quotas/search` Endpoint
-
-**URL**: `https://api.synthetic.new/v2/quotas/search`  
-**Method**: `GET`  
-**Authentication**: Bearer token
-
-**Response**:
-```json
-{
-  "status": 404,
-  "error": "API route not found: '/v2/quotas/search'. (HINT: Is the URL spelled correctly?)"
-}
-```
-
-**Analysis**:
-- Hypothetical search-specific endpoint does not exist
-- No evidence of usage breakdown by search type
+### Key Observations
 
-### 9. Root Endpoint `/v2`
+1. **Multiple Categories**: The API returns three separate quota categories, not a single consolidated quota.
 
-**URL**: `https://api.synthetic.new/v2`  
-**Method**: `GET`  
-**Authentication**: Bearer token
-
-**Response**:
-```json
-{
-  "status": 404,
-  "error": "API route not found: '/v2'. (HINT: Is the URL spelled correctly?)"
-}
-```
-
-**Analysis**:
-- Root endpoint does not provide API documentation or available endpoints
-- No way to discover available endpoints programmatically
-
-### 10. `/v2/openai/v1/models` Endpoint
+2. **Different Renewal Cycles**:
+   - `subscription`: Appears to be a monthly or billing-cycle quota
+   - `search.hourly`: Explicitly hourly quota
+   - `toolCalls`: Appears to be a daily or longer-term quota
 
-**URL**: `https://api.synthetic.new/v2/openai/v1/models`  
-**Method**: `GET`  
-**Authentication**: Bearer token
+3. **Consistent Field Names**: All categories use the same field names (`limit`, `requests`, `renewsAt`) except for `search` which wraps them in an `hourly` object.
 
-**Response**:
-```json
-{
-  "status": 404,
-  "error": "API route not found: '/v2/openai/v1/models'. (HINT: Is the URL spelled correctly?)"
-}
-```
+4. **ISO 8601 Timestamps**: All `renewAt` fields use ISO 8601 format with UTC timezone (`Z` suffix).
 
-**Analysis**:
-- OpenAI-compatible endpoints are not available at the `/v2/openai/v1/` path
-- Suggests these endpoints may not exist or are at a different path
+5. **No Calculated Fields**: The API does not provide `remaining` or `percentageUsed` fields. These must be calculated on the client side:
+   ```typescript
+   remaining = limit - requests
+   percentageUsed = (requests / limit) * 100
+   ```
 
-### 11. `/v2/openai/v1/chat/completions` Endpoint
+### Comparison with Previous Findings
 
-**URL**: `https://api.synthetic.new/v2/openai/v1/chat/completions`  
-**Method**: `POST`  
-**Authentication**: Bearer token
+**Previous (incorrect) finding:** The `/v2/quotas` endpoint was thought to return an empty object `{}`.
 
-**Response**:
-```json
-{
-  "status": 404,
-  "error": "API route not found: '/v2/openai/v1/chat/completions'. (HINT: Is the URL spelled correctly?)"
-}
-```
+**Corrected finding:** The endpoint returns a rich, hierarchical structure with three distinct quota categories (subscription, search, toolCalls), each with its own limit, usage, and renewal information.
 
-**Analysis**:
-- OpenAI-compatible chat completions endpoint not available at this path
-- No evidence of chat-specific usage tracking
+### Implications for Extension
 
-## Test Results Summary
+1. **Multi-Category Display**: The extension should display usage information for all three categories, not just a single quota.
 
-| Endpoint | Status | Result |
-|----------|--------|--------|
-| `/v2/quotas` | 200 OK | Empty object `{}` |
-| `/v2/usage` | 404 Not Found | Route does not exist |
-| `/v2/subscription` | 404 Not Found | Route does not exist |
-| `/v2/account` | 404 Not Found | Route does not exist |
-| `/v2/me` | 404 Not Found | Route does not exist |
-| `/v1/quotas` | 404 Not Found | V1 API not available |
-| `/v2/quotas/tools` | 404 Not Found | Tools endpoint does not exist |
-| `/v2/quotas/search` | 404 Not Found | Search endpoint does not exist |
-| `/v2` (root) | 404 Not Found | No API documentation |
-| `/v2/openai/v1/models` | 404 Not Found | OpenAI endpoints not at this path |
-| `/v2/openai/v1/chat/completions` | 404 Not Found | OpenAI endpoints not at this path |
+2. **Category Selection**: Users may want to configure which category is displayed in the status bar or see all categories in a detailed view.
 
-## Findings and Analysis
+3. **Renewal Time Tracking**: Each category has its own renewal time, which should be displayed to users.
 
-### Missing Payload Structures
+4. **Aggregated vs. Per-Category Metrics**: Consider providing both per-category metrics and an overall usage summary.
 
-**Expected**: According to user reports, the usage endpoint was updated to include payloads for:
-- Tools usage
-- Search usage
-- Chat usage
-- Other usage types
+### Recommendations
 
-**Actual**: None of these payload structures were found in the API responses. The only working endpoint (`/quotas`) returns an empty object.
+1. **Update Type Definitions**: Update `UsageInfo` interface to reflect the hierarchical structure.
 
-### Possible Explanations
+2. **Add Category Configuration**: Add configuration options to select which category to display in the status bar.
 
-1. **API Key Issue**: The test API key may not have an active subscription, resulting in an empty response from the `/quotas` endpoint. This is the most likely explanation given that:
-   - Authentication succeeds (200 OK)
-   - The response is valid JSON (empty object)
-   - The current extension code already handles this case with a `NoSubscription` error
+3. **Enhanced Tooltip**: Show all three categories in the status bar tooltip for comprehensive usage information.
 
-2. **API Not Yet Updated**: The new payload structures mentioned by the user may not have been deployed to production yet.
+4. **Renewal Time Display**: Include renewal times for each category in the detailed view.
 
-3. **Different Endpoint Structure**: The new payload structures may be available at a different endpoint or require additional parameters/query strings that were not tested.
+5. **Color Coding**: Consider using different colors or icons to indicate different categories in the UI.
 
-4. **Beta/Feature Flag**: The new usage breakdown features may be behind a feature flag or in beta testing, not available to all API keys.
+## Testing Date
 
-5. **Documentation Outdated**: The user's information about updated usage endpoints may have been based on pre-release documentation or internal announcements that haven't been implemented yet.
+This analysis was performed on: **2026-01-30**
 
-### Current Extension Behavior
+## Test API Key
 
-The current extension code in [`src/api/syntheticService.ts`](../src/api/syntheticService.ts) handles the empty response appropriately:
-
-```typescript
-private parseQuotaResponse(data: QuotaResponse): UsageInfo {
-  if (!data.subscription) {
-    throw new ApiError(
-      ApiErrorType.NoSubscription,
-      "No subscription data detected. Please check your Synthetic.new account."
-    );
-  }
-  // ... rest of parsing logic
-}
-```
-
-This error handling is correct for the current API behavior.
-
-## Recommendations
-
-### Immediate Actions
-
-1. **Verify API Key Status**: Check if the test API key has an active subscription on the Synthetic.new platform. This would explain the empty response.
-
-2. **Contact Synthetic.new Support**: Reach out to Synthetic.new support to:
-   - Confirm the status of the test API key
-   - Verify if the new usage payload structures have been deployed
-   - Get documentation on the updated API endpoints
-
-3. **Test with Production API Key**: If available, test with a production API key that has known active usage to see if the payload structure differs.
-
-### Future Considerations
-
-1. **Monitor API Changes**: Periodically re-test the endpoints to check if new payload structures are deployed.
-
-2. **Flexible Data Parsing**: Consider updating the extension to handle multiple possible response formats, including:
-   - Current format: `{ subscription: { limit, requests, renewsAt } }`
-   - Potential new format with breakdown by type
-   - Empty responses (already handled)
-
-3. **Error Messages**: Improve error messages to help users understand when they need to check their subscription status:
-
-```typescript
-"No subscription data detected. Please check your Synthetic.new account."
-```
-
-Could be enhanced to:
-```typescript
-"No subscription data detected. This may mean your API key doesn't have an active subscription or the API is temporarily unavailable. Please check your Synthetic.new account or contact support."
-```
-
-4. **API Documentation**: Request updated API documentation from Synthetic.new that includes:
-   - All available endpoints
-   - Request/response formats
-   - Example payloads
-   - Error conditions
-
-## Conclusion
-
-The API testing revealed that the current Synthetic.new API (`v2`) does not provide the new usage payload structures for tools, search, and other usage categories that were expected. The only working endpoint (`/quotas`) returns an empty object, most likely due to the test API key not having an active subscription.
-
-No alternative endpoints were found that provide usage breakdown by type. All tested alternative endpoints returned 404 Not Found errors.
-
-**Key Takeaway**: The extension's current implementation is appropriate for the actual API behavior. The empty response is correctly handled with a `NoSubscription` error. If and when new payload structures are deployed, the extension will need to be updated to parse and display the additional usage categories.
-
-## Appendix: Test Scripts
-
-### Test Script 1: Initial Endpoint Tests
-
-File: `test-api-endpoints.js` (temporary, to be deleted)
-
-Tested:
-- `/quotas` endpoint
-- `/openai/v1/models` endpoint
-- `/openai/v1/chat/completions` endpoint
-
-### Test Script 2: Alternative Endpoint Tests
-
-File: `test-api-alternatives.js` (temporary, to be deleted)
-
-Tested:
-- `/quotas` (retest)
-- `/usage`
-- `/subscription`
-- `/account`
-- `/me`
-- `/v1/quotas`
-- `/quotas/tools`
-- `/quotas/search`
-- Root endpoint
-
-## Related Files
-
-- [`src/api/syntheticService.ts`](../src/api/syntheticService.ts) - Current API service implementation
-- [`package.json`](../package.json) - Extension manifest and configuration
-- [`.env`](../.env) - Test API key (not in repository)
-
----
-
-**Note**: This analysis is based on testing performed on 2026-01-30. API behavior may change. Periodic re-testing is recommended to stay current with API updates.
+The test used the development API key from `.env` file.
