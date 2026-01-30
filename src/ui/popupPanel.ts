@@ -95,10 +95,15 @@ export class PopupPanel {
       },
     );
 
+    // Design decision: Pass initial data to constructor so the panel displays data
+    // immediately upon creation. Without this, the webview renders with empty state
+    // because _update() is called before _modelData is set.
     PopupPanel.currentPanel = new PopupPanel(
       panel,
       context.extensionUri,
       activeTab || "usage",
+      usage,
+      models,
     );
     return PopupPanel.currentPanel;
   }
@@ -110,9 +115,14 @@ export class PopupPanel {
     panel: vscode.WebviewPanel,
     _extensionUri: vscode.Uri,
     activeTab: TabType,
+    usage?: UsageInfo,
+    models?: ModelData,
   ) {
     this._panel = panel;
     this._activeTab = activeTab;
+    // Store initial data so the panel displays data immediately upon creation
+    this._usageData = usage;
+    this._modelData = models;
 
     // Set initial HTML content
     this._update();
