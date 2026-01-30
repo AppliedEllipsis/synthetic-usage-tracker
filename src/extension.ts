@@ -159,13 +159,35 @@ export class SyntheticUsageTrackerExtension {
       const service = new SyntheticService(apiKey, config.apiEndpoint);
       const usage = await service.fetchQuota();
 
+      /**
+       * Extract last 4 characters of API key for display in tooltip
+       *
+       * Design decision: Only display the last 4 characters to help users identify
+       * which key they're using without exposing the full key for security reasons.
+       * This is particularly useful when users cycle through multiple API keys.
+       *
+       * Security considerations:
+       * - Only the last 4 characters are extracted and passed
+       * - The full key is never logged or exposed
+       * - If the key is shorter than 4 characters, use all available characters
+       *
+       * Alternative considered: Display full key
+       * Rejected: Major security risk - full keys could be captured in screenshots,
+       * logs, or shared inadvertently.
+       */
+      const apiKeySuffix: string | undefined = apiKey.length >= 4
+        ? apiKey.slice(-4)
+        : apiKey.length > 0
+          ? apiKey
+          : undefined;
+
       this.usageIndicator.updateUsage(usage, {
         showPercentage: config.showPercentage,
         showRawNumbers: config.showRawNumbers,
         warningThreshold: config.warningThreshold,
         criticalThreshold: config.criticalThreshold,
         enableNotifications: config.enableNotifications,
-      });
+      }, apiKeySuffix);
     } catch (error) {
       console.error("Failed to fetch usage:", error);
       const message = error instanceof Error ? error.message : "Unknown error";

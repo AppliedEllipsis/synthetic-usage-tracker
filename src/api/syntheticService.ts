@@ -1,27 +1,79 @@
 /**
- * Synthetic.new API quota response structure
+ * Category-specific usage breakdown
  *
- * Design decision: subscription is optional to handle cases where API keys exist
- * but have no active subscription (returns empty object {})
+ * Design decision: Each category tracks its own usage metrics independently.
+ * This allows users to see detailed breakdowns by service type (tools, search, etc.).
+ * Categories are optional to handle partial data or missing categories.
+ */
+export interface CategoryUsage {
+  limit: number;
+  used: number;
+  remaining: number;
+  percentageUsed: number;
+}
+
+/**
+ * Known usage categories
+ *
+ * Design decision: Use string literal union for known categories to provide
+ * type safety while remaining extensible for future categories. The API may
+ * add new categories over time, so we use a flexible structure.
+ */
+export type UsageCategory = 'tools' | 'search' | 'chat' | 'other' | string;
+
+/**
+ * Synthetic.new API quota response structure with category breakdowns
+ *
+ * Design decision: Support both legacy and new payload formats:
+ * - Legacy format: { subscription: { limit, requests, renewsAt } }
+ * - New format: { subscription: { limit, requests, renewsAt, categories: {...} } }
+ *
+ * The subscription field is optional to handle cases where API keys exist
+ * but have no active subscription (returns empty object {}). The categories
+ * field is also optional for backward compatibility with API keys that don't
+ * have category breakdowns yet.
  */
 export interface QuotaResponse {
   subscription?: {
     limit: number;
     requests: number;
     renewsAt: string;
+    /**
+     * Optional category breakdowns by usage type
+     * Key is the category name (e.g., "tools", "search", "chat")
+     * Value contains usage metrics for that category
+     */
+    categories?: Record<UsageCategory, CategoryUsage>;
   };
 }
 
 /**
  * Usage information derived from quota response
+ *
+ * Design decision: Maintain backward compatibility by keeping the original
+ * fields while adding optional category breakdowns. This ensures existing UI
+ * code continues to work without modification, while new UI can take advantage
+ * of the detailed category data when available.
  */
 export interface UsageInfo {
+  // Overall usage (aggregated across all categories)
   limit: number;
   requests: number;
   remaining: number;
   percentageUsed: number;
   renewsAt: Date;
   renewsAtString: string;
+
+  /**
+   * Optional category-specific usage breakdowns
+   * Only populated if the API returns category data
+   *
+   * Design decision: Use optional field to gracefully handle cases where:
+   * - API returns legacy format without categories
+   * - API key doesn't have category breakdowns enabled
+   * - Some categories are missing from the response
+   */
+  categories?: Record<UsageCategory, CategoryUsage>;
 }
 
 /**
@@ -203,9 +255,17 @@ export class SyntheticService {
   /**
    * Parse quota response into usage information
    *
-   * Design decision: Check for missing subscription data to handle API keys that
-   * exist but have no active subscription. The API returns an empty object {} in
-   * this case, which we detect and throw a specific error.
+   * Design decision: Support both legacy and new API response formats:
+   * - Legacy: { subscription: { limit, requests, renewsAt } }
+   * - New: { subscription: { limit, requests, renewsAt, categories: {...} } }
+   *
+   * Check for missing subscription data to handle API keys that exist but have no
+   * active subscription. The API returns an empty object {} in this case, which
+   * we detect and throw a specific error.
+   *
+   * Category breakdowns are optional - if present, we parse and calculate
+   * percentages for each category. If absent, we return the legacy format
+   * without category data, ensuring backward compatibility.
    */
   private parseQuotaResponse(data: QuotaResponse): UsageInfo {
     if (!data.subscription) {
@@ -215,11 +275,16 @@ export class SyntheticService {
       );
     }
 
-    const { limit, requests, renewsAt } = data.subscription;
+    const { limit, requests, renewsAt, categories } = data.subscription;
     const remaining = Math.max(0, limit - requests);
     const percentageUsed = limit > 0 ? (requests / limit) * 100 : 0;
 
-    return {
+    /**
+     * Design decision: Build the return object conditionally to handle exactOptionalPropertyTypes
+     * TypeScript's strict mode requires that optional properties not be assigned undefined.
+     * Instead, we only include the categories property when it has a value.
+     */
+    const result: UsageInfo = {
       limit,
       requests,
       remaining,
@@ -227,6 +292,52 @@ export class SyntheticService {
       renewsAt: new Date(renewsAt),
       renewsAtString: new Date(renewsAt).toLocaleString(),
     };
+
+    // Only add categories if present in the response
+    if (categories) {
+      result.categories = this.parseCategories(categories);
+    }
+
+    return result;
+  }
+
+  /**
+   * Parse category breakdowns and calculate percentages for each
+   *
+   * Design decision: Calculate remaining and percentage for each category
+   * to provide consistent data structure across all categories. This ensures
+   * the UI doesn't need to perform these calculations.
+   *
+   * Gracefully handle partial data - if a category is missing required fields,
+   * we skip it rather than failing the entire response.
+   */
+  private parseCategories(
+    categories: Record<UsageCategory, CategoryUsage>
+  ): Record<UsageCategory, CategoryUsage> {
+    const parsed: Record<UsageCategory, CategoryUsage> = {};
+
+    for (const [categoryName, categoryData] of Object.entries(categories)) {
+      // Validate that category has required fields
+      if (
+        typeof categoryData.limit === "number" &&
+        typeof categoryData.used === "number"
+      ) {
+        const remaining = Math.max(0, categoryData.limit - categoryData.used);
+        const percentageUsed =
+          categoryData.limit > 0 ? (categoryData.used / categoryData.limit) * 100 : 0;
+
+        parsed[categoryName] = {
+          limit: categoryData.limit,
+          used: categoryData.used,
+          remaining,
+          percentageUsed: Math.round(percentageUsed * 100) / 100,
+        };
+      }
+      // Skip categories with invalid data - design decision: fail gracefully
+      // rather than throwing an error, as partial category data is better than none
+    }
+
+    return parsed;
   }
 
   /**
