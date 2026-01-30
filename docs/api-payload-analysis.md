@@ -1,7 +1,9 @@
 # Synthetic.new API Payload Analysis
 
-**Date**: 2026-01-30  
+**Date**: 2026-01-30
 **Purpose**: Examine the actual usage payload structure from Synthetic.new API endpoints to understand how the updated usage endpoint works with tools, search, and other usage categories.
+
+**Update**: 2026-01-30 - Added findings about OpenAI-compatible models endpoints discovered during comprehensive API testing.
 
 ## Executive Summary
 

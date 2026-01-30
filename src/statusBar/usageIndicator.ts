@@ -18,6 +18,22 @@ enum DisplayState {
 }
 
 /**
+ * Multi-key display information for the status bar
+ *
+ * Design decision: Encapsulate multi-key state in a separate type to keep
+ * the UsageIndicator interface clean and to make it easy to extend with
+ * additional multi-key features in the future.
+ */
+export interface MultiKeyDisplayInfo {
+  keyLabel: string | null;
+  keySuffix: string | null;
+  totalKeys: number;
+  currentIndex: number;
+  healthScore: number | null;
+  cyclingEnabled: boolean;
+}
+
+/**
  * Status bar usage indicator for displaying Synthetic.new usage information
  *
  * Design decision: Encapsulate all status bar logic including display states,
@@ -46,6 +62,19 @@ export class UsageIndicator {
   private lastTooltip: string | null = null;
   private lastDisplayState: DisplayState | null = null;
 
+  // Track multi-key display state
+  // Design rationale: Store multi-key information separately to enable rich
+  // display of key cycling status in the status bar without requiring changes
+  // to the core usage update logic.
+  private multiKeyInfo: MultiKeyDisplayInfo = {
+    keyLabel: null,
+    keySuffix: null,
+    totalKeys: 1,
+    currentIndex: 0,
+    healthScore: null,
+    cyclingEnabled: false,
+  };
+
   constructor(context: vscode.ExtensionContext) {
     this.statusBarItem = vscode.window.createStatusBarItem(
       vscode.StatusBarAlignment.Right,
@@ -71,6 +100,9 @@ export class UsageIndicator {
    * State priority: Critical > Warning > Success ensures the most severe state
    * is always displayed, which is appropriate for quota tracking where users need
    * immediate visibility of approaching limits.
+   *
+   * Multi-key support: The method accepts optional multi-key display information
+   * to enable rich display of key cycling status in the status bar and tooltip.
    */
   updateUsage(
     usage: UsageInfo,
@@ -81,9 +113,16 @@ export class UsageIndicator {
       criticalThreshold: number;
       enableNotifications: boolean;
     },
-    apiKeySuffix?: string,
+    multiKeyInfo?: MultiKeyDisplayInfo,
   ): void {
     this.currentUsage = usage;
+
+    // Update multi-key information if provided
+    // Design rationale: Store multi-key state separately to enable rich display
+    // of key cycling status without requiring changes to the core usage update logic.
+    if (multiKeyInfo) {
+      this.multiKeyInfo = multiKeyInfo;
+    }
 
     // Use cascading if-else to ensure only one state is selected
     // Critical takes precedence over warning, which takes precedence over success
@@ -98,7 +137,7 @@ export class UsageIndicator {
     // Clear error type when successfully updating usage
     this.errorType = null;
 
-    this.updateStatusBarItem(usage, config, apiKeySuffix);
+    this.updateStatusBarItem(usage, config, this.multiKeyInfo);
   }
 
   getErrorType(): "authentication" | "noSubscription" | "other" | null {
@@ -125,13 +164,20 @@ export class UsageIndicator {
       warningThreshold: number;
       criticalThreshold: number;
     },
-    apiKeySuffix?: string,
+    multiKeyInfo?: MultiKeyDisplayInfo,
   ): void {
     const timeRemaining = this.calculateTimeRemaining(usage.renewsAt);
 
     // Using custom icon defined in package.json contributes.icons section
     // Design rationale: Custom icon provides better visual identity for the extension
     let text = "$(synthetic-status-icon)";
+
+    // Add key index if in multi-key mode and more than one key is configured
+    // Design rationale: Visual indicator helps users quickly identify which key is active
+    // without needing to check the tooltip. Shows as [1/3] format for clarity.
+    if (multiKeyInfo && multiKeyInfo.totalKeys > 1 && multiKeyInfo.currentIndex !== null) {
+      text += ` [${multiKeyInfo.currentIndex}/${multiKeyInfo.totalKeys}]`;
+    }
 
     if (config.showPercentage) {
       const percentage = usage.percentageUsed.toFixed(0);
@@ -151,7 +197,7 @@ export class UsageIndicator {
       text += ` ${warningSymbols}`;
     }
 
-    const tooltip = this.buildTooltip(usage, timeRemaining, apiKeySuffix);
+    const tooltip = this.buildTooltip(usage, timeRemaining, multiKeyInfo);
 
     // Only update if values have actually changed to prevent blinking/redraw
     const needsUpdate =
@@ -328,7 +374,7 @@ export class UsageIndicator {
     return `[${filledChar.repeat(filledBlocks)}${emptyChar.repeat(emptyBlocks)}]`;
   }
 
-  private buildTooltip(usage: UsageInfo, timeRemaining: string, apiKeySuffix?: string): string {
+  private buildTooltip(usage: UsageInfo, timeRemaining: string, multiKeyInfo?: MultiKeyDisplayInfo): string {
     // Design decision: Show comprehensive usage information in tooltip to match message box content.
     // This provides users with full visibility into their API quota without requiring a click.
     // Using plain text with Unicode separator for better visual appearance.
@@ -337,8 +383,8 @@ export class UsageIndicator {
     const percentageRemaining = (100 - usage.percentageUsed).toFixed(1);
 
     /**
-     * Design decision: Include API key suffix in tooltip header to help users identify
-     * which key they're using when cycling through multiple keys.
+     * Design decision: Include multi-key information in tooltip when available to help users
+     * identify which key they're using when cycling through multiple keys.
      *
      * Rationale: When users have multiple API keys (e.g., production vs. development),
      * they need a way to distinguish which key is currently active without exposing
@@ -354,8 +400,29 @@ export class UsageIndicator {
      * without making API requests or checking configuration.
      */
     let tooltip: string;
-    if (apiKeySuffix) {
-      tooltip = `Synthetic.new Usage (${percentageUsed}%, Key: ****${apiKeySuffix})
+    if (multiKeyInfo && multiKeyInfo.totalKeys > 1) {
+      const keySuffix = multiKeyInfo.keySuffix || "";
+      const keyLabel = multiKeyInfo.keyLabel || `Key ${multiKeyInfo.currentIndex + 1}`;
+      const keyInfo = keySuffix ? `${keyLabel} (****${keySuffix})` : keyLabel;
+      const healthInfo = multiKeyInfo.healthScore !== null
+        ? `\nHealth Score: ${multiKeyInfo.healthScore}/100`
+        : "";
+      const cyclingInfo = multiKeyInfo.cyclingEnabled
+        ? `\nCycling: Enabled`
+        : "";
+
+      tooltip = `Synthetic.new Usage (${percentageUsed}%, ${keyInfo}) [${multiKeyInfo.currentIndex + 1}/${multiKeyInfo.totalKeys}]
+───────────────────
+Time Remaining: ${timeRemaining}
+Renews: ${usage.renewsAtString}${healthInfo}${cyclingInfo}
+
+Used: ${usage.requests.toLocaleString()} (${percentageUsed}%)
+Remaining: ${usage.remaining.toLocaleString()} (${percentageRemaining}%)
+Limit: ${usage.limit.toLocaleString()}
+`;
+    } else if (multiKeyInfo && multiKeyInfo.keySuffix) {
+      // Single key mode with suffix
+      tooltip = `Synthetic.new Usage (${percentageUsed}%, Key: ****${multiKeyInfo.keySuffix})
 ───────────────────
 Time Remaining: ${timeRemaining}
 Renews: ${usage.renewsAtString}
@@ -365,6 +432,7 @@ Remaining: ${usage.remaining.toLocaleString()} (${percentageRemaining}%)
 Limit: ${usage.limit.toLocaleString()}
 `;
     } else {
+      // No multi-key info
       tooltip = `Synthetic.new Usage (${percentageUsed}%)
 ───────────────────
 Time Remaining: ${timeRemaining}
@@ -467,6 +535,8 @@ ${this.buildProgressBar(categoryData.percentageUsed)}
 
     // Clear cache to force update
     this.clearCache();
+    // Clear multi-key info when transitioning to idle
+    this.clearMultiKeyInfo();
   }
 
   /**
@@ -483,6 +553,8 @@ ${this.buildProgressBar(categoryData.percentageUsed)}
 
     // Clear cache to force update
     this.clearCache();
+    // Clear multi-key info when transitioning to please set key state
+    this.clearMultiKeyInfo();
   }
 
   startAutoRefresh(intervalSeconds: number, refreshCallback: () => void): void {
@@ -518,6 +590,24 @@ ${this.buildProgressBar(categoryData.percentageUsed)}
     if (this.isAutoRefreshEnabled) {
       this.startAutoRefresh(intervalSeconds, refreshCallback);
     }
+  }
+
+  /**
+   * Clear multi-key display information
+   *
+   * Design decision: Reset multi-key info to default values when transitioning
+   * to idle or error states. This ensures the status bar doesn't display stale
+   * multi-key information when no keys are configured.
+   */
+  private clearMultiKeyInfo(): void {
+    this.multiKeyInfo = {
+      keyLabel: null,
+      keySuffix: null,
+      totalKeys: 1,
+      currentIndex: 0,
+      healthScore: null,
+      cyclingEnabled: false,
+    };
   }
 
   getCurrentUsage(): UsageInfo | null {

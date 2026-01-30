@@ -7,7 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-Nothing yet
+### Added
+- Multi-key cycling infrastructure for managing multiple Synthetic.new API keys
+- Four key cycling strategies: RoundRobin, LeastUsed, Random, and Priority
+- Key health scoring system (0-100) based on failures, quota availability, and key age
+- Automatic key cycling when health scores fall below threshold
+- Six new commands for key management: Add Key, Remove Key, Select Key, Cycle Keys, List Keys, Reset Statistics
+- Three new configuration options: Enable Key Cycling, Cycling Strategy, Auto-Cycle Threshold
+- Status bar displays current key index (e.g., [1/3]) when multiple keys are configured
+- Status bar tooltip shows key label, health score, and cycling status when multi-key is enabled
+- Key statistics tracking: usage count, success count, failure count, last used timestamp, activation history
+- Comprehensive multi-key architecture documentation in `docs/multi-key-architecture.md`
+- Key manager service for secure storage and retrieval of multiple API keys with labels
+- Cross-window synchronization for key cycling state changes
+- Backward compatibility with legacy single-key storage format
+- Enhanced tooltips with ASCII progress bars for category breakdowns (tools, search, chat, other)
+- Unicode block characters (█ for filled, ░ for empty) for visual progress representation
+- Warning emoji (⚠️) displayed when a category exceeds its limit (≥100% usage)
+- API key suffix display showing last 4 characters in tooltips (format: `Key: ****x7b9`)
+- Quota warning symbols: ⚠️ (warning emoji) for warning level (≥80%), 🔴 (red circle emoji) for critical level (≥90%)
+- Category-specific warnings with abbreviations: T=tools, S=search, C=chat, O=other (max 2 category warnings, 3 total symbols)
+- API models endpoint (`/openai/v1/models`) returning 18 available models with `hf:` prefix
+- Comprehensive unit test suite with 93 tests covering all new functionality
+- New API types: UsageCategory enum, CategoryUsage interface, ApiKey interface, CyclingStrategy enum
+- Updated QuotaResponse and UsageInfo interfaces to include optional categories field
+- KeyManager class for managing multiple API keys with health tracking
+- KeyCyclingService class for automatic key cycling with multiple strategies
+- Three new mermaid sequence diagrams in architecture documentation (Key Cycling Flow, Cross-Window Synchronization Flow)
+
+### Changed
+- Updated status bar display to show key index when multiple keys are configured
+- Enhanced tooltip to include multi-key information when available
+- Improved error handling for key authentication failures in multi-key context
+- Updated status bar component description to include new visual features (ASCII progress bars, warning symbols, API key suffix display)
+- Updated API layer documentation to include new interfaces and models endpoint
+- Updated architecture diagram to include Key Manager, Key Cycling Service, GlobalState API, and Models endpoint
+- API uses mixed versioning: v2 for quotas, v1/OpenAI-compatible for models endpoint
 
 ## [1.0.14] - 2026-01-26
 

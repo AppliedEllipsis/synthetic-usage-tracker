@@ -35,9 +35,51 @@ The API returns a JSON object with the following structure:
     "limit": number,        // Total request limit
     "requests": number,     // Number of requests used
     "renewsAt": string      // ISO 8601 date string
+  },
+  "categories": {
+    "tools": {
+      "limit": number,
+      "requests": number
+    },
+    "search": {
+      "limit": number,
+      "requests": number
+    },
+    "chat": {
+      "limit": number,
+      "requests": number
+    },
+    "other": {
+      "limit": number,
+      "requests": number
+    }
   }
 }
 ```
+
+### Models Endpoint
+
+The extension also supports querying available models through the OpenAI-compatible endpoint:
+
+```
+GET https://api.synthetic.new/openai/v1/models
+```
+
+**Response Format:**
+
+```typescript
+{
+  "object": string,
+  "data": Array<{
+    "id": string,           // Model ID (e.g., "hf:deepseek-ai/DeepSeek-V3")
+    "object": string,
+    "created": number,
+    "owned_by": string
+  }>
+}
+```
+
+The API returns 18 available models, all with `hf:` prefix indicating Hugging Face integration.
 
 ### Example Response
 
@@ -90,10 +132,39 @@ interface Configuration {
   enableNotifications: boolean;
   warningThreshold: number;    // Warning threshold (0-100)
   criticalThreshold: number;   // Critical threshold (0-100)
+  enableKeyCycling: boolean;   // Enable automatic key cycling
+  cyclingStrategy: string;     // Key cycling strategy: roundRobin, leastUsed, random, priority
+  autoCycleThreshold: number;  // Usage threshold percentage to trigger automatic key cycling
 }
 ```
 
 ### API Types
+
+#### `UsageCategory`
+
+Enumeration of usage categories:
+
+```typescript
+enum UsageCategory {
+  Tools = "tools",
+  Search = "search",
+  Chat = "chat",
+  Other = "other",
+}
+```
+
+#### `CategoryUsage`
+
+Usage information for a specific category:
+
+```typescript
+interface CategoryUsage {
+  limit: number;              // Category-specific limit
+  requests: number;           // Requests used in category
+  remaining: number;          // Requests remaining in category
+  percentageUsed: number;     // Percentage used (0-100)
+}
+```
 
 #### `QuotaResponse`
 
@@ -105,6 +176,12 @@ interface QuotaResponse {
     limit: number;
     requests: number;
     renewsAt: string;
+  };
+  categories?: {
+    tools: { limit: number; requests: number };
+    search: { limit: number; requests: number };
+    chat: { limit: number; requests: number };
+    other: { limit: number; requests: number };
   };
 }
 ```
@@ -121,8 +198,10 @@ interface UsageInfo {
   percentageUsed: number;     // Percentage used (0-100)
   renewsAt: Date;            // Renewal date
   renewsAtString: string;    // Formatted renewal date string
+  categories?: {              // Category-specific usage (optional)
+    [key in UsageCategory]: CategoryUsage;
+  };
 }
-```
 
 #### `ApiErrorType`
 
@@ -167,7 +246,78 @@ class ConfigurationManager {
   deleteApiKey(): Promise<void>;
   hasApiKey(): Promise<boolean>;
   onConfigChange(callback: () => void): void;
+  watchSharedStateChanges(pollInterval?: number): vscode.Disposable;
+  getKeysTimestamp(): Promise<number>;
   dispose(): void;
+}
+```
+
+### Key Management API
+
+#### `ApiKey`
+
+API key with metadata:
+
+```typescript
+interface ApiKey {
+  key: string;              // The API key
+  label?: string;           // Optional label for the key
+  health?: number;          // Health score (0-100)
+  lastUsed?: number;        // Timestamp of last usage
+  failureCount?: number;    // Number of failures
+  priority?: number;        // Priority for Priority strategy
+}
+```
+
+#### `CyclingStrategy`
+
+Key cycling strategy enumeration:
+
+```typescript
+enum CyclingStrategy {
+  RoundRobin = "roundRobin",
+  LeastUsed = "leastUsed",
+  Random = "random",
+  Priority = "priority",
+}
+```
+
+#### `KeyManager`
+
+Manages multiple API keys with labels and health tracking:
+
+```typescript
+class KeyManager {
+  constructor(context: vscode.ExtensionContext);
+  addKey(key: string, label?: string): Promise<void>;
+  removeKey(index: number): Promise<void>;
+  getKeys(): Promise<ApiKey[]>;
+  getActiveKey(): Promise<string | undefined>;
+  setActiveKey(index: number): Promise<void>;
+  updateKeyHealth(index: number, health: number): Promise<void>;
+  resetKeyStatistics(): Promise<void>;
+  onKeysRefreshed(callback: () => void): void;
+  watchSharedStateChanges(pollInterval?: number): vscode.Disposable;
+  dispose(): void;
+}
+```
+
+#### `KeyCyclingService`
+
+Service for automatic key cycling based on health and usage:
+
+```typescript
+class KeyCyclingService {
+  constructor(keyManager: KeyManager, strategy?: CyclingStrategy);
+  selectKey(): Promise<string | undefined>;
+  recordSuccess(key: string): Promise<void>;
+  recordFailure(key: string): Promise<void>;
+  updateHealth(index: number, delta: number): Promise<void>;
+  calculateHealth(key: ApiKey): number;
+  shouldAutoCycle(threshold: number, usage: UsageInfo): boolean;
+  cycle(): Promise<string | undefined>;
+  setStrategy(strategy: CyclingStrategy): void;
+  getStrategy(): CyclingStrategy;
 }
 ```
 

@@ -96,6 +96,17 @@ export class KeyManager {
   }
 
   /**
+   * Get the index of the currently active key
+   *
+   * Design rationale: This method is needed by the cycling service to determine which
+   * key is currently active before cycling to the next one.
+   */
+  async getActiveIndex(): Promise<number> {
+    const collection = await this.getCollection();
+    return collection.state.activeIndex;
+  }
+
+  /**
    * Get all configured API keys
    *
    * Design decision: Return a copy of the keys array to prevent external modifications

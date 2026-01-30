@@ -1,7 +1,11 @@
 import * as vscode from "vscode";
 import { ConfigurationManager } from "./config/configuration";
 import { SyntheticService, ApiError, ApiErrorType } from "./api/syntheticService";
-import { UsageIndicator } from "./statusBar/usageIndicator";
+import { UsageIndicator, type MultiKeyDisplayInfo } from "./statusBar/usageIndicator";
+import { KeyManager } from "./config/keyManager";
+import { KeyCyclingService } from "./api/keyCyclingService";
+import type { CyclingStrategy, ApiKeyEntry, KeySelectionResult } from "./types/keys";
+import { ActivationReason } from "./types/keys";
 
 /**
  * Main extension class
@@ -16,10 +20,16 @@ export class SyntheticUsageTrackerExtension {
   private isFetching: boolean = false;
   // Watcher for cross-window key updates - kept as reference for proper cleanup on deactivation
   private sharedStateWatcherDisposable: vscode.Disposable | null = null;
+  // Multi-key cycling infrastructure
+  // Design decision: KeyManager handles storage and retrieval of multiple API keys
+  private keyManager: KeyManager;
+  // Design decision: KeyCyclingService orchestrates key selection and cycling logic
+  private keyCyclingService: KeyCyclingService | null = null;
 
   constructor(private context: vscode.ExtensionContext) {
     this.configManager = new ConfigurationManager(context);
     this.usageIndicator = new UsageIndicator(context);
+    this.keyManager = new KeyManager(context);
 
     // Register callbacks early in constructor to ensure we catch all configuration changes,
     // including those that might occur before activation completes
@@ -76,13 +86,36 @@ export class SyntheticUsageTrackerExtension {
       return;
     }
 
+    // Initialize key cycling service if enabled
+    // Design decision: Create the cycling service after confirming we have a valid API key
+    // to ensure the service has at least one key available for cycling
+    const config = this.configManager.getConfig();
+    if (config.enableKeyCycling) {
+      // Design decision: Pass configuration parameters to the cycling service constructor
+      // The service needs to know the cycling strategy and threshold from user settings
+      this.keyCyclingService = new KeyCyclingService(
+        {
+          strategy: config.cyclingStrategy as CyclingStrategy,
+          autoCycleThreshold: config.autoCycleThreshold,
+        },
+        {
+          onKeyCycled: async (result) => {
+            // Handle key cycling events - refresh usage when keys are cycled
+            if (result.didCycle) {
+              await this.refreshUsage();
+            }
+          },
+        },
+      );
+    }
+
     // Fetch initial usage data before starting auto-refresh to ensure UI has valid data immediately
     await this.refreshUsage();
 
-    const config = this.configManager.getConfig();
+    const refreshConfig = this.configManager.getConfig();
     // Start auto-refresh only after successful initial fetch to avoid continuous error cycles
     this.usageIndicator.startAutoRefresh(
-      config.refreshInterval,
+      refreshConfig.refreshInterval,
       () => this.refreshUsage(),
     );
   }
@@ -132,6 +165,43 @@ export class SyntheticUsageTrackerExtension {
       () => this.subscribeWithDiscount(),
     );
     this.context.subscriptions.push(subscribeWithDiscountCommand);
+
+    // Multi-key cycling commands
+    const addKeyCommand = vscode.commands.registerCommand(
+      "syntheticUsageTracker.addKey",
+      () => this.addKey(),
+    );
+    this.context.subscriptions.push(addKeyCommand);
+
+    const removeKeyCommand = vscode.commands.registerCommand(
+      "syntheticUsageTracker.removeKey",
+      () => this.removeKey(),
+    );
+    this.context.subscriptions.push(removeKeyCommand);
+
+    const selectKeyCommand = vscode.commands.registerCommand(
+      "syntheticUsageTracker.selectKey",
+      () => this.selectKey(),
+    );
+    this.context.subscriptions.push(selectKeyCommand);
+
+    const cycleKeysCommand = vscode.commands.registerCommand(
+      "syntheticUsageTracker.cycleKeys",
+      () => this.cycleKeys(),
+    );
+    this.context.subscriptions.push(cycleKeysCommand);
+
+    const listKeysCommand = vscode.commands.registerCommand(
+      "syntheticUsageTracker.listKeys",
+      () => this.listKeys(),
+    );
+    this.context.subscriptions.push(listKeysCommand);
+
+    const resetStatisticsCommand = vscode.commands.registerCommand(
+      "syntheticUsageTracker.resetStatistics",
+      () => this.resetStatistics(),
+    );
+    this.context.subscriptions.push(resetStatisticsCommand);
   }
 
   /**
@@ -148,10 +218,97 @@ export class SyntheticUsageTrackerExtension {
     this.isFetching = true;
 
     try {
-      const apiKey = await this.configManager.getApiKey();
-      if (!apiKey) {
-        this.usageIndicator.setIdle();
-        return;
+      let apiKey: string | undefined;
+      let apiKeySuffix: string | undefined;
+
+      // Declare variables for multi-key display information
+      // Design decision: These variables are declared at the outer scope so they can be used
+      // whether or not key cycling is enabled. This allows the status bar to display consistent
+      // information regardless of the cycling mode.
+      let multiKeyInfo: MultiKeyDisplayInfo;
+      let keys: ApiKeyEntry[] = [];
+      let activeEntry: ApiKeyEntry | null = null;
+      let activeIndex: number = 0;
+      let selectionResult: KeySelectionResult | null = null;
+
+      // Use key cycling service if enabled
+      // Design decision: When key cycling is enabled, the cycling service handles key selection
+      // and automatic cycling based on the configured strategy. This provides a seamless experience
+      // for users with multiple API keys without requiring manual intervention.
+      if (this.keyCyclingService) {
+        keys = await this.keyManager.getAllKeys();
+        activeEntry = (await this.keyManager.getActiveEntry()) ?? null;
+        activeIndex = activeEntry ? await this.keyManager.getActiveIndex() : 0;
+
+        // Design decision: Use AutomaticThreshold as the reason for initial key selection
+        // during refresh. This indicates the key is being selected for an API call, which
+        // may trigger automatic cycling if the current key is unhealthy or quota is exceeded.
+        selectionResult = await this.keyCyclingService.selectKey(
+          keys,
+          activeIndex,
+          ActivationReason.AutomaticThreshold,
+        );
+
+        if (!selectionResult || !selectionResult.entry.key) {
+          this.usageIndicator.setIdle();
+          return;
+        }
+
+        apiKey = selectionResult.entry.key;
+
+        // Extract last 4 characters of API key suffix from the key itself
+        // Design decision: Only display the last 4 characters to help users identify
+        // which key they're using without exposing the full key for security reasons.
+        // This is particularly useful when users cycle through multiple API keys.
+        //
+        // Security considerations:
+        // - Only the last 4 characters are extracted and passed
+        // - The full key is never logged or exposed
+        // - If the key is shorter than 4 characters, use all available characters
+        //
+        // Alternative considered: Display full key
+        // Rejected: Major security risk - full keys could be captured in screenshots,
+        // logs, or shared inadvertently.
+        apiKeySuffix = apiKey.length >= 4
+          ? apiKey.slice(-4)
+          : apiKey.length > 0
+            ? apiKey
+            : undefined;
+
+        // Record successful API call for key health tracking
+        // Design rationale: Tracking successful calls helps the cycling service maintain
+        // accurate health scores for each key, informing future key selection decisions.
+        const statistics = await this.keyManager.getKeyStatistics(apiKey);
+        if (statistics) {
+          const updatedStatistics = this.keyCyclingService.recordSuccess(statistics);
+          await this.keyManager.updateKeyStatistics(apiKey, updatedStatistics);
+        }
+      } else {
+        // Fallback to single-key mode when key cycling is disabled
+        apiKey = await this.configManager.getApiKey();
+        if (!apiKey) {
+          this.usageIndicator.setIdle();
+          return;
+        }
+
+        // Extract last 4 characters of API key for display in tooltip
+        // Design decision: Only display the last 4 characters to help users identify
+        // which key they're using without exposing the full key for security reasons.
+        // This is particularly useful when users cycle through multiple API keys.
+        //
+        // Security considerations:
+        // - Only the last 4 characters are extracted and passed
+        // - The full key is never logged or exposed
+        // - If the key is shorter than 4 characters, use all available characters
+        //
+        // Alternative considered: Display full key
+        // Rejected: Major security risk - full keys could be captured in screenshots,
+        // logs, or shared inadvertently.
+        apiKeySuffix = apiKey.length >= 4
+          ? apiKey.slice(-4)
+          : apiKey.length > 0
+            ? apiKey
+            : undefined;
       }
 
       const config = this.configManager.getConfig();
@@ -159,27 +316,25 @@ export class SyntheticUsageTrackerExtension {
       const service = new SyntheticService(apiKey, config.apiEndpoint);
       const usage = await service.fetchQuota();
 
-      /**
-       * Extract last 4 characters of API key for display in tooltip
-       *
-       * Design decision: Only display the last 4 characters to help users identify
-       * which key they're using without exposing the full key for security reasons.
-       * This is particularly useful when users cycle through multiple API keys.
-       *
-       * Security considerations:
-       * - Only the last 4 characters are extracted and passed
-       * - The full key is never logged or exposed
-       * - If the key is shorter than 4 characters, use all available characters
-       *
-       * Alternative considered: Display full key
-       * Rejected: Major security risk - full keys could be captured in screenshots,
-       * logs, or shared inadvertently.
-       */
-      const apiKeySuffix: string | undefined = apiKey.length >= 4
-        ? apiKey.slice(-4)
-        : apiKey.length > 0
-          ? apiKey
-          : undefined;
+      // Build multi-key display information for the status bar
+      // Design rationale: Provide rich display of key cycling status including
+      // key label, suffix, index, and health score to help users understand
+      // which key is currently active and its health status.
+        let healthScore: number | null = null;
+        if (activeEntry && this.keyCyclingService) {
+          // Health scores are calculated dynamically by checkHealth() method, not stored in KeyStatistics
+          const healthResult = this.keyCyclingService.checkHealth(activeEntry);
+          healthScore = healthResult.score;
+        }
+
+      multiKeyInfo = {
+        keyLabel: activeEntry?.label ?? null,
+        keySuffix: apiKeySuffix ?? null,
+        totalKeys: keys.length,
+        currentIndex: activeIndex,
+        healthScore,
+        cyclingEnabled: config.enableKeyCycling,
+      };
 
       this.usageIndicator.updateUsage(usage, {
         showPercentage: config.showPercentage,
@@ -187,10 +342,44 @@ export class SyntheticUsageTrackerExtension {
         warningThreshold: config.warningThreshold,
         criticalThreshold: config.criticalThreshold,
         enableNotifications: config.enableNotifications,
-      }, apiKeySuffix);
+      }, multiKeyInfo);
+
+      // Update key statistics with quota information when key cycling is enabled
+      // Design decision: Track quota per key to enable informed key selection decisions
+      // in the LeastUsed cycling strategy. This ensures the cycling service can select
+      // the key with the most available quota.
+      if (this.keyCyclingService && apiKey) {
+        const statistics = await this.keyManager.getKeyStatistics(apiKey);
+        if (statistics) {
+          await this.keyManager.updateKeyStatistics(apiKey, {
+            quota: {
+              limit: usage.limit,
+              requests: usage.requests,
+              remaining: usage.remaining,
+              percentageUsed: usage.percentageUsed,
+              renewsAt: usage.renewsAt,
+            },
+          });
+        }
+      }
     } catch (error) {
       console.error("Failed to fetch usage:", error);
       const message = error instanceof Error ? error.message : "Unknown error";
+
+      // Record API failure for key health tracking when key cycling is enabled
+      // Design rationale: Tracking failures helps the cycling service maintain accurate
+      // health scores for each key. Keys with frequent failures will be deprioritized
+      // during automatic cycling.
+      if (this.keyCyclingService && error instanceof ApiError) {
+        const activeEntry = await this.keyManager.getActiveEntry();
+        if (activeEntry) {
+          const statistics = await this.keyManager.getKeyStatistics(activeEntry.key);
+          if (statistics) {
+            const updatedStatistics = this.keyCyclingService.recordFailure(statistics, error);
+            await this.keyManager.updateKeyStatistics(activeEntry.key, updatedStatistics);
+          }
+        }
+      }
 
       // Map ApiErrorType to UsageIndicator error type strings
       // Design rationale: This mapping enables contextual error handling when users click the status bar.
@@ -420,11 +609,290 @@ Renews At: ${usage.renewsAtString}
   }
 
   /**
+   * Add a new API key
+   * Prompts user for API key and optional label, then adds it to the key collection
+   */
+  private async addKey(): Promise<void> {
+    const keyInput = await vscode.window.showInputBox({
+      prompt: "Enter your Synthetic.new API key",
+      placeHolder: "syn_xxxxxxxxxx",
+      password: true,
+      validateInput: (value) => {
+        if (!value || value.trim().length === 0) {
+          return "API key cannot be empty";
+        }
+        const trimmedValue = value.trim();
+        if (!trimmedValue.startsWith("syn_")) {
+          return "Invalid API key format. API keys should start with 'syn_'";
+        }
+        return null;
+      },
+    });
+
+    if (keyInput === undefined) {
+      return;
+    }
+
+    const apiKey = keyInput.trim();
+
+    const labelInput = await vscode.window.showInputBox({
+      prompt: "Enter a label for this key (optional)",
+      placeHolder: "e.g., Production, Development, Backup",
+    });
+
+    const label = labelInput?.trim() || undefined;
+
+    try {
+      await this.keyManager.addApiKey(apiKey, label, ActivationReason.CollectionModified);
+      vscode.window.showInformationMessage("API key added successfully");
+
+      // Refresh usage if this is the first key
+      const keys = await this.keyManager.getAllKeys();
+      if (keys.length === 1) {
+        await this.refreshUsage();
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to add API key";
+      vscode.window.showErrorMessage(message);
+    }
+  }
+
+  /**
+   * Remove an API key
+   * Shows list of keys and removes the selected one
+   */
+  private async removeKey(): Promise<void> {
+    const keys = await this.keyManager.getAllKeys();
+
+    if (keys.length === 0) {
+      vscode.window.showInformationMessage("No API keys configured");
+      return;
+    }
+
+    if (keys.length === 1) {
+      const result = await vscode.window.showWarningMessage(
+        "This is the only configured API key. Removing it will disable tracking until you add another key.",
+        { modal: true },
+        "Remove Key",
+      );
+
+      if (result !== "Remove Key") {
+        return;
+      }
+    }
+
+    const items: vscode.QuickPickItem[] = keys.map((entry) => ({
+      label: entry.label ? `${entry.label} (...${entry.key.slice(-4)})` : `...${entry.key.slice(-4)}`,
+      description: entry.key,
+    }));
+
+    const selected = await vscode.window.showQuickPick(items, {
+      placeHolder: "Select an API key to remove",
+    });
+
+    if (!selected) {
+      return;
+    }
+
+    const keyToRemove = keys.find((entry) => entry.key === selected.description);
+    if (!keyToRemove) {
+      return;
+    }
+
+    try {
+      await this.keyManager.removeApiKey(keyToRemove.id);
+      vscode.window.showInformationMessage("API key removed successfully");
+
+      // Update status bar if no keys remain
+      const remainingKeys = await this.keyManager.getAllKeys();
+      if (remainingKeys.length === 0) {
+        this.usageIndicator.setPleaseSetKey();
+        this.usageIndicator.stopAutoRefresh();
+      } else {
+        await this.refreshUsage();
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to remove API key";
+      vscode.window.showErrorMessage(message);
+    }
+  }
+
+  /**
+   * Select an API key to use
+   * Shows list of keys and activates the selected one
+   */
+  private async selectKey(): Promise<void> {
+    const keys = await this.keyManager.getAllKeys();
+
+    if (keys.length === 0) {
+      vscode.window.showInformationMessage("No API keys configured. Add a key first.");
+      return;
+    }
+
+    if (keys.length === 1) {
+      vscode.window.showInformationMessage("Only one API key configured");
+      return;
+    }
+
+    const activeKey = await this.keyManager.getActiveKey();
+
+    const items: vscode.QuickPickItem[] = keys.map((entry) => ({
+      label: entry.label ? `${entry.label} (...${entry.key.slice(-4)})` : `...${entry.key.slice(-4)}`,
+      description: entry.key,
+      picked: entry.key === activeKey,
+    }));
+
+    const selected = await vscode.window.showQuickPick(items, {
+      placeHolder: "Select an API key to use",
+    });
+
+    if (!selected) {
+      return;
+    }
+
+    const keyToSelect = keys.find((entry) => entry.key === selected.description);
+    if (!keyToSelect) {
+      return;
+    }
+
+    try {
+      const selectedIndex = keys.indexOf(keyToSelect);
+      await this.keyManager.setActiveKeyByIndex(selectedIndex, ActivationReason.ManualSelection);
+      vscode.window.showInformationMessage("API key selected successfully");
+      await this.refreshUsage();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to select API key";
+      vscode.window.showErrorMessage(message);
+    }
+  }
+
+  /**
+   * Cycle to the next API key
+   * Manually cycles to the next key based on the configured strategy
+   */
+  private async cycleKeys(): Promise<void> {
+    const keys = await this.keyManager.getAllKeys();
+
+    if (keys.length === 0) {
+      vscode.window.showInformationMessage("No API keys configured. Add a key first.");
+      return;
+    }
+
+    if (keys.length === 1) {
+      vscode.window.showInformationMessage("Only one API key configured");
+      return;
+    }
+
+    try {
+      const activeEntry = await this.keyManager.getActiveEntry();
+      const activeIndex = activeEntry ? await this.keyManager.getActiveIndex() : 0;
+      const result = await this.keyCyclingService?.cycleKey(keys, activeIndex);
+      if (result?.didCycle) {
+        vscode.window.showInformationMessage(`Switched to API key: ...${result.entry.key.slice(-4)}`);
+        await this.refreshUsage();
+      } else {
+        vscode.window.showInformationMessage("No other API keys available to cycle to");
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to cycle API keys";
+      vscode.window.showErrorMessage(message);
+    }
+  }
+
+  /**
+   * List all configured API keys with statistics
+   * Shows a formatted list of keys with their usage statistics
+   */
+  private async listKeys(): Promise<void> {
+    const keys = await this.keyManager.getAllKeys();
+
+    if (keys.length === 0) {
+      vscode.window.showInformationMessage("No API keys configured");
+      return;
+    }
+
+    const activeKey = await this.keyManager.getActiveKey();
+
+    let message = `Synthetic.new API Keys (${keys.length} configured)\n`;
+    message += `${"=".repeat(40)}\n\n`;
+
+    for (let i = 0; i < keys.length; i++) {
+      const entry = keys[i]!; // eslint-disable-line @typescript-eslint/no-non-null-assertion -- Safe: array index is guaranteed by loop bounds
+      const isActive = entry.key === activeKey;
+      const statistics = await this.keyManager.getKeyStatistics(entry.id);
+
+      message += `${isActive ? "★ " : "  "}Key ${i + 1}: ${entry.label || "No label"}\n`;
+      message += `  ID: ...${entry.key.slice(-4)}\n`;
+      message += `  Priority: ${entry.priority ?? "Not set"}\n`;
+      message += `  Failures: ${statistics?.totalFailures ?? 0}\n`;
+      message += `  Activations: ${statistics?.activationHistory?.length ?? 0}\n`;
+
+      if (statistics?.quota) {
+        const quota = statistics.quota;
+        const percentage = quota.requests / quota.limit * 100;
+        message += `  Quota: ${quota.requests.toLocaleString()} / ${quota.limit.toLocaleString()} (${percentage.toFixed(1)}%)\n`;
+      } else {
+        message += `  Quota: Not available\n`;
+      }
+
+      message += "\n";
+    }
+
+    const result = await vscode.window.showInformationMessage(
+      message,
+      { modal: true },
+      "Add Key",
+      "Remove Key",
+      "Select Key",
+    );
+
+    if (result === "Add Key") {
+      await this.addKey();
+    } else if (result === "Remove Key") {
+      await this.removeKey();
+    } else if (result === "Select Key") {
+      await this.selectKey();
+    }
+  }
+
+  /**
+   * Reset usage statistics for all API keys
+   * Clears failure counts, quota information, and activation history
+   */
+  private async resetStatistics(): Promise<void> {
+    const keys = await this.keyManager.getAllKeys();
+
+    if (keys.length === 0) {
+      vscode.window.showInformationMessage("No API keys configured");
+      return;
+    }
+
+    const result = await vscode.window.showWarningMessage(
+      "This will reset all usage statistics including failure counts, quota information, and activation history for all API keys. This action cannot be undone.",
+      { modal: true },
+      "Reset Statistics",
+    );
+
+    if (result !== "Reset Statistics") {
+      return;
+    }
+
+    try {
+      await this.keyManager.resetAllStatistics();
+      vscode.window.showInformationMessage("Statistics reset successfully");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to reset statistics";
+      vscode.window.showErrorMessage(message);
+    }
+  }
+
+  /**
    * Deactivate the extension
    */
   deactivate(): void {
     this.usageIndicator.dispose();
     this.configManager.dispose();
+    this.keyManager.dispose();
     this.sharedStateWatcherDisposable?.dispose();
   }
 }

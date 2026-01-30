@@ -1,534 +1,478 @@
 /**
- * KeyCyclingService - Orchestrates key cycling logic for multi-key management
+ * Key Cycling Service
  *
- * Design decision: This service acts as the coordinator between the KeyManager and the
- * SyntheticService. It implements all four cycling strategies (RoundRobin, LeastUsed,
- * Random, Priority) and handles health-based key selection.
+ * Design decision: This service handles key cycling logic independently from key storage.
+ * This separation allows for easier testing and modification of cycling strategies without
+ * affecting the storage layer.
+ */
+
+import type { ApiKeyEntry, HealthCheckResult, KeySelectionResult, KeyStatistics, QuotaInfo } from "../types/keys.js";
+import { ActivationReason as ActivationReasonEnum, CyclingStrategy as CyclingStrategyEnum } from "../types/keys.js";
+
+/**
+ * Configuration for the key cycling service
+ */
+export interface KeyCyclingServiceConfig {
+  /**
+   * Whether automatic cycling is enabled
+   */
+  autoCycleEnabled: boolean;
+
+  /**
+   * Strategy to use for automatic key cycling
+   */
+  strategy: CyclingStrategyEnum;
+
+  /**
+   * Threshold for automatic cycling (percentage of quota used)
+   */
+  autoCycleThreshold: number;
+
+  /**
+   * Maximum consecutive failures before cycling keys
+   */
+  maxConsecutiveFailures: number;
+
+  /**
+   * Time window for considering failures as "recent" (in milliseconds)
+   */
+  recentFailureWindow: number;
+
+  /**
+   * Health score threshold below which a key is considered unhealthy (0-100)
+   */
+  healthScoreThreshold: number;
+
+  /**
+   * Weight factors for health score calculation
+   */
+  healthWeights: {
+    /**
+     * Weight for recent failures (0-100)
+     */
+    recentFailures: number;
+
+    /**
+     * Weight for quota availability (0-100)
+     */
+    quotaAvailability: number;
+
+    /**
+     * Weight for key age (0-100)
+     */
+    keyAge: number;
+
+    /**
+     * Weight for activation frequency (0-100)
+     */
+    activationFrequency: number;
+  };
+}
+
+/**
+ * Default configuration for the key cycling service
  *
- * The service maintains a cycling lock to prevent concurrent cycling operations across
- * multiple API calls, which could lead to race conditions where different keys are
- * selected simultaneously.
+ * Design rationale:
+ * - autoCycleEnabled: true by default for automatic management
+ * - strategy: RoundRobin provides predictable, fair distribution
+ * - autoCycleThreshold: 90% - only cycle when quota is nearly exhausted
+ * - maxConsecutiveFailures: 3 - balance between resilience and responsiveness
+ * - recentFailureWindow: 5 minutes - captures transient failures without penalizing too long
+ * - healthScoreThreshold: 50 - middle ground for deciding when to cycle
+ * - healthWeights: balanced distribution prioritizing recent failures and quota
  */
-
-import type { ApiError } from "./syntheticService";
-import type {
-  ApiKeyEntry,
-  ActivationReason,
-  CyclingStrategy,
-  KeyCyclingState,
-  CyclingConfig,
-  KeySelectionResult,
-  HealthCheckResult,
-  QuotaInfo,
-} from "../types/keys";
-
-// Import enums as values since they are used in switch statements
-import { ActivationReason as ActivationReasonEnum, CyclingStrategy as CyclingStrategyEnum } from "../types/keys";
-
-/**
- * Interface for key statistics tracking
- */
-interface KeyStatistics {
-  usageCount: number;
-  quota: QuotaInfo | null;
-  consecutiveFailures: number;
-  totalFailures: number;
-  failures: FailureRecord[];
-  activationHistory: ActivationEntry[];
-  lastSuccessTimestamp: Date | null;
-  lastFailureTimestamp: Date | null;
-  lastActivatedTimestamp: Date | null;
-}
-
-/**
- * Record of a key failure
- */
-interface FailureRecord {
-  timestamp: number;
-  errorType: string;
-  message: string;
-}
-
-/**
- * Record of a key activation
- */
-interface ActivationEntry {
-  timestamp: number;
-  keyIndex: number;
-  reason: ActivationReason;
-}
-
-/**
- * Extended cycling config with additional properties for health checking
- */
-interface ExtendedCyclingConfig extends CyclingConfig {
-  apiEndpoint: string;
-  failureWindow: number;
-  maxFailuresBeforeUnhealthy: number;
-  healthyThreshold: number;
-  warningThreshold: number;
-  autoCycle: boolean;
-  maxHistoryLength: number;
-}
-
-/**
- * Health factor with weight
- */
-interface HealthFactorWithWeight {
-  name: string;
-  impact: number;
-  weight: number;
-  description: string;
-}
-
-/**
- * Health check result with key information
- */
-interface HealthCheckResultWithKey extends HealthCheckResult {
-  key: ApiKeyEntry;
-}
-
-/**
- * Key selection result with success flag
- */
-interface KeySelectionResultExtended extends KeySelectionResult {
-  success: boolean;
-}
-
-/**
- * Default extended cycling configuration
- */
-const DEFAULT_EXTENDED_CONFIG: ExtendedCyclingConfig = {
-  enabled: true,
+const DEFAULT_CONFIG: KeyCyclingServiceConfig = {
+  autoCycleEnabled: true,
   strategy: CyclingStrategyEnum.RoundRobin,
-  cycleThreshold: 90,
-  maxKeyFailures: 3,
-  skipUnhealthyKeys: true,
-  cycleOnQuotaExceeded: false,
-  apiEndpoint: "https://api.synthetic.new/v2",
-  failureWindow: 5 * 60 * 1000, // 5 minutes
-  maxFailuresBeforeUnhealthy: 3,
-  healthyThreshold: 70,
-  warningThreshold: 50,
-  autoCycle: true,
-  maxHistoryLength: 100,
+  autoCycleThreshold: 90,
+  maxConsecutiveFailures: 3,
+  recentFailureWindow: 5 * 60 * 1000, // 5 minutes
+  healthScoreThreshold: 50,
+  healthWeights: {
+    recentFailures: 40,
+    quotaAvailability: 30,
+    keyAge: 10,
+    activationFrequency: 20,
+  },
 };
 
 /**
- * Service for orchestrating key cycling logic
+ * Callback types for key cycling events
+ */
+export interface KeyCyclingCallbacks {
+  /**
+   * Called when a key is successfully selected
+   */
+  onKeySelected?: (result: KeySelectionResult) => void;
+
+  /**
+   * Called when a key cycles to a new key
+   */
+  onKeyCycled?: (result: KeySelectionResult) => void;
+
+  /**
+   * Called when a key fails and needs cycling
+   */
+  onKeyFailure?: (key: string, error: Error) => void;
+
+  /**
+   * Called when all keys are exhausted
+   */
+  onAllKeysExhausted?: () => void;
+}
+
+/**
+ * Key Cycling Service
+ *
+ * Design decision: This service is stateless regarding key storage - it receives keys
+ * and state via callbacks and returns selection results. This makes it testable and
+ * allows it to work with different storage implementations.
  */
 export class KeyCyclingService {
-  private cyclingLock: boolean = false;
+  private config: KeyCyclingServiceConfig;
+  private callbacks: KeyCyclingCallbacks;
+  private isCycling: boolean = false;
 
   constructor(
-    private getKeys: () => ApiKeyEntry[],
-    private getCyclingState: () => KeyCyclingState,
-    private updateCyclingState: (state: KeyCyclingState) => Promise<void>,
-    private setActiveKeyByIndex: (index: number, reason: ActivationReason) => Promise<void>,
-    private getKeyStatistics: (keyId: string) => KeyStatistics | null,
-    private updateKeyStatistics: (keyId: string, stats: Partial<KeyStatistics>) => Promise<void>,
-    private config: ExtendedCyclingConfig = DEFAULT_EXTENDED_CONFIG,
-  ) {}
+    config: Partial<KeyCyclingServiceConfig> = {},
+    callbacks: KeyCyclingCallbacks = {},
+  ) {
+    this.config = { ...DEFAULT_CONFIG, ...config };
+    this.callbacks = callbacks;
+  }
 
   /**
    * Select the best key based on the configured strategy
    *
-   * Design decision: This method evaluates all available keys and selects the best one
-   * according to the configured strategy. It respects the skipUnhealthyKeys setting and
-   * returns the first healthy key if skipping is enabled.
+   * Design decision: This method doesn't modify state - it only selects. State
+   * changes (like setting the active key) are handled by the caller.
    *
-   * @param reason The reason for key selection
-   * @returns The selected key entry and its index
+   * @param keys - Array of all available API keys
+   * @param activeIndex - Index of the currently active key
+   * @param reason - Reason for the selection
+   * @returns Selection result with the chosen key and metadata
    */
-  async selectKey(reason: ActivationReason): Promise<KeySelectionResultExtended> {
-    const keys = this.getKeys();
-
+  selectKey(
+    keys: ApiKeyEntry[],
+    activeIndex: number,
+    reason: ActivationReasonEnum,
+  ): KeySelectionResult {
     if (keys.length === 0) {
-      return {
-        success: false,
-        entry: {} as ApiKeyEntry,
-        index: -1,
-        reason,
-        didCycle: false,
-      };
+      throw new Error("No API keys available");
     }
 
+    // If only one key, return it
     if (keys.length === 1) {
+      // Safe to use non-null assertion because length check ensures keys[0] exists
       return {
-        success: true,
-        entry: keys[0]!,
+        entry: keys[0]!, // eslint-disable-line @typescript-eslint/no-non-null-assertion
         index: 0,
         reason,
-        didCycle: false,
+        didCycle: activeIndex !== 0,
       };
     }
 
-    // Get current active key index
-    const state = this.getCyclingState();
-    const currentIndex = state.activeIndex;
-
-    // Select candidate keys based on strategy
-    let candidateIndex = -1;
+    // Select based on strategy
+    let selectedIndex: number;
 
     switch (this.config.strategy) {
       case CyclingStrategyEnum.RoundRobin:
-        candidateIndex = this.selectRoundRobin(currentIndex, keys.length);
+        selectedIndex = this.selectRoundRobin(keys, activeIndex);
         break;
       case CyclingStrategyEnum.LeastUsed:
-        candidateIndex = await this.selectLeastUsed(keys);
+        selectedIndex = this.selectLeastUsed(keys);
         break;
       case CyclingStrategyEnum.Random:
-        candidateIndex = this.selectRandom(keys.length);
+        selectedIndex = this.selectRandom(keys);
         break;
       case CyclingStrategyEnum.Priority:
-        candidateIndex = this.selectByPriority(keys);
+        selectedIndex = this.selectPriority(keys);
         break;
       default:
-        candidateIndex = this.selectRoundRobin(currentIndex, keys.length);
+        // Fallback to round-robin for unknown strategies
+        selectedIndex = this.selectRoundRobin(keys, activeIndex);
     }
 
-    // If configured to skip unhealthy keys, find the first healthy one
-    if (this.config.skipUnhealthyKeys) {
-      const healthyIndex = await this.findFirstHealthyKey(keys);
-      if (healthyIndex !== -1) {
-        candidateIndex = healthyIndex;
-      }
-    }
+    // Safe to use non-null assertion because selectedIndex is validated to be within bounds
+    const selectedEntry = keys[selectedIndex]!; // eslint-disable-line @typescript-eslint/no-non-null-assertion
 
-    // If no candidate found, fall back to first key
-    if (candidateIndex === -1) {
-      candidateIndex = 0;
-    }
+    // Check if we cycled to a different key
+    const didCycle = selectedIndex !== activeIndex;
 
-    return {
-      success: true,
-      entry: keys[candidateIndex]!,
-      index: candidateIndex,
+    const result: KeySelectionResult = {
+      entry: selectedEntry,
+      index: selectedIndex,
       reason,
-      didCycle: candidateIndex !== currentIndex,
+      didCycle,
     };
+
+    // Notify callbacks
+    if (didCycle) {
+      this.callbacks.onKeyCycled?.(result);
+    }
+    this.callbacks.onKeySelected?.(result);
+
+    return result;
   }
 
   /**
-   * Cycle to the next key in the sequence
+   * Cycle to the next key based on the configured strategy
    *
-   * Design decision: This method uses a lock to prevent concurrent cycling operations.
-   * Multiple cycling attempts (e.g., from multiple API calls failing simultaneously)
-   * could cause race conditions where different keys are selected at the same time.
+   * Design decision: This method is a convenience wrapper that calls selectKey
+   * with the appropriate reason for automatic cycling.
    *
-   * @param reason The reason for cycling
-   * @returns The new active key index, or -1 if cycling failed
+   * @param keys - Array of all available API keys
+   * @param activeIndex - Index of the currently active key
+   * @returns Selection result with the chosen key and metadata
    */
-  async cycleKey(reason: ActivationReason): Promise<number> {
-    if (this.cyclingLock) {
-      console.warn("Cycling operation already in progress, skipping");
-      return -1;
+  cycleKey(
+    keys: ApiKeyEntry[],
+    activeIndex: number,
+  ): KeySelectionResult {
+    if (this.isCycling) {
+      // Return current key if already cycling
+      return {
+        entry: keys[activeIndex]!, // eslint-disable-line @typescript-eslint/no-non-null-assertion
+        index: activeIndex,
+        reason: ActivationReasonEnum.Initial,
+        didCycle: false,
+      };
     }
 
-    this.cyclingLock = true;
+    this.isCycling = true;
 
     try {
-      const keys = this.getKeys();
-      if (keys.length === 0) {
-        console.warn("No keys available for cycling");
-        return -1;
-      }
-
-      if (keys.length === 1) {
-        console.warn("Only one key available, cannot cycle");
-        return -1;
-      }
-
-      // Select next key based on strategy
-      const selection = await this.selectKey(reason);
-
-      if (!selection.success || selection.index === -1) {
-        console.warn("Failed to select key for cycling");
-        return -1;
-      }
-
-      // Set the new active key
-      await this.setActiveKeyByIndex(selection.index, reason);
-
-      console.log(`Cycled to key at index ${selection.index} (reason: ${reason})`);
-
-      return selection.index;
+      return this.selectKey(keys, activeIndex, ActivationReasonEnum.AutomaticThreshold);
     } finally {
-      this.cyclingLock = false;
+      this.isCycling = false;
     }
+  }
+
+  /**
+   * Check if automatic cycling should occur based on quota
+   *
+   * Design decision: This is a pure function that doesn't modify state, making it
+   * easy to test and reason about.
+   *
+   * @param quota - Current quota information
+   * @returns Whether cycling should occur
+   */
+  shouldAutoCycle(quota: QuotaInfo): boolean {
+    if (!this.config.autoCycleEnabled) {
+      return false;
+    }
+
+    return quota.percentageUsed >= this.config.autoCycleThreshold;
   }
 
   /**
    * Check the health of a specific key
    *
-   * Design rationale: Health is calculated based on multiple factors to provide a
-   * comprehensive assessment of key viability. Each factor contributes to the overall
-   * health score, allowing the extension to make informed decisions about key selection.
+   * Design decision: Health is calculated based on multiple factors to provide
+   * a comprehensive assessment of key quality.
    *
-   * @param key The key to check
-   * @returns The health check result
+   * @param entry - The API key entry to check
+   * @param quota - Current quota information (optional, if not available uses key statistics)
+   * @returns Health check result with score and factors
    */
-  async checkHealth(key: ApiKeyEntry): Promise<HealthCheckResultWithKey> {
-    const factors: HealthFactorWithWeight[] = [];
-    let totalScore = 100;
+  checkHealth(entry: ApiKeyEntry, quota?: QuotaInfo): HealthCheckResult {
+    const factors: HealthCheckResult["factors"] = [];
+    let score: number = 100;
 
-    // Factor 1: Recent failures (40% weight)
-    const recentFailures = this.countRecentFailures(key);
-    const failureScore = Math.max(0, 100 - (recentFailures * 20));
-    factors.push({
-      name: "Recent Failures",
-      impact: failureScore - 100,
-      weight: 40,
-      description: `Recent failures in the last ${this.config.failureWindow}ms`,
-    });
-    totalScore += (failureScore - 100) * 0.4;
+    // Factor 1: Recent failures
+    const recentFailures = this.countRecentFailures(entry.statistics.failures);
+    if (recentFailures > 0) {
+      const impact = -(recentFailures * this.config.healthWeights.recentFailures);
+      factors.push({
+        name: "Recent Failures",
+        impact,
+        description: `${recentFailures} recent failure(s) in the last ${this.config.recentFailureWindow / 1000 / 60} minutes`,
+      });
+      score += impact;
+    }
 
-    // Factor 2: Quota availability (30% weight)
-    const stats = this.getKeyStatistics(key.id);
-    if (stats?.quota) {
-      const quotaScore = stats.quota.percentageUsed > 0 ? 100 - stats.quota.percentageUsed : 100;
+    // Factor 2: Quota availability
+    const quotaImpact = this.calculateQuotaImpact(entry, quota);
+    if (quotaImpact !== 0) {
       factors.push({
         name: "Quota Availability",
-        impact: quotaScore - 100,
-        weight: 30,
-        description: `Quota usage: ${stats.quota.percentageUsed}%`,
+        impact: quotaImpact,
+        description: `${quotaImpact < 0 ? "Low" : "Good"} quota availability`,
       });
-      totalScore += (quotaScore - 100) * 0.3;
+      score += quotaImpact;
     }
 
-    // Factor 3: Key age (10% weight)
-    const ageScore = this.calculateAgeScore(key.addedAt);
-    factors.push({
-      name: "Key Age",
-      impact: ageScore - 100,
-      weight: 10,
-      description: `Key added: ${new Date(key.addedAt).toISOString()}`,
-    });
-    totalScore += (ageScore - 100) * 0.1;
+    // Factor 3: Key age
+    const age = Date.now() - entry.addedAt;
+    const ageDays = age / (1000 * 60 * 60 * 24);
+    if (ageDays > 30) {
+      const impact = -((ageDays - 30) * this.config.healthWeights.keyAge / 100);
+      factors.push({
+        name: "Key Age",
+        impact,
+        description: `Key is ${Math.floor(ageDays)} days old`,
+      });
+      score += impact;
+    }
 
-    // Factor 4: Activation frequency (20% weight)
-    const frequencyScore = this.calculateFrequencyScore(stats);
-    factors.push({
-      name: "Activation Frequency",
-      impact: frequencyScore - 100,
-      weight: 20,
-      description: "How frequently the key has been activated",
-    });
-    totalScore += (frequencyScore - 100) * 0.2;
+    // Factor 4: Activation frequency
+    const activationCount = entry.statistics.activationHistory.length;
+    if (activationCount > 100) {
+      const impact = -((activationCount - 100) * this.config.healthWeights.activationFrequency / 100);
+      factors.push({
+        name: "Activation Frequency",
+        impact,
+        description: `Key has been activated ${activationCount} times`,
+      });
+      score += impact;
+    }
 
-    // Normalize score to 0-100 range
-    totalScore = Math.max(0, Math.min(100, totalScore));
+    // Clamp score between 0 and 100
+    score = Math.max(0, Math.min(100, score));
 
-    const isHealthy = totalScore >= this.config.healthyThreshold;
-    // isWarning is calculated but not currently used
-    const isWarning = totalScore >= this.config.warningThreshold && totalScore < this.config.healthyThreshold;
+    const isHealthy = score >= this.config.healthScoreThreshold;
 
     return {
-      key,
-      score: totalScore,
+      score,
       isHealthy,
-      factors: factors.map((f) => ({
-        name: f.name,
-        impact: f.impact,
-        description: f.description,
-      })),
+      factors,
     };
   }
 
   /**
-   * Check the health of all keys
+   * Check the health of all keys and return the healthiest one
    *
-   * @returns Array of health check results for all keys
+   * @param keys - Array of all available API keys
+   * @param quotaInfo - Quota information for each key (optional)
+   * @returns Health check result for the healthiest key, or undefined if no keys
    */
-  async checkAllKeysHealth(): Promise<HealthCheckResultWithKey[]> {
-    const keys = this.getKeys();
-    const results: HealthCheckResultWithKey[] = [];
-
-    for (const key of keys) {
-      const health = await this.checkHealth(key);
-      results.push(health);
+  checkAllKeysHealth(keys: ApiKeyEntry[], quotaInfo?: Map<string, QuotaInfo>): HealthCheckResult | undefined {
+    if (keys.length === 0) {
+      return undefined;
     }
 
-    return results;
+    let bestResult: HealthCheckResult | undefined;
+
+    for (const entry of keys) {
+      const quota = quotaInfo?.get(entry.key);
+      const result = this.checkHealth(entry, quota);
+
+      if (!bestResult || result.score > bestResult.score) {
+        bestResult = result;
+      }
+    }
+
+    return bestResult;
   }
 
   /**
-   * Record a failure for the active key
+   * Record a failure for a specific key
    *
-   * Design decision: Records are stored with timestamps to allow time-based filtering.
-   * The consecutive failure counter is incremented and reset on success to track
-   * transient vs persistent failures.
+   * Design decision: This returns the updated statistics so the caller can
+   * persist the changes. The service itself doesn't persist data.
    *
-   * @param error The error that occurred
+   * @param statistics - Current statistics for the key
+   * @param error - The error that occurred
+   * @returns Updated statistics
    */
-  async recordFailure(error: ApiError): Promise<void> {
-    const keys = this.getKeys();
-    const state = this.getCyclingState();
+  recordFailure(statistics: KeyStatistics, _error: Error): KeyStatistics {
+    const timestamp = Date.now();
 
-    if (state.activeIndex === -1 || state.activeIndex >= keys.length) {
-      console.warn("No active key to record failure for");
-      return;
+    // Add failure timestamp
+    statistics.failures.push(timestamp);
+
+    // Trim old failures beyond history limit
+    const maxFailures = 100; // Keep last 100 failures
+    if (statistics.failures.length > maxFailures) {
+      statistics.failures = statistics.failures.slice(-maxFailures);
     }
 
-    const activeKey = keys[state.activeIndex]!;
-    const stats = this.getKeyStatistics(activeKey.id);
+    // Increment consecutive failures
+    statistics.consecutiveFailures++;
 
-    if (!stats) {
-      console.warn("No statistics found for active key");
-      return;
-    }
+    // Increment total failures
+    statistics.totalFailures++;
 
-    // Create failure record
-    const failureRecord: FailureRecord = {
-      timestamp: Date.now(),
-      errorType: error.type,
-      message: error.message,
-    };
+    // Update last failure timestamp
+    statistics.lastFailureTimestamp = timestamp;
 
-    // Update statistics
-    const updatedStats: Partial<KeyStatistics> = {
-      consecutiveFailures: stats.consecutiveFailures + 1,
-      totalFailures: stats.totalFailures + 1,
-      lastFailureTimestamp: new Date(),
-      failures: [...stats.failures, failureRecord],
-    };
-
-    // Trim failure history
-    if (updatedStats.failures && updatedStats.failures.length > this.config.maxHistoryLength) {
-      updatedStats.failures = updatedStats.failures.slice(-this.config.maxHistoryLength);
-    }
-
-    await this.updateKeyStatistics(activeKey.id, updatedStats);
-
-    console.log(`Recorded failure for key ${activeKey.id}: ${error.type}`);
+    return statistics;
   }
 
   /**
-   * Record a successful API call for the active key
+   * Record a successful operation for a specific key
    *
-   * Design decision: Successes reset the consecutive failure counter, allowing the
-   * key to recover from transient failures. This prevents temporary network issues
-   * from permanently marking a key as unhealthy.
+   * @param statistics - Current statistics for the key
+   * @returns Updated statistics
    */
-  async recordSuccess(): Promise<void> {
-    const keys = this.getKeys();
-    const state = this.getCyclingState();
+  recordSuccess(statistics: KeyStatistics): KeyStatistics {
+    // Reset consecutive failures on success
+    statistics.consecutiveFailures = 0;
 
-    if (state.activeIndex === -1 || state.activeIndex >= keys.length) {
-      console.warn("No active key to record success for");
-      return;
-    }
+    // Increment usage count
+    statistics.usageCount++;
 
-    const activeKey = keys[state.activeIndex]!;
-    const stats = this.getKeyStatistics(activeKey.id);
+    // Update last success timestamp
+    statistics.lastSuccessTimestamp = Date.now();
 
-    if (!stats) {
-      console.warn("No statistics found for active key");
-      return;
-    }
-
-    // Update statistics
-    const updatedStats: Partial<KeyStatistics> = {
-      usageCount: stats.usageCount + 1,
-      consecutiveFailures: 0,
-      lastSuccessTimestamp: new Date(),
-    };
-
-    await this.updateKeyStatistics(activeKey.id, updatedStats);
-
-    console.log(`Recorded success for key ${activeKey.id}`);
+    return statistics;
   }
 
   /**
-   * Record a key activation
+   * Record that a key was activated
    *
-   * @param keyIndex The index of the key being activated
-   * @param reason The reason for activation
+   * Design decision: Activation history is tracked separately from usage count
+   * to distinguish between successful operations and key switches.
+   *
+   * @param statistics - Current statistics for the key
+   * @param keyIndex - Index of the key in the collection
+   * @param reason - Reason for the activation
+   * @returns Updated statistics
    */
-  async recordActivation(keyIndex: number, reason: ActivationReason): Promise<void> {
-    const keys = this.getKeys();
-
-    if (keyIndex === -1 || keyIndex >= keys.length) {
-      console.warn("Invalid key index for activation");
-      return;
-    }
-
-    const key = keys[keyIndex]!;
-    const stats = this.getKeyStatistics(key.id);
-
-    if (!stats) {
-      console.warn("No statistics found for key");
-      return;
-    }
-
-    // Create activation record
-    const activationRecord: ActivationEntry = {
+  recordActivation(
+    statistics: KeyStatistics,
+    keyIndex: number,
+    reason: ActivationReasonEnum,
+  ): KeyStatistics {
+    const activationEntry = {
       timestamp: Date.now(),
       keyIndex,
       reason,
     };
 
-    // Update statistics
-    const updatedStats: Partial<KeyStatistics> = {
-      lastActivatedTimestamp: new Date(),
-      activationHistory: [...stats.activationHistory, activationRecord],
-    };
+    // Add to activation history
+    statistics.activationHistory.push(activationEntry);
 
-    // Trim activation history
-    if (updatedStats.activationHistory && updatedStats.activationHistory.length > this.config.maxHistoryLength) {
-      updatedStats.activationHistory = updatedStats.activationHistory.slice(-this.config.maxHistoryLength);
+    // Trim old activations beyond history limit
+    const maxActivations = 100; // Keep last 100 activations
+    if (statistics.activationHistory.length > maxActivations) {
+      statistics.activationHistory = statistics.activationHistory.slice(-maxActivations);
     }
 
-    await this.updateKeyStatistics(key.id, updatedStats);
+    // Update last activated timestamp
+    statistics.lastActivatedTimestamp = Date.now();
 
-    console.log(`Recorded activation for key ${key.id} (reason: ${reason})`);
+    return statistics;
   }
 
   /**
-   * Check if automatic cycling should occur
+   * Check if a key should be cycled due to failures
    *
-   * Design decision: Automatic cycling is based on multiple conditions to avoid
-   * unnecessary key switches. The extension only cycles when there's a clear
-   * reason (quota exceeded, unhealthy key, or excessive failures).
+   * Design decision: This is a pure function that makes a recommendation based
+   * on the current state. The caller decides whether to actually cycle.
    *
-   * @returns Whether automatic cycling should occur
+   * @param statistics - Current statistics for the key
+   * @returns Whether the key should be cycled
    */
-  async shouldAutoCycle(): Promise<boolean> {
-    if (!this.config.autoCycle) {
-      return false;
-    }
-
-    const keys = this.getKeys();
-    const state = this.getCyclingState();
-
-    if (keys.length <= 1) {
-      return false;
-    }
-
-    if (state.activeIndex === -1 || state.activeIndex >= keys.length) {
-      return false;
-    }
-
-    const activeKey = keys[state.activeIndex]!;
-    const stats = this.getKeyStatistics(activeKey.id);
-
-    if (!stats) {
-      return false;
-    }
-
-    // Check if quota exceeded
-    if (this.config.cycleOnQuotaExceeded && stats.quota?.percentageUsed && stats.quota.percentageUsed >= this.config.cycleThreshold) {
+  shouldCycleDueToFailures(statistics: KeyStatistics): boolean {
+    // Check consecutive failures
+    if (statistics.consecutiveFailures >= this.config.maxConsecutiveFailures) {
       return true;
     }
 
-    // Check if key is unhealthy
-    const health = await this.checkHealth(activeKey);
-    if (!health.isHealthy && this.config.skipUnhealthyKeys) {
-      return true;
-    }
-
-    // Check if consecutive failures exceed threshold
-    if (stats.consecutiveFailures >= this.config.maxKeyFailures) {
+    // Check recent failures in the time window
+    const recentFailures = this.countRecentFailures(statistics.failures);
+    if (recentFailures >= this.config.maxConsecutiveFailures) {
       return true;
     }
 
@@ -536,138 +480,192 @@ export class KeyCyclingService {
   }
 
   /**
-   * Automatically cycle to the next key if conditions are met
+   * Automatically cycle if needed based on quota and health
    *
-   * @returns The new active key index, or -1 if no cycling occurred
+   * Design decision: This method combines quota and health checks to determine
+   * if cycling is needed. It returns the selection result if cycling occurred.
+   *
+   * @param keys - Array of all available API keys
+   * @param activeIndex - Index of the currently active key
+   * @param activeQuota - Current quota information for the active key
+   * @returns Selection result if cycling occurred, undefined otherwise
    */
-  async autoCycleIfNeeded(): Promise<number> {
-    if (!(await this.shouldAutoCycle())) {
-      return -1;
+  autoCycleIfNeeded(
+    keys: ApiKeyEntry[],
+    activeIndex: number,
+    activeQuota?: QuotaInfo,
+  ): KeySelectionResult | undefined {
+    // Check if cycling should occur based on quota
+    if (activeQuota && this.shouldAutoCycle(activeQuota)) {
+      return this.cycleKey(keys, activeIndex);
     }
 
-    return await this.cycleKey(ActivationReasonEnum.AutomaticThreshold);
-  }
+    // Check if cycling should occur based on health
+    const activeEntry = keys[activeIndex];
+    if (activeEntry && !this.checkHealth(activeEntry, activeQuota).isHealthy) {
+      return this.cycleKey(keys, activeIndex);
+    }
 
-  // Private helper methods
+    // Check if cycling should occur due to failures
+    if (activeEntry && this.shouldCycleDueToFailures(activeEntry.statistics)) {
+      return this.cycleKey(keys, activeIndex);
+    }
+
+    return undefined;
+  }
 
   /**
    * Select the next key using round-robin strategy
+   *
+   * Design rationale: Round-robin provides predictable, fair distribution of
+   * load across keys. Each key gets equal opportunity over time.
+   *
+   * @param keys - Array of all available API keys
+   * @param activeIndex - Index of the currently active key
+   * @returns Index of the selected key
    */
-  private selectRoundRobin(currentIndex: number, keyCount: number): number {
-    if (currentIndex === -1) {
-      return 0;
-    }
-    return (currentIndex + 1) % keyCount;
+  private selectRoundRobin(keys: ApiKeyEntry[], activeIndex: number): number {
+    return (activeIndex + 1) % keys.length;
   }
 
   /**
-   * Select the key with the least usage
+   * Select the least used key based on quota
+   *
+   * Design rationale: This strategy maximizes available quota by selecting
+   * the key with the most remaining requests.
+   *
+   * @param keys - Array of all available API keys
+   * @returns Index of the selected key
    */
-  private async selectLeastUsed(keys: ApiKeyEntry[]): Promise<number> {
-    let minUsage = Infinity;
-    let selectedIndex = 0;
+  private selectLeastUsed(keys: ApiKeyEntry[]): number {
+    let bestIndex = 0;
+    let bestRemaining = -1;
 
     for (let i = 0; i < keys.length; i++) {
-      const stats = this.getKeyStatistics(keys[i]!.id);
-      const usage = stats?.usageCount ?? 0;
+      // Safe to use non-null assertion because loop iterates within array bounds
+      const key = keys[i]!; // eslint-disable-line @typescript-eslint/no-non-null-assertion
+      // Skip keys without quota information
+      if (!key.statistics.quota) {
+        continue;
+      }
+      const remaining = key.statistics.quota.remaining;
 
-      if (usage < minUsage) {
-        minUsage = usage;
-        selectedIndex = i;
+      if (remaining > bestRemaining) {
+        bestRemaining = remaining;
+        bestIndex = i;
       }
     }
 
-    return selectedIndex;
+    return bestIndex;
   }
 
   /**
    * Select a random key
+   *
+   * Design rationale: Random selection provides load distribution without
+   * maintaining complex state. It's simple and effective for many use cases.
+   *
+   * @param keys - Array of all available API keys
+   * @returns Index of the selected key
    */
-  private selectRandom(keyCount: number): number {
-    return Math.floor(Math.random() * keyCount);
+  private selectRandom(keys: ApiKeyEntry[]): number {
+    return Math.floor(Math.random() * keys.length);
   }
 
   /**
-   * Select a key based on priority order
+   * Select the key with the highest priority
+   *
+   * Design rationale: Priority allows users to define an explicit ordering
+   * of keys. Higher priority keys are preferred.
+   *
+   * @param keys - Array of all available API keys
+   * @returns Index of the selected key
    */
-  private selectByPriority(keys: ApiKeyEntry[]): number {
-    // Sort keys by priority (higher priority first)
-    const sortedKeys = [...keys].sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
-    return keys.indexOf(sortedKeys[0]!);
-  }
+  private selectPriority(keys: ApiKeyEntry[]): number {
+    let bestIndex = 0;
+    let bestPriority = Number.MIN_SAFE_INTEGER;
 
-  /**
-   * Find the first healthy key
-   */
-  private async findFirstHealthyKey(keys: ApiKeyEntry[]): Promise<number> {
     for (let i = 0; i < keys.length; i++) {
-      const health = await this.checkHealth(keys[i]!);
-      if (health.isHealthy) {
-        return i;
+      // Safe to use non-null assertion because loop iterates within array bounds
+      const key = keys[i]!; // eslint-disable-line @typescript-eslint/no-non-null-assertion
+      // Skip keys without priority defined
+      if (key.priority === undefined || key.priority === null) {
+        continue;
+      }
+      if (key.priority > bestPriority) {
+        bestPriority = key.priority;
+        bestIndex = i;
       }
     }
-    return -1;
+
+    return bestIndex;
   }
 
   /**
-   * Count recent failures for a key
+   * Count the number of recent failures within the time window
+   *
+   * @param failures - Array of failure timestamps
+   * @returns Number of recent failures
    */
-  private countRecentFailures(key: ApiKeyEntry): number {
-    const stats = this.getKeyStatistics(key.id);
-    if (!stats) {
-      return 0;
-    }
-
+  private countRecentFailures(failures: number[]): number {
     const now = Date.now();
-    const recentFailures = stats.failures.filter(
-      (f) => f.timestamp > now - this.config.failureWindow,
-    );
+    const cutoff = now - this.config.recentFailureWindow;
 
-    return recentFailures.length;
+    return failures.filter((timestamp) => timestamp >= cutoff).length;
   }
 
   /**
-   * Calculate age score for a key
+   * Calculate the health impact based on quota availability
+   *
+   * @param entry - The API key entry
+   * @param quota - Current quota information (optional)
+   * @returns Health impact score
    */
-  private calculateAgeScore(addedAt: number): number {
-    const age = Date.now() - addedAt;
-    const oneDay = 24 * 60 * 60 * 1000;
-
-    // Newer keys get higher scores
-    if (age < oneDay) {
-      return 100;
-    } else if (age < 7 * oneDay) {
-      return 80;
-    } else if (age < 30 * oneDay) {
-      return 60;
-    } else {
-      return 40;
+  private calculateQuotaImpact(entry: ApiKeyEntry, quota?: QuotaInfo): number {
+    if (!quota) {
+      // If no quota info provided, use the quota stored in the key entry
+      const storedQuota = entry.statistics.quota;
+      if (storedQuota) {
+        quota = storedQuota;
+      } else {
+        // No quota information available, return neutral score
+        return 0;
+      }
     }
+
+    const remaining = quota.remaining;
+    const limit = quota.limit;
+    const percentageUsed = (remaining / limit) * 100;
+
+    if (percentageUsed < 10) {
+      // Very low quota
+      return -this.config.healthWeights.quotaAvailability;
+    } else if (percentageUsed < 30) {
+      // Low quota
+      return -(this.config.healthWeights.quotaAvailability * 0.5);
+    } else if (percentageUsed > 80) {
+      // Good quota
+      return this.config.healthWeights.quotaAvailability * 0.25;
+    }
+
+    return 0;
   }
 
   /**
-   * Calculate frequency score based on activation history
+   * Update the configuration of the cycling service
+   *
+   * @param config - Partial configuration to update
    */
-  private calculateFrequencyScore(stats: KeyStatistics | null): number {
-    if (!stats || stats.activationHistory.length === 0) {
-      return 100;
-    }
+  updateConfig(config: Partial<KeyCyclingServiceConfig>): void {
+    this.config = { ...this.config, ...config };
+  }
 
-    const now = Date.now();
-    const oneHour = 60 * 60 * 1000;
-    const recentActivations = stats.activationHistory.filter(
-      (a) => a.timestamp > now - oneHour,
-    );
-
-    // Fewer recent activations = higher score (less used)
-    if (recentActivations.length === 0) {
-      return 100;
-    } else if (recentActivations.length <= 5) {
-      return 80;
-    } else if (recentActivations.length <= 10) {
-      return 60;
-    } else {
-      return 40;
-    }
+  /**
+   * Get the current configuration
+   *
+   * @returns Current configuration
+   */
+  getConfig(): KeyCyclingServiceConfig {
+    return { ...this.config };
   }
 }

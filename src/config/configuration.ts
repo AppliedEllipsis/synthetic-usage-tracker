@@ -11,6 +11,10 @@ export interface Configuration {
   enableNotifications: boolean;
   warningThreshold: number;
   criticalThreshold: number;
+  // Multi-key cycling configuration
+  enableKeyCycling: boolean;
+  cyclingStrategy: string;
+  autoCycleThreshold: number;
 }
 
 /**
@@ -58,6 +62,13 @@ export class ConfigurationManager {
       warningThreshold: config.get<number>("warningThreshold", 80),
       // Critical at 90% indicates immediate action needed
       criticalThreshold: config.get<number>("criticalThreshold", 90),
+      // Multi-key cycling configuration
+      // Disabled by default for backward compatibility
+      enableKeyCycling: config.get<boolean>("enableKeyCycling", false),
+      // RoundRobin is the default strategy - simple and predictable
+      cyclingStrategy: config.get<string>("cyclingStrategy", "roundRobin"),
+      // Auto-cycle at 95% to use remaining keys before hitting quota limits
+      autoCycleThreshold: config.get<number>("autoCycleThreshold", 95),
     };
   }
 
