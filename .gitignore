@@ -18,6 +18,14 @@ jspm_packages/
 logs/
 *.log
 npm-debug.log*
+
+# ==========================================
+# Environment variables
+# ==========================================
+# Environment files containing sensitive API keys
+.env
+.env.local
+.env.*.local
 yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
