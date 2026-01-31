@@ -857,14 +857,18 @@ The `buildrelease` workflow now **automatically** updates the CHANGELOG before v
 
 The `buildrelease` command runs `scripts/update-changelog-for-release.js` which:
 
-1. Reads the "Unreleased" section from CHANGELOG.md
-2. Returns early if the Unreleased section is empty or only contains "Nothing yet"
-3. Creates a new version header with format `## [X.Y.Z] - YYYY-MM-DD`
-4. Moves all Unreleased content under the new version header
-5. Creates a new empty "Unreleased" section with "Nothing yet"
-6. Writes the updated CHANGELOG.md
+1. Reads the current version from package.json
+2. Predicts the next version by incrementing the patch number (e.g., 1.0.10023 → 1.0.10024)
+3. Reads the "Unreleased" section from CHANGELOG.md
+4. Returns early if the Unreleased section is empty or only contains "Nothing yet"
+5. Creates a new version header with format `## [X.Y.Z] - YYYY-MM-DD` using the PREDICTED version
+6. Moves all Unreleased content under the new version header
+7. Creates a new empty "Unreleased" section with "Nothing yet"
+8. Writes the updated CHANGELOG.md
 
-The workflow then commits this change, followed by memory update, version bump, git tag creation, and git push.
+The workflow then commits this change, followed by memory update, version bump (which increments to the predicted version), git tag creation, and git push.
+
+**Version matching**: The CHANGELOG version will match the .vsix package version because the script predicts what npm version patch will produce.
 
 #### Manual CHANGELOG Updates During Development
 
@@ -887,10 +891,14 @@ The automated script uses this format:
 ```
 
 Where:
-- `X.Y.Z` is the version number from package.json
+- `X.Y.Z` is the predicted version number (current version + 1 patch)
 - `YYYY-MM-DD` is the current date (ISO 8601 format)
 
-**Note**: The version number is read from package.json **after** version bump, so ensure your Unreleased content is ready before running buildrelease.
+**Important**: The script predicts the next version BEFORE the version bump occurs and uses it in the CHANGELOG. This means:
+- If package.json is at v1.0.10022, the script predicts 1.0.10023 and tags the changelog with v1.0.10023
+- After `npm version patch` runs, it bumps package.json to 1.0.10023
+- The CHANGELOG version (1.0.10023) matches the package.json version (1.0.10023) exactly
+- This ensures the changelog accurately reflects the published .vsix package
 
 #### Example
 

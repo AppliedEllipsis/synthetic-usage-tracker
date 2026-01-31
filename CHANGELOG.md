@@ -13,7 +13,13 @@ where patch versions start at 10000 instead of 0. This is compatible with SemVer
 Nothing yet
 
 
-## [1.0.10022] - 2026-01-31
+## [1.0.10023] - 2026-01-31
+
+### Fixed
+- Fixed CHANGELOG version numbering to predict next version BEFORE bumping
+- Changed update-changelog-for-release.js to increment patch version from package.json
+- Updated docs to clarify version prediction workflow ensures CHANGELOG matches .vsix package
+
 
 ## [1.0.10022] - 2026-01-31
 

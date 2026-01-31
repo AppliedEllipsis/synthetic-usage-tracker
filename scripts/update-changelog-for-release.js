@@ -8,9 +8,15 @@ const projectRoot = path.resolve(__dirname, '..');
 
 console.log('📝 Updating CHANGELOG for release...');
 
-// Read package.json to get the new version
+// Read package.json to get current version, then predict next patch version
 const packageJson = JSON.parse(fs.readFileSync(path.join(projectRoot, 'package.json'), 'utf8'));
-const version = packageJson.version;
+const currentVersion = packageJson.version;
+
+// Predict next patch version by incrementing the last part
+const versionParts = currentVersion.split('.').map(Number);
+versionParts[2]++; // Increment patch version
+const predictedVersion = versionParts.join('.');
+const version = predictedVersion;
 
 // Read CHANGELOG.md
 const changelogPath = path.join(projectRoot, 'CHANGELOG.md');
@@ -26,7 +32,7 @@ if (!unreleasedMatch) {
 
 const unreleasedContent = unreleasedMatch[1].trim();
 
-// Remove "Nothing yet" variations
+// Remove "Nothing yet" variation
 const cleanedUnreleased = unreleasedContent
   .replace(/^Nothing yet\.?\s*$/mi, '')
   .replace(/^\s*[\r\n]+/, '')
@@ -38,7 +44,7 @@ if (!cleanedUnreleased) {
   process.exit(0);
 }
 
-console.log(`📋 Found changes in Unreleased section for version ${version}`);
+console.log(`📋 Found changes in Unreleased section for predicted version ${version}`);
 
 // Get current date in ISO 8601 format (YYYY-MM-DD)
 const today = new Date().toISOString().split('T')[0];
