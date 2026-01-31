@@ -12,7 +12,47 @@ where patch versions start at 10000 instead of 0. This is compatible with SemVer
 
 Nothing yet
 
+## [1.0.10019] - 2026-01-31
+
+### Fixed
+- Fixed typo in memory update script (replaced latestTag reference with previousTag)
+- Improved memory update script to handle cases with no previous tags gracefully
+
+## [1.0.10018] - 2026-01-31
+
+### Added
+- Git commit step added to buildrelease workflow to commit docs/MEMORY.md updates
+- Memory updates are now committed before compilation and packaging
+
+### Fixed
+- Fixed tag detection in memory update script to correctly skip the npm version patch tag
+- Script now identifies the actual previous release tag for change analysis
+
+### Changed
+- Buildrelease workflow now: npm version patch → update memory → commit memory → compile → package → move to releases/
+- Improved version detection logic to handle extended versioning format correctly
+
+## [1.0.10017] - 2026-01-31
+
+### Added
+- Buildrelease memory update script (scripts/update-memory-for-release.js)
+- Automatic analysis of git changes since last release
+- Categorization of changes: source files, docs, tests, config, scripts
+- Automatic sub-task entry generation in docs/MEMORY.md
+- Automatic Current Focus section update with release summary
+
+### Changed
+- buildrelease workflow now updates project memory before building .vsix
+- Memory updates contain factual verification of changes made since last release
+- Change notes document actual files modified in each release
+
 ## [1.0.10016] - 2026-01-31
+
+### Changed
+- Migrated from standard SemVer (X.Y.Z) to extended patch numbering (X.Y.10000+)
+- Version format: v1.0.15 → v1.0.10016 (10000 + 16 = 10016)
+- Confirmed compatibility with VS Code Marketplace and Open VSX Registry
+- All existing functionality preserved, only version format changed
 
 ### Fixed
 - Removed auto-popup of usage details on extension launch and after setting API key
@@ -26,14 +66,12 @@ Nothing yet
 - Automatic tooltip restoration with current data after timeout periods
 - Helper method for quick tooltip clearing with optional prevent-update flag
 
-### Changed
-- Tooltips now temporarily clear on user interactions (status bar click, set key, clear key, show commands)
-- Status bar text continues to update normally even when tooltip updates are prevented
-- Improved tooltip management provides cleaner UX by preventing persistent tooltips after interactions
-
 ### Documentation
 - Added decision-logic comments explaining tooltip restoration behavior
 - Documented tooltip prevention system in UsageIndicator class
+- Updated CHANGELOG.md with version format change documentation
+
+## [1.0.15] - 2026-01-31
 
 ### Added
 - Enhanced error handling for API key issues - clicking the status bar in an error state now prompts users to enter a new API key with contextual guidance
