@@ -150,6 +150,9 @@ export class SyntheticUsageTrackerExtension {
 
       // Refresh usage immediately after setting key
       await this.refreshUsage();
+      // Design decision: Clear tooltip temporarily after key is set
+      // Tooltip restores after 500ms to keep it available most of the time
+      this.usageIndicator.clearTooltip(500);
     }
   }
 
@@ -169,8 +172,9 @@ export class SyntheticUsageTrackerExtension {
     if (confirm === "Clear") {
       await this.configManager.deleteApiKey();
       this.usageIndicator.setIdle();
-      // Design decision: Don't show notification - status bar shows idle state automatically
-      // Notifications covering UI are intrusive when user just cleared a key
+      // Design decision: Clear tooltip for 2 seconds after key is cleared
+      // Provides clear visual feedback that the key has been removed
+      this.usageIndicator.clearTooltip(2000);
     }
   }
 
@@ -213,10 +217,6 @@ export class SyntheticUsageTrackerExtension {
       if (config.enableNotifications) {
         this.checkUsageThresholds(usage, config);
       }
-
-      // Design decision: Auto-show usage details after successful refresh
-      // Provides immediate feedback without requiring user to click status bar again
-      await this.showUsageDetails();
     } catch (error) {
       console.error("Failed to refresh usage:", error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
@@ -264,12 +264,32 @@ export class SyntheticUsageTrackerExtension {
    * Subscribe with Discount, Show Commands.
    */
   private async showUsageDetails(): Promise<void> {
-    if (!this.lastUsageInfo) {
+    await this.showUsageDetailsInternal(false);
+  }
+
+  /**
+   * Internal method to show usage details with optional refresh loop
+   *
+   * Design decision: Support refresh button within popup by loop showing updated data.
+   * This keeps the popup open and shows fresh usage information when refresh is clicked.
+   */
+  private async showUsageDetailsInternal(refreshed: boolean): Promise<void> {
+    if (!this.lastUsageInfo && !refreshed) {
       vscode.window.showInformationMessage("No usage data available. Refresh to get current usage.");
       return;
     }
 
+    // Only clear tooltip on first open, not on refresh
+    if (!refreshed) {
+      this.usageIndicator.clearTooltip(500);
+    }
+
     const usage = this.lastUsageInfo;
+    if (!usage) {
+      vscode.window.showInformationMessage("No usage data available. Refresh to get current usage.");
+      return;
+    }
+
     const message = this.buildDetailedUsageMessage(usage);
 
     // Show information message with action buttons
@@ -285,6 +305,8 @@ export class SyntheticUsageTrackerExtension {
     // Handle button clicks
     if (result === "Refresh") {
       await this.refreshUsage();
+      // Show popup again with updated data
+      await this.showUsageDetailsInternal(true);
     } else if (result === "Open Dashboard") {
       this.openDashboard();
     } else if (result === "Subscribe with Discount") {
@@ -373,6 +395,10 @@ ${this.usageIndicator.buildAsciiProgressBar(toolCalls.percentageUsed)}`;
    * to all functionality without needing to use the command palette (Ctrl+Shift+P)
    */
   private async showCommands(): Promise<void> {
+    // Design decision: Clear tooltip for 5 seconds when showing commands
+    // Prevent updates during this time, then restore with current data
+    this.usageIndicator.clearTooltip(5000, true);
+
     const commands = [
       {
         label: "$(refresh) Refresh Usage",

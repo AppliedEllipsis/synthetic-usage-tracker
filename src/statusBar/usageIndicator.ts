@@ -44,6 +44,8 @@ export class UsageIndicator {
   private lastTooltip: string | null = null;
   private lastDisplayState: DisplayState | null = null;
   private currentUsage: UsageInfo | null = null;
+  private tooltipRestoreTimeout: NodeJS.Timeout | null = null;
+  private preventTooltipUpdateUntil: number = 0;
 
   constructor(context: vscode.ExtensionContext) {
     this.statusBarItem = vscode.window.createStatusBarItem(
@@ -98,24 +100,35 @@ export class UsageIndicator {
    * This ensures clicking the status bar shows details instead of setting a key.
    */
   private updateStatusBarItem(usage: UsageInfo, config: Config): void {
+    // Check if tooltip updates are currently prevented
+    const now = Date.now();
+    const shouldUpdateTooltip = now > this.preventTooltipUpdateUntil;
+
     const text = this.buildText(usage, config);
     const tooltip = this.buildTooltip(usage, config);
 
     // Only update if values have actually changed
     const needsUpdate =
       this.lastText !== text ||
-      this.lastTooltip !== tooltip ||
+      (shouldUpdateTooltip && this.lastTooltip !== tooltip) ||
       this.lastDisplayState !== this.displayState;
 
     if (needsUpdate) {
       this.statusBarItem.text = text;
-      this.statusBarItem.tooltip = tooltip;
+
+      // Only update tooltip if updates are not prevented
+      if (shouldUpdateTooltip) {
+        this.statusBarItem.tooltip = tooltip;
+      }
+
       this.statusBarItem.command = "syntheticUsageTracker.showUsage";
       this.updateStatusColor();
 
       // Update cache
       this.lastText = text;
-      this.lastTooltip = tooltip;
+      if (shouldUpdateTooltip) {
+        this.lastTooltip = tooltip;
+      }
       this.lastDisplayState = this.displayState;
     }
   }
@@ -403,12 +416,66 @@ export class UsageIndicator {
   }
 
   /**
-   * Clear cache to force next update
-   */
+    * Clear cache to force next update
+    */
   private clearCache(): void {
     this.lastText = null;
     this.lastTooltip = null;
     this.lastDisplayState = null;
+  }
+
+  /**
+   * Clear tooltip temporarily with optional auto-restore
+   *
+   * Design decision: Clear tooltip after user interactions (setting key, clearing key,
+   * clicking status bar) to prevent persistent tooltips. Optionally restore after
+   * delayMs to keep tooltips available most of the time.
+   *
+   * @param restoreAfterMs - Delay in milliseconds before restoring tooltip (0 = permanent clear until hover)
+   * @param preventUpdate - If true, prevent tooltip updates during the timeout period
+   */
+  clearTooltip(restoreAfterMs: number = 0, preventUpdate: boolean = false): void {
+    const currentTooltip = this.statusBarItem.tooltip;
+    if (!currentTooltip) {
+      return;
+    }
+
+    // Clear any existing restore timeout
+    if (this.tooltipRestoreTimeout) {
+      clearTimeout(this.tooltipRestoreTimeout);
+      this.tooltipRestoreTimeout = null;
+    }
+
+    // Set prevent update flag if specified
+    if (preventUpdate && restoreAfterMs > 0) {
+      this.preventTooltipUpdateUntil = Date.now() + restoreAfterMs;
+    }
+
+    // Store the tooltip for restoration
+    const tooltipToRestore = currentTooltip;
+
+    // Clear tooltip immediately
+    this.statusBarItem.tooltip = "";
+
+    // Restore tooltip after delay if specified
+    if (restoreAfterMs > 0) {
+      this.tooltipRestoreTimeout = setTimeout(() => {
+        // Clear prevent update flag
+        this.preventTooltipUpdateUntil = 0;
+        this.tooltipRestoreTimeout = null;
+
+        // Restore tooltip with current data if available
+        if (this.currentUsage) {
+          const config = this.getCurrentConfig();
+          if (config) {
+            this.statusBarItem.tooltip = this.buildTooltip(this.currentUsage, config);
+          }
+        } else {
+          // Fallback to original tooltip
+          this.statusBarItem.tooltip = tooltipToRestore;
+        }
+      }, restoreAfterMs);
+    }
   }
 
   /**
@@ -435,10 +502,31 @@ export class UsageIndicator {
   }
 
   /**
+   * Get default config for tooltip restoration
+   *
+   * Design decision: Use default config values when restoring tooltip
+   * during timeout. Actual values don't matter much here as we're just
+   * showing the tooltip with current usage data.
+   */
+  private getCurrentConfig(): Config | null {
+    return {
+      apiKey: "",
+      showPercentage: true,
+      showRawNumbers: false,
+      warningThreshold: 80,
+      criticalThreshold: 90,
+    };
+  }
+
+  /**
    * Dispose of resources
    */
   dispose(): void {
     this.stopAutoRefresh();
+    if (this.tooltipRestoreTimeout) {
+      clearTimeout(this.tooltipRestoreTimeout);
+      this.tooltipRestoreTimeout = null;
+    }
     this.statusBarItem.dispose();
   }
 }
