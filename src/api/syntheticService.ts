@@ -11,16 +11,8 @@ export interface QuotaCategory {
 }
 
 /**
- * Subscription quota - direct quota category
- * 
- * Design decision: Subscription quota is a direct category without wrapping,
- * representing the overall subscription usage.
- */
-export interface SubscriptionQuota extends QuotaCategory {}
-
-/**
  * Search quota - wrapped in hourly object
- * 
+ *
  * Design decision: Search quota is uniquely wrapped in an hourly object to
  * indicate its hourly renewal cycle. This structure differs from other categories.
  */
@@ -29,29 +21,25 @@ export interface SearchQuota {
 }
 
 /**
- * Tool calls quota - direct quota category
- * 
- * Design decision: Tool calls quota is a direct category representing tool
- * invocation usage.
- */
-export interface ToolCallsQuota extends QuotaCategory {}
-
-/**
  * Synthetic.new API quota response structure
- * 
+ *
  * Design decision: The API returns three distinct quota categories:
  * - subscription: Overall subscription usage
  * - search: Hourly search quota (wrapped in hourly object)
  * - toolCalls: Tool invocation usage
- * 
+ *
  * Each category has limit, requests, and renewAt fields. The API uses "renewAt"
  * (not "renewsAt") as the field name. Calculated fields (remaining, percentageUsed)
  * must be computed client-side.
+ *
+ * Design rationale: subscription and toolCalls use QuotaCategory directly since they
+ * have the same structure. search uses SearchQuota wrapper because the API nests
+ * the hourly quota in an "hourly" object.
  */
 export interface QuotaResponse {
-  subscription: SubscriptionQuota;
+  subscription: QuotaCategory;
   search: SearchQuota;
-  toolCalls: ToolCallsQuota;
+  toolCalls: QuotaCategory;
 }
 
 /**

@@ -4,6 +4,39 @@ This file maintains context across AI agent sessions by tracking queries, curren
 
 ## Query History
 
+### [2026-01-31 01:00 UTC] - Query: Fetch and Document Synthetic.new API Documentation
+**Query**: "Query synthetic.new's website for documentation. Focus on API docs (v1 for chat/models/messages, v2 for tools/usage/search). Commit to memory and local docs."
+
+**Context**: Task from comprehensive requirements in docs/MEMORY.md. The user reported that the usage endpoint has been updated to include payloads for tool and search usage. Current documentation in docs/api.md needed updating.
+
+**Outcome**: Completed - Successfully retrieved API documentation from https://dev.synthetic.new/ and updated docs/api.md with comprehensive API information including:
+- Official documentation link: https://dev.synthetic.new/
+- Base URL discrepancies documented (api.glhf.chat/v1/, api.synthetic.new/openai/v1, api.synthetic.new/v2)
+- Rate limits by subscription tier (Standard: 135/5hrs, Pro: 1350/5hrs, Usage Based: unlimited)
+- OpenAI-compatible endpoints (/models, /chat/completions, /completions, /embeddings)
+- Anthropic-compatible endpoints (/messages, /messages/count_tokens)
+- Model naming convention (hf: prefix for Hugging Face models)
+- Renamed endpoint section to "Quotas Endpoint" for clarity
+
+**Key Findings**:
+- Documentation site at https://dev.synthetic.new/ categorizes endpoints by compatibility (OpenAI/Anthropic/Synthetic) rather than v1/v2 versions
+- Multiple conflicting base URLs in documentation - extension uses recommended api.synthetic.new/v2
+- Models use hf: prefix (e.g., hf:zai-org/GLM-4.6, hf:deepseek-ai/DeepSeek-V3)
+- Rate limits vary by subscription tier with special considerations for small requests and tool calls
+
+**Notes**: WebReader tool consistently timed out when trying to access individual endpoint documentation pages. Main overview, Getting Started, and chat/completions pages were successfully retrieved. Updated docs/api.md with gathered information.
+
+---
+
+### [2026-01-31 01:15 UTC] - Query: Test usage endpoint and document payload structure
+**Query**: Test the usage endpoint with a test key and examine the payload structure to understand new usage types (tools, search, and others)
+
+**Context**: Phase 2 of the Synthetic Usage Tracker project - Phase 1 (API Documentation Research) was completed successfully. Need to discover actual payload structure from the API to understand tools, search, and other usage types that may not be fully documented.
+
+**Outcome**: Completed - Successfully called https://api.synthetic.new/v2/quotas endpoint using test key [API_KEY]. Discovered three distinct usage types: subscription (monthly API request quota), search (hourly quota nested as search.hourly), and toolCallDiscounts (tool call functionality quota). Each type has independent limit, requests, and renewAt fields. Key finding: API does NOT return remaining or percentageUsed - these must be calculated client-side. Created docs/api-payload-analysis.md with comprehensive documentation and test-usage-endpoint.js script. Updated API Endpoints section in Quick Reference with payload structure details.
+
+---
+
 ### [2026-01-31 00:27 UTC] - Query: Reorganize documentation structure and document current session
 **Query**: Reorganize documentation structure and document current session. The user wants:
 1. Memory files should be in `/docs/` path (excluding basic files like README, agents.md, LICENSE)
@@ -71,37 +104,7 @@ Tasks:
 
 ## Current Focus
 
-### Last Query: Reorganize documentation structure and document current session
-**Time**: 2026-01-31 00:27 UTC
-**Summary**: Reorganizing documentation structure by moving MEMORY.md to /docs/ directory and documenting comprehensive new requirements from the user. The user provided extensive feature requirements for API documentation, UI enhancements, testing, and security.
-
-**Context**: 
-- Project: Synthetic Usage Tracker VSCode extension
-- Previous session had comprehensive requirements that need to be documented
-- Documentation structure: Memory files go to /docs/, basic files (README.md, agents.md, LICENSE, .env.example) stay at root
-- Test key available in .env for API testing
-
-**Planning**: 
-1. Move MEMORY.md to /docs/ (completed)
-2. Update MEMORY.md with new comprehensive requirements
-3. Add sub-tasks for tracking the full requirements implementation
-4. The requirements span multiple areas: API research, API testing, UI enhancements, unit testing, documentation
-
-**Remaining Items**: 
-- [ ] Document all comprehensive requirements in MEMORY.md (in progress)
-- [ ] Query synthetic.new website for API documentation
-- [ ] Use test key from .env to call usage endpoint and examine payload
-- [ ] Document payload structure in memory, README, and other docs
-- [ ] Update tooltip with ASCII progress bars for each usage type
-- [ ] Add symbols in statusbar indicator for high quota types
-- [ ] Show last 4 characters of API key in tooltip
-- [ ] Ensure only one statusbar element exists
-- [ ] Test models endpoint using test key
-- [ ] Test other API endpoints
-- [ ] Consider displaying models in the tool (future feature)
-- [ ] Add unit tests for all work
-- [ ] Document logic in code
-- [ ] Verify no keys are leaked in commits or docs
+No active focus. Last task completed.
 
 ---
 
@@ -111,9 +114,9 @@ Tasks:
 |---|----------|--------|-------|
 | 1 | Move MEMORY.md to /docs/ directory | Complete | Successfully moved from project root |
 | 2 | Update MEMORY.md with comprehensive new requirements | In Progress | Adding all requirements from previous session |
-| 3 | Query synthetic.new website for API documentation | Pending | Focus on v1 (chat/models/messages) and v2 (tools/usage/search) |
-| 4 | Test usage endpoint with test key from .env | Pending | Examine payload structure for tools, search, and other usage types |
-| 5 | Document API payload structure | Pending | Update memory, README, and other docs |
+| 3 | Query synthetic.new website for API documentation | Complete | Successfully retrieved API documentation from https://dev.synthetic.new/ - documented API overview, base URLs (api.synthetic.new/v2 recommended), rate limits by subscription tier, OpenAI-compatible endpoints (/models, /chat/completions, /completions, /embeddings), Anthropic-compatible endpoints (/messages, /messages/count_tokens), model naming convention (hf: prefix). Updated docs/api.md with comprehensive information. |
+| 4 | Test usage endpoint with test key from .env | Complete | Successfully called https://api.synthetic.new/v2/quotas endpoint with test key [API_KEY]. Discovered three usage types: subscription (monthly limit), search (hourly limit nested as search.hourly), and toolCallDiscounts (tool call functionality). Each type has independent limit, requests, and renewAt fields. Created test-usage-endpoint.js script. |
+| 5 | Document API payload structure | Complete | Created docs/api-payload-analysis.md with detailed payload structure documentation. Discovered that API does NOT return remaining or percentageUsed - these must be calculated client-side. All three usage types (subscription, search, toolCallDiscounts) have independent renewal schedules. Updated API Endpoints section in Quick Reference with payload structure details. |
 | 6 | Update tooltip with ASCII progress bars | Pending | Add progress bars for total, tools, search, and other usage types |
 | 7 | Add symbols in statusbar for high quota types | Pending | Show warnings when specific quota types are high |
 | 8 | Show last 4 characters of API key in tooltip | Pending | For key cycling awareness |
@@ -224,14 +227,91 @@ None currently documented. When issues are identified, add them here with:
 
 ### API Endpoints
 
-| Endpoint | Purpose | Version |
-|----------|---------|---------|
-| `https://api.synthetic.new/v2/quota` | Fetch quota/usage information | v2 |
-| `https://api.synthetic.new/v2/models` | List available models | v2 |
-| `https://api.synthetic.new/v2/keys` | Manage API keys | v2 |
-| `https://api.synthetic.new/v1/chat` | Chat API | v1 |
-| `https://api.synthetic.new/v1/models` | Models endpoint | v1 |
-| `https://api.synthetic.new/v1/messages` | Messages endpoint | v1 |
+**Synthetic.new API Documentation:** https://dev.synthetic.new/
+
+**Recommended Base URL:** `https://api.synthetic.new/v2` (used by this extension)
+
+**Note:** Multiple base URLs are referenced in documentation. The extension uses `api.synthetic.new/v2` which is the recommended endpoint.
+
+#### Synthetic Endpoints
+
+| Endpoint | Purpose | Notes |
+|----------|---------|-------|
+| `/quotas` | Fetch quota/usage information | Returns subscription, search, and toolCallDiscounts quotas |
+| `/models` | List available models | Lists always-on and recently used on-demand models |
+
+#### Quotas Endpoint Payload Structure
+
+The `/quotas` endpoint returns usage information for multiple quota types. The API does **not** return `remaining` or `percentageUsed` - these must be calculated client-side.
+
+**Response Structure:**
+```json
+{
+  "subscription": {
+    "limit": 135,
+    "requests": 83.1,
+    "renewAt": "2026-01-31T06:00:00.000Z"
+  },
+  "search": {
+    "hourly": {
+      "limit": 250,
+      "requests": 0,
+      "renewAt": "2026-01-31T02:00:00.000Z"
+    }
+  },
+  "toolCallDiscounts": {
+    "limit": 1620,
+    "requests": 382,
+    "renewAt": "2026-01-31T06:00:00.000Z"
+  }
+}
+```
+
+**Usage Types:**
+
+| Type | Description | Renewal Period | Calculation |
+|------|-------------|----------------|-------------|
+| `subscription` | Main API request quota (monthly) | Every 5 hours | `(requests / limit) * 100` |
+| `search.hourly` | Hourly search quota | Every hour | `(requests / limit) * 100` |
+| `toolCallDiscounts` | Tool call functionality quota | Every 5 hours | `(requests / limit) * 100` |
+
+**Notes:**
+- Each usage type has independent renewal schedules
+- `renewAt` is an ISO 8601 timestamp indicating when the quota resets
+- `requests` can be a decimal value (e.g., 83.1)
+- `search` is nested with `hourly` sub-object
+- Calculate `remaining = limit - requests` and `percentageUsed = (requests / limit) * 100` client-side
+
+#### OpenAI-Compatible Endpoints
+
+| Endpoint | Purpose | Notes |
+|----------|---------|-------|
+| `/chat/completions` | Chat-based completions | Supports streaming, tools, function calling |
+| `/completions` | Traditional text completions | OpenAI-compatible |
+| `/embeddings` | Transform text into vector embeddings | OpenAI-compatible |
+| `/models` | List all models | OpenAI-compatible |
+
+#### Anthropic-Compatible Endpoints
+
+| Endpoint | Purpose | Notes |
+|----------|---------|-------|
+| `/messages` | Send and receive messages | Anthropic-compatible |
+| `/messages/count_tokens` | Count tokens in messages | Anthropic-compatible |
+
+#### Model Naming Convention
+
+All models use the `hf:` prefix to indicate Hugging Face integration:
+- Example: `hf:zai-org/GLM-4.6`
+- Example: `hf:deepseek-ai/DeepSeek-V3`
+- Example: `hf:meta-llama/Llama-3.1-70B-Instruct`
+
+#### Rate Limits by Subscription Tier
+
+| Tier | Messages | Renewal Period |
+|------|----------|----------------|
+| Standard | 135 | Every 5 hours |
+| Pro | 1350 | Every 5 hours |
+| Usage Based | Unlimited | N/A |
 
 ### Status Bar States
 

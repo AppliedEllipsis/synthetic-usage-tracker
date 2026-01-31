@@ -2,9 +2,87 @@
 
 This document describes the Synthetic.new API used by the extension and the extension's internal API.
 
+## Synthetic.new API Overview
+
+**Official Documentation:** [https://dev.synthetic.new/](https://dev.synthetic.new/)
+
+Synthetic.new provides an AI service offering **OpenAI-compatible** and **Anthropic-compatible** APIs for accessing open-source models on secure infrastructure. The API documentation categorizes endpoints by compatibility type rather than by version numbers (v1/v2):
+
+- **OpenAI-compatible endpoints:** Chat, models, completions, embeddings
+- **Anthropic-compatible endpoints:** Messages, token counting
+- **Synthetic endpoint:** Quotas (usage tracking)
+
+### Base URL Notes
+
+Multiple base URLs are referenced in different documentation sources:
+
+| Base URL | Source | Notes |
+|----------|--------|-------|
+| `https://api.glhf.chat/v1/` | Getting Started documentation | Legacy base URL shown in docs |
+| `https://api.synthetic.new/openai/v1` | Chat completions examples | For OpenAI-compatible endpoints |
+| `https://api.synthetic.new/v2` | Extension default | **Recommended** - used by this extension |
+
+**Note:** The extension currently uses `https://api.synthetic.new/v2` as the default endpoint. Users can configure this in VSCode settings if needed.
+
+### Authentication
+
+API requests are authenticated using a Bearer token in the Authorization header:
+
+```http
+Authorization: Bearer syn_your_api_key_here
+```
+
+API keys typically start with the `syn_` prefix. Obtain your API key from [https://dev.synthetic.new/](https://dev.synthetic.new/).
+
+### Rate Limits by Subscription Tier
+
+Rate limits vary by subscription plan:
+
+| Tier | Messages | Renewal Period |
+|------|----------|----------------|
+| Standard | 135 | Every 5 hours |
+| Pro | 1350 | Every 5 hours |
+| Usage Based | Unlimited | N/A |
+
+**Special Considerations:**
+- Small requests (<2048 input/output tokens) count as 0.2 requests
+- Tool call messages count for 0.1 requests
+- Quotas are tracked separately for subscription, search, and tool calls
+
+### OpenAI-Compatible Endpoints
+
+The following endpoints provide OpenAI API compatibility:
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/models` | GET | List all always-on models and recently used on-demand models |
+| `/chat/completions` | POST | Chat-based completions with conversation history |
+| `/completions` | POST | Traditional text completions |
+| `/embeddings` | POST | Transform text into vector embeddings |
+
+**Base URL for OpenAI-compatible endpoints:** `https://api.synthetic.new/openai/v1`
+
+### Anthropic-Compatible Endpoints
+
+The following endpoints provide Anthropic API compatibility:
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/messages` | POST | Send and receive messages |
+| `/messages/count_tokens` | POST | Count tokens in messages |
+
+### Model Naming Convention
+
+Models use the `hf:` prefix to indicate Hugging Face integration:
+
+**Examples:**
+- `hf:zai-org/GLM-4.6`
+- `hf:deepseek-ai/DeepSeek-V3`
+- `hf:meta-llama/Llama-3.1-70B-Instruct`
+
 ## Synthetic.new API
 
-### Endpoint
+### Quotas Endpoint
 
 ```
 GET https://api.synthetic.new/v2/quotas

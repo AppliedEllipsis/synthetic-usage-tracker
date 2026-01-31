@@ -94,7 +94,12 @@
         },
         "syntheticUsageTracker.cyclingStrategy": {
           "type": "string",
-          "enum": ["roundRobin", "leastUsed", "random", "priority"],
+          "enum": [
+            "roundRobin",
+            "leastUsed",
+            "random",
+            "priority"
+          ],
           "default": "roundRobin",
           "description": "Strategy for selecting the next API key when cycling",
           "enumDescriptions": [
@@ -242,5 +247,8 @@
     "commitizen": {
       "path": "cz-conventional-changelog"
     }
+  },
+  "dependencies": {
+    "dotenv": "^17.2.3"
   }
 }
