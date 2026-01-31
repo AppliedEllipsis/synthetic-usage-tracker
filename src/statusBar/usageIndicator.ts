@@ -5,6 +5,7 @@ import { UsageInfo, CategoryUsageInfo } from "../api/syntheticService";
  * Configuration interface for the usage indicator
  */
 export interface Config {
+  apiKey: string;
   showPercentage: boolean;
   showRawNumbers: boolean;
   warningThreshold: number;
@@ -169,6 +170,9 @@ export class UsageIndicator {
 
   /**
    * Build tooltip section for a single category
+   *
+   * Design decision: Use ASCII progress bar for visual representation of quota usage.
+   * This provides immediate visual feedback about how much of the quota has been used.
    */
   private buildCategoryTooltip(
     name: string,
@@ -183,7 +187,7 @@ export class UsageIndicator {
     section += `Used: ${category.requests.toLocaleString()} (${percentageUsed}%)\n`;
     section += `Remaining: ${category.remaining.toLocaleString()} (${percentageRemaining}%)\n`;
     section += `Limit: ${category.limit.toLocaleString()}\n`;
-    section += `${this.buildProgressBar(category.percentageUsed, config)}\n\n`;
+    section += `${this.buildAsciiProgressBar(category.percentageUsed)}\n\n`;
 
     return section;
   }
@@ -223,27 +227,18 @@ export class UsageIndicator {
   }
 
   /**
-   * Build a visual progress bar
+   * Build an ASCII progress bar string using 10 segments
+   *
+   * Design decision: Use 10 segments for a compact, readable progress representation.
+   * Each segment represents 10% of the total quota. Uses standard ASCII characters
+   * (█ for filled, ░ for empty) for maximum compatibility and clean appearance.
+   * Does not include colors/status - that's handled by the status bar background color.
    */
-  private buildProgressBar(percentageUsed: number, config?: Config): string {
-    const width = 20;
-    const filled = Math.round((percentageUsed / 100) * width);
-    const empty = width - filled;
-
-    // Determine color based on thresholds
-    let color = "▓";
-    if (config) {
-      if (percentageUsed >= config.criticalThreshold) {
-        color = "🔴";
-      } else if (percentageUsed >= config.warningThreshold) {
-        color = "🟡";
-      } else {
-        color = "▓";
-      }
-    }
-
-    const bar = color.repeat(filled) + "░".repeat(empty);
-    return `[${bar}]`;
+  private buildAsciiProgressBar(percentage: number): string {
+    const totalSegments = 10;
+    const filledSegments = Math.round((percentage / 100) * totalSegments);
+    const emptySegments = totalSegments - filledSegments;
+    return `[${"█".repeat(filledSegments)}${"░".repeat(emptySegments)}] ${percentage.toFixed(0)}%`;
   }
 
   /**
