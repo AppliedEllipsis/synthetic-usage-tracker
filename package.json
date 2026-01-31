@@ -159,7 +159,7 @@
         "command": "syntheticUsageTracker.subscribeWithDiscount",
         "title": "Subscribe with Discount",
         "category": "Synthetic Usage Tracker",
-        "icon": "$(star)"
+        "icon": "$(dollar-sign)"
       },
       {
         "command": "syntheticUsageTracker.setRefreshInterval",

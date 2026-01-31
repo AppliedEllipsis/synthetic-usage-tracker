@@ -209,7 +209,7 @@ The extension can be configured through VSCode settings:
 | `Synthetic Usage Tracker: Copy Usage to Clipboard` | Copy formatted usage information to clipboard |
 | `Synthetic Usage Tracker: Clear API Key`           | Remove the stored API key                         |
 | `Synthetic Usage Tracker: Open Synthetic Dashboard` | Open the Synthetic.new dashboard in your browser |
-| `Synthetic Usage Tracker: Subscribe with Discount` | Subscribe with referral discount (gives bonus credits) |
+| `Synthetic Usage Tracker: Subscribe with Discount` | Subscribe with referral bonus credits ($10 standard, $20 pro) |
 
 ## Development
 

@@ -133,6 +133,13 @@ export class SyntheticUsageTrackerExtension {
       () => this.setRefreshInterval(),
     );
     this.context.subscriptions.push(setRefreshIntervalCommand);
+
+    // Subscribe with discount command
+    const subscribeCommand = vscode.commands.registerCommand(
+      "syntheticUsageTracker.subscribeWithDiscount",
+      () => this.subscribeWithDiscount(),
+    );
+    this.context.subscriptions.push(subscribeCommand);
   }
 
   /**
