@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Fixed
+- Status bar now displays red background when API key is not configured or cleared, making the lack of configuration more prominent to users
+
 ### Added
 - Multi-key cycling infrastructure for managing multiple Synthetic.new API keys
 - Four key cycling strategies: RoundRobin, LeastUsed, Random, and Priority

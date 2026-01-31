@@ -316,28 +316,51 @@ export class UsageIndicator {
 
   /**
    * Set loading state
+   *
+   * Design decision: Keep the current text (percentage display) but replace the normal
+   * icon with the loading icon. This prevents the percentage from disappearing during refresh,
+   * maintaining context for the user.
    */
   setLoading(): void {
     this.displayState = DisplayState.Loading;
-    this.statusBarItem.text = "$(synthetic-status-loading) Synthetic.new";
     this.statusBarItem.tooltip = "Loading usage data...";
     this.statusBarItem.backgroundColor = undefined;
+
+    // Keep the current text but replace icon with loading icon
+    if (this.lastText) {
+      // Replace $(synthetic-status-icon) with $(synthetic-status-loading)
+      this.statusBarItem.text = this.lastText.replace('$(synthetic-status-icon)', '$(synthetic-status-loading)');
+    } else {
+      // Fallback if no previous text
+      this.statusBarItem.text = "$(synthetic-status-loading) Synthetic.new";
+    }
+
     this.clearCache();
   }
 
   /**
    * Set idle state (no API key configured)
+   *
+   * Design decision: Use error background color to make the lack of API key more
+   * prominent. This helps users understand that they need to configure the extension.
+   * Also change the command to setApiKey so clicking the status bar prompts for a key.
    */
   setIdle(): void {
     this.displayState = DisplayState.Idle;
-    this.statusBarItem.text = "$(api) Synthetic.new";
+    this.statusBarItem.text = "$(synthetic-status-icon) Synthetic.new";
     this.statusBarItem.tooltip = "Configure API key to track usage";
-    this.statusBarItem.backgroundColor = undefined;
+    this.statusBarItem.backgroundColor = new vscode.ThemeColor(
+      "statusBarItem.errorBackground",
+    );
+    this.statusBarItem.command = "syntheticUsageTracker.setApiKey";
     this.clearCache();
   }
 
   /**
    * Set error state
+   *
+   * Design decision: Change command to setApiKey so users can fix authentication errors
+   * by clicking the status bar and providing a valid key.
    */
   setError(message: string): void {
     this.displayState = DisplayState.Error;
@@ -346,6 +369,7 @@ export class UsageIndicator {
     this.statusBarItem.backgroundColor = new vscode.ThemeColor(
       "statusBarItem.errorBackground",
     );
+    this.statusBarItem.command = "syntheticUsageTracker.setApiKey";
     this.clearCache();
   }
 

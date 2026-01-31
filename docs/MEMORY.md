@@ -4,6 +4,18 @@ This file maintains context across AI agent sessions by tracking queries, curren
 
 ## Query History
 
+### [2026-01-31 05:00 UTC] - Query: Fix status bar not showing red background when API key is cleared
+**Query**: "when the key is cleared, it doesn't show the no key set synthetic key statusbar message or red background for it"
+**Context**: User reported that clearing the API key doesn't show the expected idle status with red background indicator.
+**Outcome**: Completed - Fixed by updating setIdle() method to use error background color
+- Modified `src/statusBar/usageIndicator.ts` setIdle() method
+- Changed backgroundColor from undefined to `new vscode.ThemeColor("statusBarItem.errorBackground")`
+- Status bar now shows red background when no API key is configured
+- Added decision-logic comment explaining the change
+- Compiled and tested successfully
+
+---
+
 ### [2026-01-31 04:00 UTC] - Query: UI Enhancements & Bug Fixes (Progress Bars, Date Bugs, Icons, Popup)
 
 **Query**: Implement comprehensive UI enhancements including progress bar reorganization, date/time bug fixes, custom font icons, warning symbols, and action button popup
