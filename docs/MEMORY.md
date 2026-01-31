@@ -5,11 +5,13 @@ This file maintains context across AI agent sessions by tracking queries, curren
 ## Query History
 
 ### [2026-01-31 01:00 UTC] - Query: Fetch and Document Synthetic.new API Documentation
+
 **Query**: "Query synthetic.new's website for documentation. Focus on API docs (v1 for chat/models/messages, v2 for tools/usage/search). Commit to memory and local docs."
 
 **Context**: Task from comprehensive requirements in docs/MEMORY.md. The user reported that the usage endpoint has been updated to include payloads for tool and search usage. Current documentation in docs/api.md needed updating.
 
 **Outcome**: Completed - Successfully retrieved API documentation from https://dev.synthetic.new/ and updated docs/api.md with comprehensive API information including:
+
 - Official documentation link: https://dev.synthetic.new/
 - Base URL discrepancies documented (api.glhf.chat/v1/, api.synthetic.new/openai/v1, api.synthetic.new/v2)
 - Rate limits by subscription tier (Standard: 135/5hrs, Pro: 1350/5hrs, Usage Based: unlimited)
@@ -19,8 +21,10 @@ This file maintains context across AI agent sessions by tracking queries, curren
 - Renamed endpoint section to "Quotas Endpoint" for clarity
 
 **Key Findings**:
+
 - Documentation site at https://dev.synthetic.new/ categorizes endpoints by compatibility (OpenAI/Anthropic/Synthetic) rather than v1/v2 versions
 - Multiple conflicting base URLs in documentation - extension uses recommended api.synthetic.new/v2
+- take note that things like usage and search use /v2 whereas chat/completions, models, etc use v1.
 - Models use hf: prefix (e.g., hf:zai-org/GLM-4.6, hf:deepseek-ai/DeepSeek-V3)
 - Rate limits vary by subscription tier with special considerations for small requests and tool calls
 
@@ -29,6 +33,7 @@ This file maintains context across AI agent sessions by tracking queries, curren
 ---
 
 ### [2026-01-31 01:15 UTC] - Query: Test usage endpoint and document payload structure
+
 **Query**: Test the usage endpoint with a test key and examine the payload structure to understand new usage types (tools, search, and others)
 
 **Context**: Phase 2 of the Synthetic Usage Tracker project - Phase 1 (API Documentation Research) was completed successfully. Need to discover actual payload structure from the API to understand tools, search, and other usage types that may not be fully documented.
@@ -38,7 +43,9 @@ This file maintains context across AI agent sessions by tracking queries, curren
 ---
 
 ### [2026-01-31 00:27 UTC] - Query: Reorganize documentation structure and document current session
+
 **Query**: Reorganize documentation structure and document current session. The user wants:
+
 1. Memory files should be in `/docs/` path (excluding basic files like README, agents.md, LICENSE)
 2. The original query requirements were "forgotten" due to going on a tangent with a sub-agent before documenting thoughts
 3. The user wants the assistant to document current knowledge and check that TODO and other files contain what was in a previous prompt
@@ -50,6 +57,7 @@ This file maintains context across AI agent sessions by tracking queries, curren
 **Outcome**: In Progress - Moving MEMORY.md to /docs/ and documenting new comprehensive requirements
 
 **Key Requirements to Document:**
+
 - API Documentation & Research: Query synthetic.new's website for docs, focus on API docs (v1 for chat/models/messages, v2 for tools/usage/search)
 - API Testing & Documentation: Use test key from .env to call usage endpoint, examine payload structure (tools, search, etc.), document payload
 - UI Enhancements: ASCII progress bars in tooltip for each usage type, symbols in statusbar for high quota, show last 4 chars of API key, only one statusbar element
@@ -59,11 +67,13 @@ This file maintains context across AI agent sessions by tracking queries, curren
 ---
 
 ### [2026-01-31 00:22 UTC] - Query: Analyze incomplete items and create query tracking system
+
 **Query**: "what do you have remaining or what hasn't been done yet or is incomplete"
 
 **Context**: User wants to understand what's incomplete in the Synthetic Usage Tracker project. Additionally, user requested implementation of a query documentation and tracking system to maintain context across sessions.
 
 **Outcome**: Completed
+
 1. Comprehensive analysis of incomplete items identified:
    - 2 critical bugs (KeyManager not integrated in extension.ts, Configuration interface missing multi-key settings)
    - 8+ unreleased features (multi-key support, key cycling, key management UI, etc.)
@@ -73,6 +83,7 @@ This file maintains context across AI agent sessions by tracking queries, curren
 4. Updated agents.md with Memory System Workflow documentation
 
 **Key Findings:**
+
 - Critical issue: KeyManager not integrated in extension.ts - needs integration
 - Critical issue: Configuration interface missing multi-key settings - needs updates
 - Multi-key infrastructure is well-designed and tested at unit level (2,355 lines of unit tests)
@@ -81,9 +92,11 @@ This file maintains context across AI agent sessions by tracking queries, curren
 ---
 
 ### [2026-01-31 00:18 UTC] - Query: Create query documentation and tracking system
+
 **Query**: Create a query documentation and tracking system for the Synthetic Usage Tracker project. This system will help maintain context across sessions and track progress on tasks.
 
 Tasks:
+
 1. Create `MEMORY.md` at the project root with the following structure:
    - Query History section (chronological list of queries, sanitized of sensitive info)
    - Current Focus section (last query summary with context, planning, and remaining items)
@@ -110,22 +123,22 @@ No active focus. Last task completed.
 
 ## Sub-tasks Tracking
 
-| # | Sub-task | Status | Notes |
-|---|----------|--------|-------|
-| 1 | Move MEMORY.md to /docs/ directory | Complete | Successfully moved from project root |
-| 2 | Update MEMORY.md with comprehensive new requirements | In Progress | Adding all requirements from previous session |
-| 3 | Query synthetic.new website for API documentation | Complete | Successfully retrieved API documentation from https://dev.synthetic.new/ - documented API overview, base URLs (api.synthetic.new/v2 recommended), rate limits by subscription tier, OpenAI-compatible endpoints (/models, /chat/completions, /completions, /embeddings), Anthropic-compatible endpoints (/messages, /messages/count_tokens), model naming convention (hf: prefix). Updated docs/api.md with comprehensive information. |
-| 4 | Test usage endpoint with test key from .env | Complete | Successfully called https://api.synthetic.new/v2/quotas endpoint with test key [API_KEY]. Discovered three usage types: subscription (monthly limit), search (hourly limit nested as search.hourly), and toolCallDiscounts (tool call functionality). Each type has independent limit, requests, and renewAt fields. Created test-usage-endpoint.js script. |
-| 5 | Document API payload structure | Complete | Created docs/api-payload-analysis.md with detailed payload structure documentation. Discovered that API does NOT return remaining or percentageUsed - these must be calculated client-side. All three usage types (subscription, search, toolCallDiscounts) have independent renewal schedules. Updated API Endpoints section in Quick Reference with payload structure details. |
-| 6 | Update tooltip with ASCII progress bars | Pending | Add progress bars for total, tools, search, and other usage types |
-| 7 | Add symbols in statusbar for high quota types | Pending | Show warnings when specific quota types are high |
-| 8 | Show last 4 characters of API key in tooltip | Pending | For key cycling awareness |
-| 9 | Verify single statusbar element | Pending | Ensure only one statusbar element exists |
-| 10 | Test models endpoint | Pending | Use test key to explore models endpoint |
-| 11 | Test other API endpoints | Pending | Comprehensive API testing |
-| 12 | Add unit tests for all new work | Pending | Maintain test coverage |
-| 13 | Document logic in code | Pending | Add decision-logic comments |
-| 14 | Verify security (no key leaks) | Pending | Check commits and docs for leaked keys |
+| #   | Sub-task                                             | Status      | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| --- | ---------------------------------------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Move MEMORY.md to /docs/ directory                   | Complete    | Successfully moved from project root                                                                                                                                                                                                                                                                                                                                                                                                   |
+| 2   | Update MEMORY.md with comprehensive new requirements | In Progress | Adding all requirements from previous session                                                                                                                                                                                                                                                                                                                                                                                          |
+| 3   | Query synthetic.new website for API documentation    | Complete    | Successfully retrieved API documentation from https://dev.synthetic.new/ - documented API overview, base URLs (api.synthetic.new/v2 recommended), rate limits by subscription tier, OpenAI-compatible endpoints (/models, /chat/completions, /completions, /embeddings), Anthropic-compatible endpoints (/messages, /messages/count_tokens), model naming convention (hf: prefix). Updated docs/api.md with comprehensive information. |
+| 4   | Test usage endpoint with test key from .env          | Complete    | Successfully called https://api.synthetic.new/v2/quotas endpoint with test key [API_KEY]. Discovered three usage types: subscription (monthly limit), search (hourly limit nested as search.hourly), and toolCallDiscounts (tool call functionality). Each type has independent limit, requests, and renewAt fields. Created test-usage-endpoint.js script.                                                                            |
+| 5   | Document API payload structure                       | Complete    | Created docs/api-payload-analysis.md with detailed payload structure documentation. Discovered that API does NOT return remaining or percentageUsed - these must be calculated client-side. All three usage types (subscription, search, toolCallDiscounts) have independent renewal schedules. Updated API Endpoints section in Quick Reference with payload structure details.                                                       |
+| 6   | Update tooltip with ASCII progress bars              | Pending     | Add progress bars for total, tools, search, and other usage types                                                                                                                                                                                                                                                                                                                                                                      |
+| 7   | Add symbols in statusbar for high quota types        | Pending     | Show warnings when specific quota types are high                                                                                                                                                                                                                                                                                                                                                                                       |
+| 8   | Show last 4 characters of API key in tooltip         | Pending     | For key cycling awareness                                                                                                                                                                                                                                                                                                                                                                                                              |
+| 9   | Verify single statusbar element                      | Pending     | Ensure only one statusbar element exists                                                                                                                                                                                                                                                                                                                                                                                               |
+| 10  | Test models endpoint                                 | Pending     | Use test key to explore models endpoint                                                                                                                                                                                                                                                                                                                                                                                                |
+| 11  | Test other API endpoints                             | Pending     | Comprehensive API testing                                                                                                                                                                                                                                                                                                                                                                                                              |
+| 12  | Add unit tests for all new work                      | Pending     | Maintain test coverage                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| 13  | Document logic in code                               | Pending     | Add decision-logic comments                                                                                                                                                                                                                                                                                                                                                                                                            |
+| 14  | Verify security (no key leaks)                       | Pending     | Check commits and docs for leaked keys                                                                                                                                                                                                                                                                                                                                                                                                 |
 
 ---
 
@@ -133,17 +146,18 @@ No active focus. Last task completed.
 
 ### Critical Files
 
-| File | Purpose |
-|------|---------|
-| [`agents.md`](agents.md) | AI Agent Development Guide - comprehensive guide for agents working on this project |
-| [`docs/MEMORY.md`](docs/MEMORY.md) | Query Memory & Task Tracking - this file, maintains session context |
-| [`package.json`](package.json) | Extension manifest, dependencies, and scripts |
-| [`tsconfig.json`](tsconfig.json) | TypeScript compiler configuration |
-| [`CHANGELOG.md`](CHANGELOG.md) | Version history and release notes |
-| [`README.md`](README.md) | User-facing documentation |
-| [`.env.example`](.env.example) | Environment variables template (git-tracked) |
+| File                               | Purpose                                                                             |
+| ---------------------------------- | ----------------------------------------------------------------------------------- |
+| [`agents.md`](agents.md)           | AI Agent Development Guide - comprehensive guide for agents working on this project |
+| [`docs/MEMORY.md`](docs/MEMORY.md) | Query Memory & Task Tracking - this file, maintains session context                 |
+| [`package.json`](package.json)     | Extension manifest, dependencies, and scripts                                       |
+| [`tsconfig.json`](tsconfig.json)   | TypeScript compiler configuration                                                   |
+| [`CHANGELOG.md`](CHANGELOG.md)     | Version history and release notes                                                   |
+| [`README.md`](README.md)           | User-facing documentation                                                           |
+| [`.env.example`](.env.example)     | Environment variables template (git-tracked)                                        |
 
 **Source Files:**
+
 - [`src/extension.ts`](src/extension.ts) - Main extension entry point
 - [`src/api/syntheticService.ts`](src/api/syntheticService.ts) - API integration layer
 - [`src/api/keyCyclingService.ts`](src/api/keyCyclingService.ts) - Key cycling service
@@ -152,6 +166,7 @@ No active focus. Last task completed.
 - [`src/statusBar/usageIndicator.ts`](src/statusBar/usageIndicator.ts) - UI status bar component
 
 **Test Files:**
+
 - [`test/suite/extension.test.ts`](test/suite/extension.test.ts) - Extension tests
 - [`test/suite/api/syntheticService.test.ts`](test/suite/api/syntheticService.test.ts) - API service tests
 - [`test/suite/api/keyCyclingService.test.ts`](test/suite/api/keyCyclingService.test.ts) - Key cycling tests
@@ -160,6 +175,7 @@ No active focus. Last task completed.
 - [`test/suite/statusBar/usageIndicator.test.ts`](test/suite/statusBar/usageIndicator.test.ts) - Status bar tests
 
 **Documentation:**
+
 - [`docs/MEMORY.md`](docs/MEMORY.md) - Query Memory & Task Tracking
 - [`docs/architecture.md`](docs/architecture.md) - System architecture
 - [`docs/api.md`](docs/api.md) - API documentation
@@ -200,6 +216,7 @@ npm run buildrelease
 ### Known Issues
 
 None currently documented. When issues are identified, add them here with:
+
 - Issue description
 - Affected version
 - Workaround (if available)
@@ -218,12 +235,12 @@ None currently documented. When issues are identified, add them here with:
 
 ### Extension Commands
 
-| Command ID | Description |
-|------------|-------------|
-| `syntheticUsageTracker.refresh` | Manually refresh usage data |
-| `syntheticUsageTracker.setApiKey` | Configure API key |
-| `syntheticUsageTracker.showUsage` | Display detailed usage information |
-| `syntheticUsageTracker.toggleAutoRefresh` | Enable/disable auto-refresh |
+| Command ID                                | Description                        |
+| ----------------------------------------- | ---------------------------------- |
+| `syntheticUsageTracker.refresh`           | Manually refresh usage data        |
+| `syntheticUsageTracker.setApiKey`         | Configure API key                  |
+| `syntheticUsageTracker.showUsage`         | Display detailed usage information |
+| `syntheticUsageTracker.toggleAutoRefresh` | Enable/disable auto-refresh        |
 
 ### API Endpoints
 
@@ -235,16 +252,17 @@ None currently documented. When issues are identified, add them here with:
 
 #### Synthetic Endpoints
 
-| Endpoint | Purpose | Notes |
-|----------|---------|-------|
+| Endpoint  | Purpose                       | Notes                                                      |
+| --------- | ----------------------------- | ---------------------------------------------------------- |
 | `/quotas` | Fetch quota/usage information | Returns subscription, search, and toolCallDiscounts quotas |
-| `/models` | List available models | Lists always-on and recently used on-demand models |
+| `/models` | List available models         | Lists always-on and recently used on-demand models         |
 
 #### Quotas Endpoint Payload Structure
 
 The `/quotas` endpoint returns usage information for multiple quota types. The API does **not** return `remaining` or `percentageUsed` - these must be calculated client-side.
 
 **Response Structure:**
+
 ```json
 {
   "subscription": {
@@ -269,13 +287,14 @@ The `/quotas` endpoint returns usage information for multiple quota types. The A
 
 **Usage Types:**
 
-| Type | Description | Renewal Period | Calculation |
-|------|-------------|----------------|-------------|
-| `subscription` | Main API request quota (monthly) | Every 5 hours | `(requests / limit) * 100` |
-| `search.hourly` | Hourly search quota | Every hour | `(requests / limit) * 100` |
-| `toolCallDiscounts` | Tool call functionality quota | Every 5 hours | `(requests / limit) * 100` |
+| Type                | Description                      | Renewal Period | Calculation                |
+| ------------------- | -------------------------------- | -------------- | -------------------------- |
+| `subscription`      | Main API request quota (monthly) | Every 5 hours  | `(requests / limit) * 100` |
+| `search.hourly`     | Hourly search quota              | Every hour     | `(requests / limit) * 100` |
+| `toolCallDiscounts` | Tool call functionality quota    | Every 5 hours  | `(requests / limit) * 100` |
 
 **Notes:**
+
 - Each usage type has independent renewal schedules
 - `renewAt` is an ISO 8601 timestamp indicating when the quota resets
 - `requests` can be a decimal value (e.g., 83.1)
@@ -284,60 +303,64 @@ The `/quotas` endpoint returns usage information for multiple quota types. The A
 
 #### OpenAI-Compatible Endpoints
 
-| Endpoint | Purpose | Notes |
-|----------|---------|-------|
-| `/chat/completions` | Chat-based completions | Supports streaming, tools, function calling |
-| `/completions` | Traditional text completions | OpenAI-compatible |
-| `/embeddings` | Transform text into vector embeddings | OpenAI-compatible |
-| `/models` | List all models | OpenAI-compatible |
+| Endpoint            | Purpose                               | Notes                                       |
+| ------------------- | ------------------------------------- | ------------------------------------------- |
+| `/chat/completions` | Chat-based completions                | Supports streaming, tools, function calling |
+| `/completions`      | Traditional text completions          | OpenAI-compatible                           |
+| `/embeddings`       | Transform text into vector embeddings | OpenAI-compatible                           |
+| `/models`           | List all models                       | OpenAI-compatible                           |
 
 #### Anthropic-Compatible Endpoints
 
-| Endpoint | Purpose | Notes |
-|----------|---------|-------|
-| `/messages` | Send and receive messages | Anthropic-compatible |
-| `/messages/count_tokens` | Count tokens in messages | Anthropic-compatible |
+| Endpoint                 | Purpose                   | Notes                |
+| ------------------------ | ------------------------- | -------------------- |
+| `/messages`              | Send and receive messages | Anthropic-compatible |
+| `/messages/count_tokens` | Count tokens in messages  | Anthropic-compatible |
 
 #### Model Naming Convention
 
 All models use the `hf:` prefix to indicate Hugging Face integration:
+
 - Example: `hf:zai-org/GLM-4.6`
 - Example: `hf:deepseek-ai/DeepSeek-V3`
 - Example: `hf:meta-llama/Llama-3.1-70B-Instruct`
 
 #### Rate Limits by Subscription Tier
 
-| Tier | Messages | Renewal Period |
-|------|----------|----------------|
-| Standard | 135 | Every 5 hours |
-| Pro | 1350 | Every 5 hours |
-| Usage Based | Unlimited | N/A |
+| Tier        | Messages  | Renewal Period |
+| ----------- | --------- | -------------- |
+| Standard    | 135       | Every 5 hours  |
+| Pro         | 1350      | Every 5 hours  |
+| Usage Based | Unlimited | N/A            |
 
 ### Status Bar States
 
-| State | Icon | Meaning |
-|-------|------|---------|
-| Idle | `$(circle-outline) Synthetic.new` | No API key configured |
-| Loading | `$(loading~spin) Synthetic.new` | Fetching data |
-| Success | `$(check-circle) Synthetic.new` | Usage below threshold |
-| Warning | `$(warning) Synthetic.new` | Usage above warning threshold |
-| Error | `$(error) Synthetic.new` | Error fetching data or critical usage |
+| State   | Icon                              | Meaning                               |
+| ------- | --------------------------------- | ------------------------------------- |
+| Idle    | `$(circle-outline) Synthetic.new` | No API key configured                 |
+| Loading | `$(loading~spin) Synthetic.new`   | Fetching data                         |
+| Success | `$(check-circle) Synthetic.new`   | Usage below threshold                 |
+| Warning | `$(warning) Synthetic.new`        | Usage above warning threshold         |
+| Error   | `$(error) Synthetic.new`          | Error fetching data or critical usage |
 
 ### Memory System Usage
 
 **When to Update MEMORY.md:**
+
 1. At the start of each new query session
 2. When switching focus to a different task
 3. When completing significant milestones
 4. When encountering important context that should persist
 
 **How to Use:**
+
 1. Read the "Query History" to understand previous work
 2. Review "Current Focus" to understand what was being worked on
 3. Check "Sub-tasks Tracking" for incomplete items
 4. Reference "Quick Reference" for commonly needed information
 
 **Sanitization Rules:**
+
 - Always replace API keys with `[API_KEY]`
 - Replace user emails with `[USER_EMAIL]`
 - Replace personal data with `[REDACTED]`
@@ -346,16 +369,19 @@ All models use the `hf:` prefix to indicate Hugging Face integration:
 ### Current Roadmap
 
 **Phase 1: API Documentation & Research**
+
 - Query synthetic.new website for API documentation
 - Focus on v1 (chat/models/messages) and v2 (tools/usage/search)
 - Document API endpoints and capabilities
 
 **Phase 2: API Testing & Documentation**
+
 - Use test key from .env to call usage endpoint
 - Examine payload structure (tools, search, and other usage types)
 - Document payload structure in memory, README, and other docs
 
 **Phase 3: UI Enhancements**
+
 - Update tooltip with ASCII progress bars for each usage type
 - Add symbols in statusbar for high quota types
 - Show last 4 characters of API key in tooltip
@@ -363,11 +389,13 @@ All models use the `hf:` prefix to indicate Hugging Face integration:
 - Make popup aesthetically pleasing
 
 **Phase 4: API Testing**
+
 - Test models endpoint using test key
 - Test other API endpoints
 - Consider displaying models in the tool (future feature)
 
 **Phase 5: Testing & Documentation**
+
 - Test all work
 - Add unit tests
 - Document logic

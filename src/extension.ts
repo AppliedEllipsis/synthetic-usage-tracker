@@ -197,7 +197,15 @@ export class SyntheticUsageTrackerExtension {
       this.lastUsageInfo = usage;
 
       // Update the status bar with the new usage data
-      this.usageIndicator.updateUsage(usage, config);
+      // Design decision: Create a Config object that includes the API key for tooltip masking
+      const indicatorConfig: { apiKey: string; showPercentage: boolean; showRawNumbers: boolean; warningThreshold: number; criticalThreshold: number } = {
+        apiKey,
+        showPercentage: config.showPercentage,
+        showRawNumbers: config.showRawNumbers,
+        warningThreshold: config.warningThreshold,
+        criticalThreshold: config.criticalThreshold,
+      };
+      this.usageIndicator.updateUsage(usage, indicatorConfig);
 
       // Check for critical usage and show notification if needed
       if (config.enableNotifications) {

@@ -128,7 +128,7 @@ export class UsageIndicator {
     // Build warning symbols for categories
     const symbols = this.buildCategoryWarningSymbols(usage, config);
 
-    let text = `$(cloud-upload) ${subscription.percentageUsed.toFixed(0)}%`;
+    let text = `$(api) ${subscription.percentageUsed.toFixed(0)}%`;
 
     if (config.showRawNumbers) {
       text += ` (${subscription.requests}/${subscription.limit})`;
@@ -148,24 +148,55 @@ export class UsageIndicator {
    * Design decision: Display all three quota categories (Subscription, Search, Tool Calls)
    * with individual progress bars and detailed metrics. This provides users with
    * comprehensive visibility into their API usage across all quota types.
+   *
+   * Security consideration: Only show the last 4 characters of the API key for
+   * identification purposes. The rest is masked with asterisks to prevent accidental
+   * exposure of sensitive credentials.
    */
   private buildTooltip(usage: UsageInfo, config: Config): string {
     const subscription = usage.subscription;
     const search = usage.search;
     const toolCalls = usage.toolCalls;
 
+    // Mask API key: show only the prefix (syn_) and last 4 characters
+    const maskedKey = this.maskApiKey(config.apiKey);
+
     let tooltip = "### Synthetic.new Usage\n\n";
 
     // Subscription category
-    tooltip += this.buildCategoryTooltip("Subscription", subscription, config);
+    tooltip += this.buildCategoryTooltip("Subscription", subscription);
 
     // Search category (hourly)
-    tooltip += this.buildCategoryTooltip("Search (hourly)", search, config);
+    tooltip += this.buildCategoryTooltip("Search (hourly)", search);
 
     // Tool Calls category
-    tooltip += this.buildCategoryTooltip("Tool Calls", toolCalls, config);
+    tooltip += this.buildCategoryTooltip("Tool Calls", toolCalls);
+
+    // Add masked API key at the bottom for identification
+    tooltip += `---\n**Key:** ${maskedKey}`;
 
     return tooltip;
+  }
+
+  /**
+   * Mask API key by showing only prefix and last 4 characters
+   *
+   * Security decision: Mask the API key to prevent accidental exposure in tooltips
+   * while still allowing users to identify which key is being used. The format is
+   * "syn_****abcd" where "syn_" is the prefix and "abcd" are the last 4 characters.
+   *
+   * Design rationale: Users often have multiple API keys and need to verify which
+   * one is active. Showing the last 4 characters provides enough information for
+   * identification without compromising security.
+   */
+  private maskApiKey(apiKey: string): string {
+    if (!apiKey || apiKey.length < 8) {
+      return "****";
+    }
+    const prefix = apiKey.substring(0, 4); // Typically "syn_"
+    const lastFour = apiKey.slice(-4);
+    const maskedMiddle = "*".repeat(apiKey.length - 8);
+    return `${prefix}${maskedMiddle}${lastFour}`;
   }
 
   /**
@@ -174,11 +205,7 @@ export class UsageIndicator {
    * Design decision: Use ASCII progress bar for visual representation of quota usage.
    * This provides immediate visual feedback about how much of the quota has been used.
    */
-  private buildCategoryTooltip(
-    name: string,
-    category: CategoryUsageInfo,
-    config: Config,
-  ): string {
+  private buildCategoryTooltip(name: string, category: CategoryUsageInfo): string {
     const percentageUsed = category.percentageUsed.toFixed(1);
     const percentageRemaining = (100 - category.percentageUsed).toFixed(1);
 
@@ -195,32 +222,32 @@ export class UsageIndicator {
   /**
    * Build warning symbols for categories exceeding thresholds
    *
-   * Design decision: Show warning symbols for each category that exceeds
-   * the warning threshold, with different symbols for warning vs critical.
-   * This provides quick visual feedback about which categories need attention.
+   * Design decision: Use category-specific emoji symbols to quickly identify which
+   * quota categories are over their warning threshold without needing to hover.
+   * This provides immediate visual feedback about potential resource constraints.
+   *
+   * Symbol selection rationale:
+   * - 🔍 (magnifying glass) for search quota - represents search operations
+   * - 🔧 (wrench) for tool calls quota - represents tool/function operations
+   * - Only show symbols when the respective quota exceeds the warning threshold (80%)
+   * - This provides targeted, category-specific feedback without cluttering the UI
    */
-  private buildCategoryWarningSymbols(usage: UsageInfo, config: Config): string[] {
+  private buildCategoryWarningSymbols(usage: UsageInfo, _config: Config): string[] {
     const symbols: string[] = [];
 
-    // Check subscription
-    if (usage.subscription.percentageUsed >= config.criticalThreshold) {
-      symbols.push("🔴");
-    } else if (usage.subscription.percentageUsed >= config.warningThreshold) {
-      symbols.push("🟡");
+    // Design decision: Only show symbols for search and tool calls quotas when > 80%
+    // Rationale: Search (hourly) and tool calls quotas can be depleted quickly and
+    // independently, so they need immediate visibility. Subscription quota changes
+    // are reflected in the main percentage display, so no separate symbol needed.
+
+    // Check search quota - add 🔍 when over 80%
+    if (usage.search.percentageUsed > 80) {
+      symbols.push("🔍");
     }
 
-    // Check search
-    if (usage.search.percentageUsed >= config.criticalThreshold) {
-      symbols.push("🔴");
-    } else if (usage.search.percentageUsed >= config.warningThreshold) {
-      symbols.push("🟡");
-    }
-
-    // Check tool calls
-    if (usage.toolCalls.percentageUsed >= config.criticalThreshold) {
-      symbols.push("🔴");
-    } else if (usage.toolCalls.percentageUsed >= config.warningThreshold) {
-      symbols.push("🟡");
+    // Check tool calls quota - add 🔧 when over 80%
+    if (usage.toolCalls.percentageUsed > 80) {
+      symbols.push("🔧");
     }
 
     return symbols;
@@ -277,7 +304,7 @@ export class UsageIndicator {
    */
   setIdle(): void {
     this.displayState = DisplayState.Idle;
-    this.statusBarItem.text = "$(cloud-upload) Synthetic.new";
+    this.statusBarItem.text = "$(api) Synthetic.new";
     this.statusBarItem.tooltip = "Configure API key to track usage";
     this.statusBarItem.backgroundColor = undefined;
     this.clearCache();
