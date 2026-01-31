@@ -141,6 +141,11 @@
         "title": "Toggle Auto-Refresh"
       },
       {
+        "command": "syntheticUsageTracker.copyUsage",
+        "title": "Copy Usage to Clipboard",
+        "category": "Synthetic Usage Tracker"
+      },
+      {
         "command": "syntheticUsageTracker.eraseKey",
         "title": "Erase API Key",
         "category": "Synthetic Usage Tracker"

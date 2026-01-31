@@ -116,6 +116,13 @@ export class SyntheticUsageTrackerExtension {
       () => this.toggleAutoRefresh(),
     );
     this.context.subscriptions.push(toggleAutoRefreshCommand);
+
+    // Copy usage to clipboard command
+    const copyUsageCommand = vscode.commands.registerCommand(
+      "syntheticUsageTracker.copyUsage",
+      () => this.copyUsageToClipboard(),
+    );
+    this.context.subscriptions.push(copyUsageCommand);
   }
 
   /**
@@ -421,6 +428,11 @@ ${this.usageIndicator.buildAsciiProgressBar(toolCalls.percentageUsed)}`;
         command: "syntheticUsageTracker.toggleAutoRefresh",
       },
       {
+        label: "$(copy) Copy Usage to Clipboard",
+        description: "Copy usage information to clipboard for sharing",
+        command: "syntheticUsageTracker.copyUsage",
+      },
+      {
         label: "$(dashboard) Open Synthetic Dashboard",
         description: "Open billing dashboard in browser",
         command: "syntheticUsageTracker.openDashboard",
@@ -444,6 +456,90 @@ ${this.usageIndicator.buildAsciiProgressBar(toolCalls.percentageUsed)}`;
     if (selected) {
       await vscode.commands.executeCommand(selected.command);
     }
+  }
+
+  /**
+   * Copy usage information to clipboard
+   *
+   * Design decision: Provide formatted usage information that users can easily paste
+   * into bug reports, share with team, or use for documentation. The format is plain text
+   * for maximum compatibility with other applications.
+   */
+  private async copyUsageToClipboard(): Promise<void> {
+    if (!this.lastUsageInfo) {
+      vscode.window.showErrorMessage("No usage data available. Refresh first to get current usage.");
+      return;
+    }
+
+    const usage = this.lastUsageInfo;
+    
+    // Check if tooltip clearing is needed
+    this.usageIndicator.clearTooltip(500);
+
+    const apiKey = await this.configManager.getApiKey();
+    const maskedKey = apiKey ? `${apiKey.substring(0, 4)}****${apiKey.substring(apiKey.length - 4)}` : "Not configured";
+
+    const text = `Synthetic.new Usage Tracker
+=====================
+
+## Subscription
+Requests: ${usage.subscription.requests.toFixed(1)} / ${usage.subscription.limit}
+Remaining: ${(usage.subscription.limit - usage.subscription.requests).toFixed(1)}
+Percentage: ${usage.subscription.percentageUsed.toFixed(1)}%
+Renews At: ${usage.subscription.renewAt.toLocaleString()}
+Time Remaining: ${this.calculateTimeRemainingString(usage.subscription.renewAt)}
+
+## Search (Hourly)
+Requests: ${usage.search.requests.toFixed(1)} / ${usage.search.limit}
+Remaining: ${(usage.search.limit - usage.search.requests).toFixed(1)}
+Percentage: ${usage.search.percentageUsed.toFixed(1)}%
+Renews At: ${usage.search.renewAt.toLocaleString()}
+Time Remaining: ${this.calculateTimeRemainingString(usage.search.renewAt)}
+
+## Tool Calls
+Requests: ${usage.toolCalls.requests.toFixed(1)} / ${usage.toolCalls.limit}
+Remaining: ${(usage.toolCalls.limit - usage.toolCalls.requests).toFixed(1)}
+Percentage: ${usage.toolCalls.percentageUsed.toFixed(1)}%
+Renews At: ${usage.toolCalls.renewAt.toLocaleString()}
+Time Remaining: ${this.calculateTimeRemainingString(usage.toolCalls.renewAt)}
+
+API Key: ${maskedKey}
+Timestamp: ${new Date().toISOString()}`;
+
+    try {
+      await vscode.env.clipboard.writeText(text);
+      vscode.window.showInformationMessage("✓ Usage information copied to clipboard!");
+    } catch (error) {
+      vscode.window.showErrorMessage("Failed to copy to clipboard: " + (error instanceof Error ? error.message : "Unknown error"));
+    }
+  }
+
+  /**
+   * Calculate human-readable time remaining string
+   *
+   * Design decision: Provides easy-to-understand time calculations
+   * in the same format as the tooltip for consistency across the extension.
+   */
+  private calculateTimeRemainingString(renewAt: Date): string {
+    const now = new Date();
+    const diffMs = renewAt.getTime() - now.getTime();
+
+    if (diffMs <= 0) {
+      return "Now";
+    }
+
+    const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diffMs % (1000 * 60)) / 1000);
+
+    const parts: string[] = [];
+    if (days > 0) parts.push(`${days}d`);
+    if (hours > 0) parts.push(`${hours}h`);
+    if (minutes > 0) parts.push(`${minutes}m`);
+    if (seconds > 0) parts.push(`${seconds}s`);
+
+    return parts.join(" ") + " from now";
   }
 
   /**
