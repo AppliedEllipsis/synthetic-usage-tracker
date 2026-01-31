@@ -12,19 +12,24 @@ A VSCode extension that monitors your Synthetic.new API usage and quotas directl
 [![Open VSX Downloads](https://img.shields.io/open-vsx/dt/Ellipsis/synthetic-usage-tracker?logo=open-vsx&color=35b0ab)](https://open-vsx.org/extension/Ellipsis/synthetic-usage-tracker)
 [![Open VSX Rating](https://img.shields.io/open-vsx/rating/Ellipsis/synthetic-usage-tracker?logo=open-vsx&color=35b0ab)](https://open-vsx.org/extension/Ellipsis/synthetic-usage-tracker)
 
+[View Changelog](CHANGELOG.md)
+
 ## Features
 
 - **Real-time Usage Tracking**: Monitor your Synthetic.new API quota usage directly from the VSCode status bar
 - **Three-Quota Tracking**: Track usage across three distinct quota types - subscription (monthly), search.hourly (hourly search limit), and toolCallDiscounts (tool call functionality)
-- **Auto-refresh**: Automatically updates usage data at configurable intervals
-- **Visual Indicators**: Color-coded status bar based on usage thresholds (warning/critical)
-- **Enhanced Tooltips**: Hover over the status bar to see detailed category breakdowns with ASCII progress bars
-- **Quota Warning Symbols**: Visual indicators (🔍 for search, 🔧 for tool calls, ⚠️ for warning, 🔴 for critical) in the status bar
+- **Auto-refresh**: Automatically updates usage data at configurable intervals (minimum 30 seconds, maximum 30 minutes)
+- **Visual Indicators**: Custom font icons for normal and loading states, color-coded status bar based on usage thresholds
+- **Enhanced Tooltips**: Hover over the status bar to see detailed category breakdowns with ASCII progress bars and time remaining
+- **Quota Warning Symbols**: Visual indicators (⚠️ for warning, 🔴 for critical) in the status bar when thresholds are exceeded
 - **API Key Suffix Display**: Shows last 4 characters of the active API key in tooltips (masked for security)
 - **Secure Storage**: API keys are stored securely using VSCode SecretStorage
 - **Configurable Thresholds**: Set custom warning and critical usage percentages
-- **Quick Actions**: Refresh, configure, and view details from the command palette or status bar
-- **Notifications**: Get notified when approaching quota limits
+- **Quick Actions**: Refresh, set interval, configure, and view details from the command palette or status bar
+- **Copy to Clipboard**: Quickly copy formatted usage information for sharing or bug reports
+- **Intelligent Tooltip Management**: Tooltips temporarily clear on user interactions and auto-restore
+- **Silent Launch**: Extension launches silently without auto-showing popups
+- **Smart Refresh Button**: Reloads popup content when clicked instead of closing
 - **Cross-Window Synchronization**: API key state automatically syncs across multiple VSCode windows
 
 ## Installation
@@ -75,9 +80,7 @@ A VSCode extension that monitors your Synthetic.new API usage and quotas directl
    - Search for "Synthetic Usage Tracker"
    - Adjust settings to your preference
 
-## Multi-Key Management
-
-### Three-Quota Structure
+## Three-Quota Structure
 
 The Synthetic.new API provides three separate quota types that are tracked independently:
 
@@ -86,10 +89,6 @@ The Synthetic.new API provides three separate quota types that are tracked indep
 - **Tool Calls**: Quota for tool call functionality
 
 Each quota type has its own limit, usage count, and renewal schedule. The extension tracks all three quotas simultaneously and displays them in the tooltip for comprehensive visibility.
-
-### Cross-Window Synchronization
-
-API key state automatically synchronizes across multiple VSCode windows. If you add, remove, or modify your API key in one window, all other windows will be updated within a few seconds. This ensures consistency across your development environment.
 
 ## Status Bar Features
 
@@ -137,13 +136,28 @@ This helps you quickly verify which API key is currently active without revealin
 - Missing or undefined API keys: Shows "Key: Not configured"
 - Short API keys (< 4 characters): Shows available characters with asterisks
 
-### Status Bar Color Indicators
+### Custom Font Icons
 
-The status bar background color changes based on usage levels:
+The extension uses custom font icons for different states:
+- **Normal state**: Custom Synthetic.new icon when usage is displayed
+- **Loading state**: Spinning loading icon when refreshing data
 
-- **Default**: Normal usage (below warning threshold)
-- **Yellow/Warning**: Usage at or above warning threshold (≥80%)
-- **Red/Critical**: Usage at or above critical threshold (≥90%)
+This provides a more polished and professional appearance compared to default VSCode icons.
+
+### Intelligent Tooltip Behavior
+
+The extension implements smart tooltip management:
+- Tooltips temporarily clear on status bar clicks (restore after 500ms)
+- Tooltips clear for longer periods when using specific commands (5 seconds for Show Commands)
+- This prevents tooltips from covering UI elements while keeping them available most of the time
+
+### Silent Launch
+
+The extension starts silently without automatically popping up usage details windows when you first launch VSCode. You control when you want to view detailed usage information.
+
+### Smart Refresh Button
+
+When viewing the usage details popup, clicking the **Refresh** button reloads the data and shows the updated information in the same popup instead of closing it. This makes it easy to monitor your usage in real-time.
 
 ## Screenshots
 
@@ -176,15 +190,12 @@ The extension can be configured through VSCode settings:
 | Setting                                     | Type    | Default                        | Description                                           |
 | ------------------------------------------- | ------- | ------------------------------ | ----------------------------------------------------- |
 | `syntheticUsageTracker.apiEndpoint`         | string  | `https://api.synthetic.new/v2` | The Synthetic.new API endpoint                        |
-| `syntheticUsageTracker.refreshInterval`     | number  | `60`                           | Auto-refresh interval in seconds (min: 10)            |
+| `syntheticUsageTracker.refreshInterval`     | number  | `60`                           | Auto-refresh interval in seconds (min: 30, max: 1800)          |
 | `syntheticUsageTracker.showPercentage`      | boolean | `true`                         | Show usage as percentage in status bar                |
 | `syntheticUsageTracker.showRawNumbers`      | boolean | `false`                        | Show raw request numbers in status bar tooltip        |
 | `syntheticUsageTracker.enableNotifications` | boolean | `true`                         | Show notifications for API errors and quota warnings  |
 | `syntheticUsageTracker.warningThreshold`    | number  | `80`                           | Usage percentage threshold for warning notifications  |
 | `syntheticUsageTracker.criticalThreshold`   | number  | `90`                           | Usage percentage threshold for critical notifications |
-| `syntheticUsageTracker.enableKeyCycling`    | boolean | `false`                        | Enable automatic key cycling across multiple API keys  |
-| `syntheticUsageTracker.cyclingStrategy`     | string  | `RoundRobin`                   | Key cycling strategy: `RoundRobin`, `LeastUsed`, `Random`, or `Priority` |
-| `syntheticUsageTracker.autoCycleThreshold`  | number  | `90`                           | Usage percentage threshold for automatic key cycling (0-100) |
 
 ## Commands
 
@@ -192,15 +203,13 @@ The extension can be configured through VSCode settings:
 | --------------------------------------------------- | ------------------------------------------------ |
 | `Synthetic Usage Tracker: Refresh Usage`            | Manually refresh the usage data                  |
 | `Synthetic Usage Tracker: Configure API Key`        | Configure or update your API key                 |
-| `Synthetic Usage Tracker: Show Usage Details`       | Display detailed usage information               |
-| `Synthetic Usage Tracker: Toggle Auto-Refresh`      | Enable/disable auto-refresh                      |
+| `Synthetic Usage Tracker: Show Usage Details`       | Display detailed usage information with action buttons |
+| `Synthetic Usage Tracker: Toggle Auto-Refresh`      | Enable or disable automatic refresh (shows current state in menu) |
+| `Synthetic Usage Tracker: Set Refresh Interval`       | Set auto-refresh interval (30s-30min, accepts `60` seconds or `5min`) |
+| `Synthetic Usage Tracker: Copy Usage to Clipboard` | Copy formatted usage information to clipboard |
+| `Synthetic Usage Tracker: Clear API Key`           | Remove the stored API key                         |
 | `Synthetic Usage Tracker: Open Synthetic Dashboard` | Open the Synthetic.new dashboard in your browser |
-| `Synthetic Usage Tracker: Add API Key`              | Add a new API key to the key collection          |
-| `Synthetic Usage Tracker: Remove API Key`           | Remove an API key from the key collection        |
-| `Synthetic Usage Tracker: Select Active Key`        | Manually select which API key to use             |
-| `Synthetic Usage Tracker: Cycle API Keys`           | Manually cycle to the next API key               |
-| `Synthetic Usage Tracker: List API Keys`            | List all configured API keys with statistics     |
-| `Synthetic Usage Tracker: Reset Key Statistics`     | Reset usage statistics for all keys              |
+| `Synthetic Usage Tracker: Subscribe with Discount` | Subscribe with referral discount (gives bonus credits) |
 
 ## Development
 
