@@ -5,11 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+**Version Format Change**: Starting with v1.0.10016, this project uses extended patch numbering (X.Y.10000+)
+where patch versions start at 10000 instead of 0. This is compatible with SemVer, VS Code Marketplace, and Open VSX Registry.
+
 ## Unreleased
 
 Nothing yet
 
-## [1.0.15] - 2026-01-31
+## [1.0.10016] - 2026-01-31
 
 ### Fixed
 - Removed auto-popup of usage details on extension launch and after setting API key
