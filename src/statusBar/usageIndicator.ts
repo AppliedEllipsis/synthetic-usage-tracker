@@ -93,6 +93,9 @@ export class UsageIndicator {
 
   /**
    * Update the status bar item with usage information
+   *
+   * Design decision: Reset command to showUsage when usage is successfully updated.
+   * This ensures clicking the status bar shows details instead of setting a key.
    */
   private updateStatusBarItem(usage: UsageInfo, config: Config): void {
     const text = this.buildText(usage, config);
@@ -107,6 +110,7 @@ export class UsageIndicator {
     if (needsUpdate) {
       this.statusBarItem.text = text;
       this.statusBarItem.tooltip = tooltip;
+      this.statusBarItem.command = "syntheticUsageTracker.showUsage";
       this.updateStatusColor();
 
       // Update cache
