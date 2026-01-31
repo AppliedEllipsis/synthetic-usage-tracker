@@ -118,6 +118,96 @@ graph TB
 
 ## Memory Entry Format
 
+### [2026-01-31 13:30 UTC] - Tool: Opencode - Fix API Key Tooltip and Enhance buildrelease Workflow
+
+**Tool**: Opencode
+**Session ID**: opencode-session-20260131-133000
+**Task Type**: Assigned Task
+**Status**: Completed
+
+**Summary**: Fixed API key tooltip to properly display masked key, created automated changelog update script, enhanced buildrelease workflow to 10-step automated process, cleaned documentation structure
+
+**Context**: User reported API key tooltip not displaying correctly (mask showing but not last characters). User also requested: (1) automated buildrelease workflow that increment version, update changelog, commit, tag, push, and build vsix, (2) CLEANUP README.md to move agent-specific content to agents files, (3) CHANGELOG "Unreleased" section should show expected next version.
+
+**Decisions Made**:
+- Decision: Cache config object to preserve API key during tooltip restoration
+  - Rationale: Tooltip restoration was using empty/default config, causing API key to appear as "(not configured)" or incomplete. By caching the last known config, we preserve the API key and user preferences when tooltip is restored after temporary clearing.
+- Decision: Use dots (•) instead of asterisks (*) for masking
+  - Rationale: Dots provide more visual distinction and look cleaner in the tooltip. The `Math.max(1, apiKey.length - 8)` ensures at least one dot even for short keys.
+- Decision: Create separate automated changelog update script
+  - Rationale: Separating changelog logic into a dedicated script (`scripts/update-changelog-for-release.js`) makes it reusable and testable. The script moves "Unreleased" section to version header with date before version bump, since `npm version patch` reads from package.json for the new version number.
+- Decision: Remove manual git tag creation from buildrelease workflow
+  - Rationale: `npm version patch` automatically creates a git commit with annotated tag - no manual tag creation needed. Initial attempt with `git tag -a v$(node -p ...)` failed on Windows due to `-p` flag interpretation issues. The command was redundant since npm already handles tagging.
+- Decision: Update CHANGELOG "Unreleased" to show expected version
+  - Rationale: User explicitly requested that "Unreleased" shows the expected version number. Format: `## Unreleased\n*(Will become v1.0.10021)*`. This helps agents know which version the current changes will become when the release is made.
+- Decision: Clean up README.md by moving agent-specific content to agents files
+  - Rationale: README.md should be user-facing only. Development sections (Prerequisites, Setup, Building, Building a Release) are only relevant to AI agents and should be in agents.md and agents.min.md. This makes README.md cleaner and more focused on users.
+
+**Files Changed**:
+- Modified: [`src/statusBar/usageIndicator.ts`](../../src/statusBar/usageIndicator.ts) - API key tooltip fix, config caching
+- Created: [`scripts/update-changelog-for-release.js`](../../scripts/update-changelog-for-release.js) - Automated changelog update script
+- Modified: [`package.json`](../../package.json) - Enhanced buildrelease workflow script
+- Modified: [`agents.md`](../../agents.md) - Updated Release Workflow and CHANGELOG Update Process sections
+- Modified: [`agents.min.md`](../../agents.min.md) - Added complete Build & Release Workflow section
+- Modified: [`README.md`](../../README.md) - Removed entire Development section
+- Modified: [`CHANGELOG.md`](../../CHANGELOG.md) - Updated Unreleased section with version hint
+- Modified: [`docs/MEMORY.md`](../../docs/MEMORY.md) - Current Focus, Query History, Sub-tasks, section headers
+
+**Tools Used**:
+- Write (`scripts/update-changelog-for-release.js`) - New automated changelog update script
+- Edit - Modified source code, configuration, documentation files
+- Bash - Ran compilation and linting verification
+
+**Outcome**: Completed
+- ✅ API key tooltip now shows proper mask: `syn_••••••••••••x789` (dots + last 4 characters)
+- ✅ Config is cached to preserve API key during tooltip restoration
+- ✅ Automated changelog update script created and working
+- ✅ buildrelease workflow enhanced to 10-step automated process
+- ✅ Fixed package.json script (removed manual git tag - npm version patch creates it automatically)
+- ✅ Updated agents.md with detailed Release Workflow documentation
+- ✅ Updated agents.min.md with comprehensive Build & Release Workflow section  
+- ✅ Cleaned README.md (removed development sections)
+- ✅ Updated CHANGELOG.md Unreleased section with expected version
+- ✅ All code compiles successfully (npm run compile)
+- ✅ No linting errors (npm run lint)
+
+**Key Learnings**:
+1. **npm version patch behavior**: Automatically creates:
+   - Version increment in package.json
+   - Git commit with version bump message
+   - Annotated git tag (e.g., v1.0.10021)
+   - NO need for manual `git tag` command
+
+2. **Windows git tag issue**: `git tag -a v$(node -p ...)` fails on Windows because `-p` flag is interpreted by command shell, not node. Solution: Remove manual tag command, rely on npm version automatic tagging.
+
+3. **CHANGELOG timing**: Must update CHANGELOG "Unreleased" section BEFORE running `npm version patch` because:
+   - Version has already been incremented in package.json
+   - Changelog script reads version from package.json after bump
+   - This means Unreleased content must be ready before buildrelease
+
+4. **Changelog convention**: User prefers "Unreleased" to show expected version: `*(Will become v1.0.10021)*` for clarity
+
+5. **Tooltip restoration**: When tooltip is temporarily cleared (e.g., on status bar click), restoration uses cached config to preserve API key and user preferences. This prevents confusing "(not configured)" messages when the key is actually present.
+
+**Next Steps**:
+- Ready to buildrelease when needed (automated 10-step process verified)
+- Documentation is complete with agents.md, agents.min.md, and README.md properly separated
+- All changes committed and ready for next release cycle
+
+**Cross-Tool Context**:
+Future agents working on buildrelease or changelog updates should reference:
+- `scripts/update-changelog-for-release.js` - Automated changelog update script pattern
+- agents.md "Release Workflow" section - Complete 10-step process documentation
+- agents.min.md "🏗️ Build & Release Workflow" section - Quick reference guide
+- This shared memory entry for npm version patch behavior and Windows git tag issues
+
+Future agents working on status bar tooltips should reference:
+- `src/statusBar/usageIndicator.ts` `maskApiKey()` method - Proper masking implementation
+- `lastConfig` caching pattern - Preserving user preferences during tooltip restoration
+- Dots (•) vs asterisks (*) decision - Visual improvement rationale
+
+---
+
 ### [2026-01-31 02:58 UTC] - Tool: Opencode - Verify Phase 3 UI Enhancements
 
 **Tool**: Opencode

@@ -4,6 +4,109 @@ This file maintains context across AI agent sessions by tracking queries, curren
 
 ## Query History
 
+### [2026-01-31 13:30 UTC] - Query: Fix API key tooltip display and enhance buildrelease workflow
+
+**Query**: "the tooltip is missing the api key, only showing a few mask and not last chars" and later: "in your memory banks when I do a buildrelease request you should increment the version in the changelog to the expected version for unreleased and package and tag it and push it to the server with changlog, then build the vsix. add this to documentation , readme, agents, etc... also a lot of the readme has stuff only the agent cares about, remove those and just make sure they are in agents and agents.min"
+**Context**: User identified that the API key tooltip was not displaying correctly. Then requested automated buildrelease workflow with changelog updates, version bumping, git tagging, pushing, and .vsix packaging. Also requested cleanup of README.md by moving agent-specific content to agents files. USER requested that CHANGELOG "Unreleased" show the expected next version number.
+**Outcome**: Completed - Fixed tooltip, created automated changelog script, enhanced buildrelease workflow, cleaned documentation
+
+**Changes Made**:
+
+**Fixed API Key Tooltip Display** (`src/statusBar/usageIndicator.ts`):
+- Added `lastConfig` private field to cache config (line 46)
+- Updated `updateStatusBarItem()` to cache config after updates (line 134)
+- Modified `maskApiKey()` to handle empty keys, use dots (•) instead of asterisks, and show "(not configured)" for missing keys
+- Updated `clearCache()` to null out `lastConfig` (line 413)
+- Changed `getCurrentConfig()` to return cached config instead of default empty config (line 496)
+- Tooltip now shows: `syn_••••••••••••x789` (proper mask with visible last characters)
+
+**Created Automated Changelog Update Script** (`scripts/update-changelog-for-release.js`):
+- Automatically moves "Unreleased" section to version header `## [X.Y.Z] - YYYY-MM-DD`
+- Creates new empty "Unreleased" section with "Nothing yet" placeholder
+- Integrated into buildrelease workflow to run before version bump
+- Script exits early if Unreleased is empty or only contains "Nothing yet"
+
+**Enhanced buildrelease Workflow** (`package.json`):
+- Original workflow: `npm version patch && update memory && commit memory && compile && package && move to releases/`
+- New 10-step automated workflow:
+  1. Run `update-changelog-for-release.js` (moves Unreleased to version header, creates new Unreleased)
+  2. Git add and commit CHANGELOG update
+  3. Run `update-memory-for-release.js` (updates docs/MEMORY.md)
+  4. Git add and commit memory update
+  5. Run `npm version patch` (increments version in package.json, creates git commit and tag automatically)
+  6. `git push` (pushes commits to remote)
+  7. `git push --tags` (pushes tags to remote)
+  8. `npm run compile` (build extension)
+  9. `npm run package` (create .vsix file)
+  10. Move .vsix to `releases/` directory
+
+**Key Fixes to buildrelease**:
+- Initial attempt included manual `git tag -a v$(node -p ...)` command which failed on Windows (`-p` flag interpreted incorrectly)
+- **Learned**: `npm version patch` automatically creates a git commit with annotated tag - no need for manual git tag creation
+- Removed manual git tag command from workflow
+- Updated agents.md documentation to reflect automatic tagging behavior
+
+**Documentation Updates**:
+
+**agents.md**:
+- Updated "Release Workflow" section with complete 10-step process
+- Revised "CHANGELOG Update Process" to reflect automated workflow
+- Updated "CHANGELOG Workflow" section to reflect automation
+- Added details about pre-release requirements and important notes
+
+**agents.min.md**:
+- Added complete "🏗️ Build & Release Workflow" section with prerequisites, commands, 10-step automated process, release checklist, and output location
+- Updated "Development Workflow" section to reference the new build & release workflow
+
+**README.md**:
+- Removed entire "Development" section (Prerequisites, Setup, Building, Building a Release)
+- Kept "Contributing" section and added reference to agents.md and agents.min.md for developers
+- Cleaned up to focus on user-facing information only
+
+**docs/MEMORY.md**:
+- Updated "Current Focus" section with latest work summary
+- Added Query History entry documenting the entire workflow enhancements
+- Added sub-task 28 to Sub-tasks Tracking table
+- Fixed "Sub-tasks Tracking" section header (missing `##` marker)
+- Fixed section header formatting (was just text, now proper markdown header)
+
+**CHANGELOG.md**:
+- Updated "Unreleased" section to show `*(Will become v1.0.10021)*` for clarity
+- Added comprehensive changelog entries:
+  - Fixed: API key tooltip masking, config caching for tooltip restoration
+  - Added: Automated changelog update script, 10-step buildrelease process
+  - Changed: Enhanced buildrelease workflow, updated documentation structure
+
+**Files Created**:
+1. `scripts/update-changelog-for-release.js` - Automated changelog update script
+
+**Files Modified**:
+1. `src/statusBar/usageIndicator.ts` - API key tooltip fix, config caching
+2. `package.json` - Enhanced buildrelease script
+3. `agents.md` - Updated release and changelog workflow documentation
+4. `agents.min.md` - Added complete build & release workflow section
+5. `README.md` - Removed development sections
+6. `CHANGELOG.md` - Updated Unreleased section with version hint
+7. `docs/MEMORY.md` - Current Focus, Query History, Sub-tasks, section headers
+
+**Build System Learnings**:
+- `npm version patch` automatically:
+  * Increments patch version in package.json
+  * Creates a git commit with version bump
+  * Creates an annotated git tag (e.g., v1.0.10021)
+  * No manual git tagging required
+- Windows `git tag -a v$(node -p ...)` fails due to `-p` flag interpretation on Windows command line
+- PowerShell syntax in package.json scripts works correctly for Move-Item operations
+
+**Changelog Format Convention**:
+- User prefers "Unreleased" to show expected version: `*(Will become v1.0.10021)*`
+- This helps agents know which version the changes will become
+- Automated script reads version from package.json after version bump, so Unreleased must be updated BEFORE running buildrelease
+
+**Code Quality**: TypeScript compilation: Success ✅, ESLint: No errors ✅
+
+---
+
 ### [2026-01-31 12:30 UTC] - Query: Remove unimplemented commands and hide usage commands when API key not configured
 
 **Query**: "if api key not configured the commands should not show up. also if the cycle commands and multi key commands aren't implmeneted, they should be removed from the command pallet"
@@ -491,13 +594,13 @@ Tasks:
 
 ## Current Focus
 
-### Last Query: Release v1.0.10020
-**Time**: 2026-01-31T11:06:23.148Z
-**Summary**: Version v1.0.10020 released with changes: Version bump only
-**Context**: Release completed via buildrelease workflow. Version bumped, compiled, packaged, and moved to releases/ directory.
-**Planning**: All tasks completed for v1.0.10020. Ready for next iteration.
+### Last Query: Fix API key tooltip display and enhance buildrelease workflow
+**Time**: 2026-01-31T13:30:00.000Z
+**Summary**: Fixed API key tooltip to properly display masked key, created automated changelog update script, enhanced buildrelease workflow to 10-step automated process. Fixed package.json buildrelease script to work with npm version patch's automatic tagging. Fixed MEMORY.md section header formatting.
+**Context**: User requested fix for API key tooltip (showing correct mask with dots and last 4 chars), implementation of automated buildrelease workflow, and documentation cleanup. Also requested that CHANGELOG "Unreleased" show expected next version.
+**Planning**: Completed all changes including: tooltip fix with cached config, new update-changelog-for-release.js script, updated package.json script, updated agents.md/agents.min.md docs, cleaned README.md. Fixed buildrelease tag creation issue by removing manual git tag (npm version patch creates it automatically).
 **Remaining Items**:
-- None for this release - all changes verified and documented
+- None - all changes verified and working
 
 ---
 
@@ -532,6 +635,8 @@ Tasks:
 
 | 25   | Release v1.0.10019                                   | Complete    | Release v1.0.10019 - Version bump only |
 | 26   | Release v1.0.10020                                   | Complete    | Release v1.0.10020 - Version bump only |
+| 27   | Release v1.0.10021                                   | Complete    | Release v1.0.10021 - Version bump only |
+| 28   | Fix API key tooltip and enhance buildrelease          | Complete    | Fixed API key tooltip to show dots (•) and last 4 chars. Cached config for tooltip restoration. Created update-changelog-for-release.js script. Enhanced buildrelease to 10-step automated process. Fixed package.json script (removed manual git tag - npm version patch creates it). Updated agents.md and agents.min.md with build docs. Cleaned README.md (removed dev sections). Fixed MEMORY.md section header formatting. Tested and verified compilation. |
 ---
 
 ## Quick Reference
