@@ -10,6 +10,10 @@ where patch versions start at 10000 instead of 0. This is compatible with SemVer
 
 ## Unreleased
 
+Nothing yet
+
+## [1.0.10020] - 2026-01-31
+
 ### Removed
 - Removed unimplemented multi-key commands from command palette (Add API Key, Remove API Key, Select Active Key, Cycle to Next Key, List All API Keys, Reset Key Statistics)
 - Removed unused multi-key configuration settings (enableKeyCycling, cyclingStrategy, autoCycleThreshold)
