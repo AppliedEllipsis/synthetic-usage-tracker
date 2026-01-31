@@ -15,6 +15,8 @@ Nothing yet
 
 ## [1.0.10022] - 2026-01-31
 
+## [1.0.10022] - 2026-01-31
+
 ### Changed
 - Fixed CHANGELOG versioning to properly display version 1.0.10022
 - Added version badge link in README.md pointing to CHANGELOG.md
