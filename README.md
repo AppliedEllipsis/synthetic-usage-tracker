@@ -235,30 +235,15 @@ For developers, please refer to [`agents.md`](agents.md) and [`agents.min.md`](a
 
 GPL-3.0 License - see [LICENSE](LICENSE) for details.
 
-## 🤝 Help Us Grow!
-
-It would help both my development and Synthetic.new if you purchased a month (on a new account) with my referral links and you get an additional discount as well for the first month.
-
-I mean, if you're going to use this extension, you're already wanting to use Synthetic.new and might as well give me some credits. :p
-
-Invite your friends to **Synthetic.new** and both of you will receive:
-
-- **$10.00** for standard signups
-- **$20.00** for pro signups
-
-In subscription credit when they subscribe!
-
-[Sign up with referral link](https://synthetic.new/?referral=4JZcLOKgRmZ4o6k)
-
 ## Support
 
-- Report issues: [GitHub Issues](https://github.com/AppliedEllipsis/synthetic-usage-tracker/issues)
-- Documentation: [Full Documentation](docs/README.md)
-- API Docs: [Synthetic.new API Documentation](https://dev.synthetic.new/docs/synthetic/quotas)
+### Get Help
 
-## Documentation
+- **Report issues**: [GitHub Issues](https://github.com/AppliedEllipsis/synthetic-usage-tracker/issues)
+- **Documentation**: [Full Documentation](docs/README.md)
+- **API Docs**: [Synthetic.new API Documentation](https://dev.synthetic.new/docs/synthetic/quotas)
 
-For detailed technical documentation, see the following resources:
+### Technical Documentation
 
 - **[Documentation Index](docs/README.md)** - Complete documentation overview
 - **[Architecture](docs/architecture.md)** - System architecture and design decisions
@@ -268,24 +253,22 @@ For detailed technical documentation, see the following resources:
 - **[Troubleshooting](docs/troubleshooting.md)** - Common issues and solutions
 - **[CHANGELOG](CHANGELOG.md)** - Version history and release notes
 
-## Support This Project
+### Support This Project ❤️
 
-If you find this extension useful and would like to support its continued development, there are a couple of ways you can help:
+If you find this extension useful, there are two ways to support its continued development:
 
-### Join with a Referral
+**Option 1: Join Synthetic.new with Referral**
 
-When you subscribe to Synthetic.new through our referral link, you'll receive bonus credits as a welcome bonus:
+When you subscribe to Synthetic.new using our referral link, you'll receive bonus credits:
 
 - **$10.00** in subscription credit for standard signups
 - **$20.00** in subscription credit for pro signups
 
-Use the following link to sign up and support this project:
+This also helps support the extension at no extra cost to you!
 
-[https://synthetic.new/?referral=4JZcLOKgRmZ4o6k](https://synthetic.new/?referral=4JZcLOKgRmZ4o6k)
+[Sign up with referral link](https://synthetic.new/?referral=4JZcLOKgRmZ4o6k)
 
-This helps support the ongoing development and maintenance of this extension at no extra cost to you!
-
-### Crypto Donation
+**Option 2: Crypto Donation**
 
 If you'd prefer to donate directly via cryptocurrency, you can send Bitcoin to:
 
@@ -293,7 +276,7 @@ If you'd prefer to donate directly via cryptocurrency, you can send Bitcoin to:
 bc1q8nrdytlvms0a0zurp04xwfppflcxwgpyrzw5hn
 ```
 
-Thank you for your support! ❤️
+Thank you for supporting free and open source software! 🙏
 
 ## Acknowledgments
 
