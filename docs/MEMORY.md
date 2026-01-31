@@ -498,7 +498,10 @@ Tasks:
 **Planning**: Removed 6 unimplemented commands (addKey, removeKey, selectKey, cycleKeys, listKeys, resetStatistics), removed 3 unused config settings, updated showCommands() with conditional display based on hasApiKey status
 **Remaining Items**:
 - None - cleanup complete and verified
- Sub-tasks Tracking
+
+---
+
+## Sub-tasks Tracking
 
 | #   | Sub-task                                             | Status      | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | --- | ---------------------------------------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
