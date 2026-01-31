@@ -2,7 +2,7 @@
 
 **Purpose**: Optimized quick-start guide for AI agents working on Synthetic Usage Tracker VSCode extension.
 
-**Last Updated**: 2026-01-31
+**Last Updated**: 2026-01-31 (Version 1.0.10022)
 
 ---
 

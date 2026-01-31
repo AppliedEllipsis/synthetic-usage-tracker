@@ -13,14 +13,14 @@ where patch versions start at 10000 instead of 0. This is compatible with SemVer
 Nothing yet
 
 
-## [1.0.10021] - 2026-01-31
+## [1.0.10022] - 2026-01-31
 
-*(Will become v1.0.10022)*
-
-Version bump and maintenance:
-- Updated project memory and documentation with buildrelease workflow learnings
-- Fixed CHANGELOG cleanup from previous release attempts
-
+### Changed
+- Fixed CHANGELOG versioning to properly display version 1.0.10022
+- Added version badge link in README.md pointing to CHANGELOG.md
+- Updated README.md to display current version (1.0.10022)
+- Removed duplicate version entry in CHANGELOG that was causing confusion
+- Cleaned up CHANGELOG structure to match package.json version
 
 ## [1.0.10021] - 2026-01-31
 

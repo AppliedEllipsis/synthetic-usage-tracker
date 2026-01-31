@@ -1,5 +1,7 @@
 # AI Agent Development Guide
 
+**Current Version**: 1.0.10022 | **Last Updated**: 2026-01-31
+
 This guide provides comprehensive instructions for AI agents working on the Synthetic Usage Tracker VSCode extension. It covers build processes, incremental development practices, documentation standards, and coding conventions specific to this project.
 
 ## Table of Contents
