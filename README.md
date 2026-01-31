@@ -15,20 +15,17 @@ A VSCode extension that monitors your Synthetic.new API usage and quotas directl
 ## Features
 
 - **Real-time Usage Tracking**: Monitor your Synthetic.new API quota usage directly from the VSCode status bar
+- **Three-Quota Tracking**: Track usage across three distinct quota types - subscription (monthly), search.hourly (hourly search limit), and toolCallDiscounts (tool call functionality)
 - **Auto-refresh**: Automatically updates usage data at configurable intervals
 - **Visual Indicators**: Color-coded status bar based on usage thresholds (warning/critical)
 - **Enhanced Tooltips**: Hover over the status bar to see detailed category breakdowns with ASCII progress bars
-- **Quota Warning Symbols**: Visual indicators (⚠️ for warning, 🔴 for critical) in the status bar
-- **API Key Suffix Display**: Shows last 4 characters of the active API key in tooltips
+- **Quota Warning Symbols**: Visual indicators (🔍 for search, 🔧 for tool calls, ⚠️ for warning, 🔴 for critical) in the status bar
+- **API Key Suffix Display**: Shows last 4 characters of the active API key in tooltips (masked for security)
 - **Secure Storage**: API keys are stored securely using VSCode SecretStorage
 - **Configurable Thresholds**: Set custom warning and critical usage percentages
 - **Quick Actions**: Refresh, configure, and view details from the command palette or status bar
 - **Notifications**: Get notified when approaching quota limits
-- **Multi-Key Support**: Add multiple API keys with custom labels for easy identification
-- **Key Cycling**: Automatically cycle through keys based on configurable strategies (Round Robin, Least Used, Random, Priority)
-- **Health Scoring**: Track key health based on failures, quota availability, and usage patterns
-- **Automatic Key Switching**: Automatically switch to the next healthy key when quota limits are reached or errors occur
-- **Cross-Window Synchronization**: Key state automatically syncs across multiple VSCode windows
+- **Cross-Window Synchronization**: API key state automatically syncs across multiple VSCode windows
 
 ## Installation
 
@@ -80,86 +77,19 @@ A VSCode extension that monitors your Synthetic.new API usage and quotas directl
 
 ## Multi-Key Management
 
-The extension supports managing multiple API keys with automatic cycling functionality. This is useful for:
+### Three-Quota Structure
 
-- Distributing API load across multiple keys
-- Managing quota limits across different accounts
-- Automatic failover when keys exceed limits
-- Testing with different API keys
+The Synthetic.new API provides three separate quota types that are tracked independently:
 
-### Adding Multiple Keys
+- **Subscription**: Monthly quota for your account
+- **Search (hourly)**: Hourly limit for search operations
+- **Tool Calls**: Quota for tool call functionality
 
-You can add multiple API keys with custom labels for easy identification:
-
-1. Press `Ctrl+Shift+P` (or `Cmd+Shift+P` on Mac)
-2. Type `Synthetic Usage Tracker: Add API Key`
-3. Enter your API key (starts with `syn_`)
-4. Enter a label for the key (e.g., "Production", "Testing", "Personal")
-
-The first key you add will be set as the active key automatically.
-
-### Managing Keys
-
-**List all keys**: Use the "Synthetic Usage Tracker: List API Keys" command to see all configured keys with their labels and usage statistics.
-
-**Select a key**: Use the "Synthetic Usage Tracker: Select Active Key" command to manually choose which key to use.
-
-**Remove a key**: Use the "Synthetic Usage Tracker: Remove API Key" command to delete a key from your collection.
-
-**Reset statistics**: Use the "Synthetic Usage Tracker: Reset Key Statistics" command to clear usage statistics for all keys.
-
-### Key Cycling
-
-The extension can automatically cycle through your API keys based on configurable strategies. Enable key cycling in the settings:
-
-```json
-{
-  "syntheticUsageTracker.enableKeyCycling": true,
-  "syntheticUsageTracker.cyclingStrategy": "RoundRobin",
-  "syntheticUsageTracker.autoCycleThreshold": 90
-}
-```
-
-**Cycling Strategies**:
-
-1. **RoundRobin**: Cycles through keys in order (1 → 2 → 3 → 1...)
-2. **LeastUsed**: Selects the key with the fewest requests
-3. **Random**: Randomly selects a key (good for load distribution)
-4. **Priority**: Prioritizes keys based on their order in the list
-
-**Automatic Cycling**: When a key's quota exceeds the `autoCycleThreshold` (default: 90%), the extension automatically switches to the next available key.
-
-**Manual Cycling**: Use the "Synthetic Usage Tracker: Cycle Keys" command to manually cycle to the next key.
-
-### Health Scoring
-
-Each key is assigned a health score (0-100) based on:
-
-- **Failure rate**: Keys with more failures have lower scores
-- **Quota availability**: Keys with more remaining quota have higher scores
-- **Usage patterns**: Keys used less frequently have higher scores
-
-The health score is displayed in the tooltip when hovering over the status bar. Keys with higher health scores are preferred by the cycling strategies.
+Each quota type has its own limit, usage count, and renewal schedule. The extension tracks all three quotas simultaneously and displays them in the tooltip for comprehensive visibility.
 
 ### Cross-Window Synchronization
 
-Key state automatically synchronizes across multiple VSCode windows. If you add, remove, or modify keys in one window, all other windows will be updated within a few seconds. This ensures consistency across your development environment.
-
-### Status Bar Display
-
-When using multiple keys, the status bar shows:
-
-- **Key index**: `[1/3]` indicates you're using the first of three keys
-- **Key label**: The custom label you assigned to the key
-- **Key suffix**: Last 4 characters of the API key for identification
-- **Health score**: Current health score of the active key
-
-Example tooltip:
-```
-Production (syn_****xyz) [1/3]
-Health: 92/100
-Usage: 850/1000 (85%)
-```
+API key state automatically synchronizes across multiple VSCode windows. If you add, remove, or modify your API key in one window, all other windows will be updated within a few seconds. This ensures consistency across your development environment.
 
 ## Status Bar Features
 
@@ -167,18 +97,18 @@ The extension provides several visual indicators in the status bar to help you q
 
 ### ASCII Progress Bars in Tooltips
 
-Hover over the status bar to see detailed category breakdowns with visual progress bars:
+Hover over the status bar to see detailed category breakdowns with visual progress bars for each quota type:
 
 ```
-Tools:    ████████████░░░░░░░ 12/20 (60%)
-Search:   ████████████████░░ 16/20 (80%)
-Chat:     █████████████████ 20/20 (100%) ⚠️
-Other:    ██████████░░░░░░░░ 10/20 (50%)
+Subscription:    ████████████░░░░░░░ 850/1000 (85%)
+Search (hourly): ████████████████░░ 16/20 (80%) 🔍
+Tool Calls:      ████████████░░░░░░░ 120/200 (60%) 🔧
 ```
 
 - `█` (filled block): Represents used quota
 - `░` (empty block): Represents remaining quota
-- `⚠️` (warning emoji): Appears when a category exceeds its limit (≥100% usage)
+- `🔍` (search emoji): Appears when search.hourly quota exceeds 80%
+- `🔧` (wrench emoji): Appears when toolCallDiscounts quota exceeds 80%
 
 ### Quota Warning Symbols
 
@@ -187,11 +117,9 @@ The status bar displays visual warning symbols based on your usage thresholds:
 - **⚠️ (Warning)**: Appears when usage reaches the warning threshold (default: 80%)
 - **🔴 (Critical)**: Appears when usage reaches the critical threshold (default: 90%)
 
-**Category-specific warnings**: When individual categories exceed their limits, abbreviated warnings appear:
-- `T`: Tools category
-- `S`: Search category
-- `C`: Chat category
-- `O`: Other category
+**Category-specific warnings**: When individual quotas exceed 80%, specific warning symbols appear:
+- **🔍 (search icon)**: Appears when Search (hourly) quota exceeds 80%
+- **🔧 (wrench icon)**: Appears when Tool Calls quota exceeds 80%
 
 The extension displays a maximum of 2 category warnings and 3 total symbols to keep the status bar readable.
 

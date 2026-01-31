@@ -101,6 +101,13 @@ $RECYCLE.BIN/
 *.secret
 
 # ==========================================
+# MCP Configuration (contains credentials)
+# ==========================================
+.mcp/
+.mcp.json
+*.mcp.json
+
+# ==========================================
 # Test coverage and testing
 # ==========================================
 coverage/

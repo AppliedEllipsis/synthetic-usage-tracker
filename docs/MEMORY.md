@@ -366,6 +366,41 @@ All models use the `hf:` prefix to indicate Hugging Face integration:
 - Replace personal data with `[REDACTED]`
 - Never include actual secrets, passwords, or credentials
 
+### Memory Systems for Multiple Tools
+
+This project supports AI agents from multiple tools. Each tool may have its own memory system or conventions.
+
+| Tool | Memory Doc Location | Purpose |
+|------|-------------------|---------|
+| Kilocode | [`plans/kilocode-memory-system-design.md`](plans/kilocode-memory-system-design.md) | Automated memory tracking, version logging, documentation sync |
+| Opencode | (current tool) | Uses this docs/MEMORY.md + AGENTS.md |
+| Roocode | (to be discovered) | Search for `*roocode*.md` or `.roocode/` directory |
+| Amp | (to be discovered) | Search for `*amp*.md` or `.amp/` directory |
+| Gemini | (to be discovered) | Search for `*gemini*.md` or `.gemini/` directory |
+| Claude | (to be discovered) | Search for `*claude*.md` or `.claude/` directory |
+| Antigravity | (to be discovered) | Search for `*antigravity*.md` or `.antigravity/` directory |
+
+**Shared Memory Pool**:
+- [`docs/memory/shared-memory.md`](memory/shared-memory.md) - Consolidated memory for all tools
+- [`docs/memory/tool-registry.md`](memory/tool-registry.md) - Registry of tools and their capabilities
+- [`docs/memory/git_commit_format.md`](memory/git_commit_format.md) - Git commit message format specification
+- [`docs/memory/README.md`](memory/README.md) - Documentation for shared memory system
+
+**Discovery Process**:
+When a new agent session begins, search for tool-specific memory files:
+1. Check `docs/memory/` for shared memory pool
+2. Check `docs/` for `*memory*.md` files
+3. Check `plans/` for design documents
+4. Check root directory for tool-specific directories (e.g., `.kilocode/`, `.roocode/`)
+5. Read discovered files in chunks (500 lines max)
+6. Document new discoveries in Quick Reference
+
+**Integration Notes**:
+- Project-specific documentation takes precedence over tool-specific patterns
+- When conflicts exist, document resolution in docs/MEMORY.md
+- Tool-specific workflows can be adapted to project conventions
+- Always document tool-specific patterns for future reference
+
 ### Current Roadmap
 
 **Phase 1: API Documentation & Research**

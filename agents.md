@@ -25,7 +25,7 @@ This guide provides comprehensive instructions for AI agents working on the Synt
 
 The project includes a **Query Memory & Task Tracking** system to maintain context across AI agent sessions. This system helps track work progress, remember important decisions, and provide continuity between different user interactions.
 
-**Key File**: [`MEMORY.md`](MEMORY.md) - Located at the project root
+**Key File**: [`docs/MEMORY.md`](docs/MEMORY.md) - Query history and task tracking
 
 **Purpose**: 
 - Maintain context across multiple AI agent sessions
@@ -184,12 +184,13 @@ The memory system works alongside other documentation:
 
 - [`CHANGELOG.md`](CHANGELOG.md): Tracks released changes and version history
 - [`docs/`](docs/): Technical documentation and architecture decisions
-- [`agents.md`](agents.md): This guide - development workflow and coding standards
-- [`MEMORY.md`](MEMORY.md): Session context and task tracking
+- [`AGENTS.md`](AGENTS.md): This guide - development workflow and coding standards
+- [`docs/MEMORY.md`](docs/MEMORY.md): Query history, current focus, and task tracking
+- [`docs/memory/shared-memory.md`](docs/memory/shared-memory.md): Consolidated shared memory pool for all AI tools
 
 **Key Difference**:
 - [`CHANGELOG.md`](CHANGELOG.md) is for **released** changes (git-tagged versions)
-- [`MEMORY.md`](MEMORY.md) is for **session context** and ongoing work (not versioned)
+- [`docs/MEMORY.md`](docs/MEMORY.md) is for **session context** and ongoing work (not versioned)
 
 ### Security Considerations
 
@@ -207,6 +208,168 @@ The memory system handles potentially sensitive information:
 3. **Be accurate**: Only document what actually happened or is planned
 4. **Use links**: Reference specific files with markdown links (e.g., [`src/extension.ts`](src/extension.ts))
 5. **Clean up**: Remove outdated sub-tasks and old Current Focus entries regularly
+
+---
+
+## Agent Context Management
+
+### Onboarding Flow
+
+When a new agent session begins, follow this sequence:
+
+1. **First Read: AGENTS.md** - Read Memory System Workflow section (lines 22-210)
+2. **Second Read: docs/MEMORY.md** - Read Query History and Current Focus to understand recent work
+3. **Third Read: docs/memory/shared-memory.md** - Read shared memory pool for cross-tool context
+4. **Fourth Read: docs/memory/tool-registry.md** - Identify your tool and understand your capabilities
+5. **Fifth Read: Tool-Specific Documentation** - Read your tool's design document if it exists
+6. **Report Status** - After reading all relevant files, report back to user with context summary
+
+### Status Report Format
+
+After reading all relevant documentation, agents should respond with:
+
+```
+🧠 Context loaded successfully! Here's what I know:
+
+Project: Synthetic Usage Tracker - VSCode extension for tracking Synthetic.new API usage
+Last Focus: [from docs/MEMORY.md Current Focus]
+Pending Tasks: [from docs/MEMORY.md Sub-tasks Tracking]
+
+Current Task Queue:
+t6. [Update tooltip with ASCII progress bars] - Pending
+t7. [Add symbols in statusbar for high quota] - Pending
+...
+
+Should I continue with the next task (t6), or do you have something else you want me to do?
+```
+
+**Key Requirements**:
+- The response should be conversational and show context awareness
+- List incomplete tasks with `t{number}` prefix for easy reference
+- Use agentic-friendly, relevant language based on what was read
+- Be ready to accept new tasks or continue with existing ones
+- Intelligently prioritize tasks based on dependencies and user input
+
+### Decision Documentation
+
+Always document decision logic so future agents can understand:
+
+1. **Impact Analysis**: Before making changes, document:
+   - Which files/components will be affected
+   - How the change fits into the overall system structure
+   - Potential side effects or breaking changes
+   - Dependencies and contracts between components
+
+2. **Task Type Identification**: When creating sub-tasks, document:
+   - **User-Directed Narrative**: Exploratory conversations, research, questions
+   - **Assigned Task**: Specific work to complete with clear deliverables
+   - This helps future agents understand context and approach
+
+3. **Token Budget Management**:
+   - Read large files in chunks (maximum 500 lines at a time)
+   - Use offset/limit parameters strategically
+   - Summarize logic between chunks
+   - Track what was read to avoid re-reading
+   - Ask user if continuation is needed before reading more
+
+4. **Documentation Commitment**:
+   - Document decisions immediately - don't wait until the end
+   - Explain **why** a decision was made, not just **what** was done
+   - Consider impact on documentation and all previous rules
+   - Update docs/memory/shared-memory.md and docs/MEMORY.md with key decisions
+
+### Memory System Discovery
+
+The project contains multiple memory systems for different AI tools. When discovering and using these:
+
+1. **Search Pattern**:
+   - Check `docs/memory/` directory for shared memory pool
+   - Check `docs/MEMORY.md` for query history and task tracking
+   - Check `docs/` directory for tool-specific documentation
+   - Check `plans/` directory for design documents
+   - Look for patterns like `*memory*.md`, `*agent*.md`, `*mcp*.md`
+
+2. **Reading Strategy**:
+   - Read files in chunks (500 lines max)
+   - Document key insights as you discover them
+   - Update docs/memory/shared-memory.md with new discoveries
+   - Note any tool-specific workflows or conventions
+
+3. **Conflict Resolution**:
+   - If multiple memory systems exist, document hierarchy
+   - Project-specific docs take precedence over tool-specific docs
+   - Tool-specific patterns can be adapted to project conventions
+   - Document any deviations or customizations
+
+4. **Documentation**:
+   - When you discover a new memory system or documentation file:
+     - Add it to Quick Reference in docs/MEMORY.md
+     - Note its purpose and what information it contains
+     - Document how it relates to other documentation
+     - Add to docs/memory/tool-registry.md if it's a new tool
+
+### Working Pattern
+
+**Before starting any task:**
+1. Read AGENTS.md sections relevant to the work
+2. Read docs/MEMORY.md for current focus and recent decisions
+3. Read docs/memory/shared-memory.md for cross-tool context
+4. Read docs/memory/tool-registry.md to identify your tool
+5. Discover and read any tool-specific memory files
+6. Identify task type (narrative vs assigned)
+7. Report context status to user with task queue
+
+**During task execution:**
+1. Read files in manageable chunks (500 lines max)
+2. Document decisions as they are made in code comments
+3. Update docs/memory/shared-memory.md with context and reasoning
+4. Consider how this affects future tasks and documentation
+
+**After completing task:**
+1. Update docs/memory/shared-memory.md with new entry
+2. Update docs/MEMORY.md Query History with outcome
+3. Document any new patterns or rules learned
+4. Update Quick Reference if new information emerged
+5. Mark completed sub-tasks as "Complete"
+6. Report completion and offer to continue with next task
+
+### Cross-Tool Integration
+
+This project may be accessed via different AI agent tools. Each tool may have its own conventions:
+
+**Tool Discovery**:
+- When a new session starts, identify which tool is being used
+- Read docs/memory/tool-registry.md to find your tool's entry
+- Read any tool-specific documentation if available
+- Adapt working pattern to tool's strengths
+- Document tool-specific patterns in docs/memory/shared-memory.md
+
+**Common Patterns Across Tools**:
+- All tools should read AGENTS.md first
+- All tools should check docs/memory/shared-memory.md for context
+- All tools should check docs/MEMORY.md for query history
+- All tools should follow decision documentation standards
+- All tools should use the status report format after onboarding
+
+**Tool-Specific Considerations**:
+
+| Tool | Memory Doc Location | Special Notes |
+|------|-------------------|---------------|
+| Kilocode | [`plans/kilocode-memory-system-design.md`](plans/kilocode-memory-system-design.md) | Has automated JSON-based memory system with version logging |
+| Roocode | (to be discovered) | Search for `*roocode*.md` or `.roocode/` directory |
+| Opencode | (current tool) | Uses docs/memory/shared-memory.md + AGENTS.md, no internal memory |
+| Amp | (to be discovered) | Search for `*amp*.md` or `.amp/` directory |
+| Gemini | (to be discovered) | Search for `*gemini*.md` or `.gemini/` directory |
+| Claude | (to be discovered) | Search for `*claude*.md` or `.claude/` directory |
+| Antigravity | (to be discovered) | Search for `*antigravity*.md` or `.antigravity/` directory |
+
+**Documentation**:
+When working with a new tool, document:
+- Tool name and version (if available)
+- Unique capabilities or limitations
+- Tool-specific patterns or conventions
+- How to adapt project workflows to the tool
+- Add entry to docs/memory/tool-registry.md
 
 ---
 

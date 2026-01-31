@@ -15,8 +15,6 @@ graph TB
         B[Configuration Manager<br/>configuration.ts]
         C[Synthetic Service<br/>syntheticService.ts]
         D[Usage Indicator<br/>usageIndicator.ts]
-        E[Key Manager<br/>keyManager.ts]
-        F[Key Cycling Service<br/>keyCyclingService.ts]
     end
 
     subgraph VSCode API
@@ -24,7 +22,6 @@ graph TB
         H[Configuration API]
         I[StatusBar API]
         J[Commands API]
-        K[GlobalState]
     end
 
     subgraph External API
@@ -35,16 +32,12 @@ graph TB
     A --> B
     A --> C
     A --> D
-    A --> E
-    A --> F
     B --> G
     B --> H
-    B --> K
     D --> I
     A --> J
     C --> L
     C --> M
-    E --> F
 ```
 
 ## Components
