@@ -21,6 +21,9 @@ export class SyntheticUsageTrackerExtension {
   // Track the last usage info for comparisons
   private lastUsageInfo: APIUsageInfo | null = null;
 
+  // Track auto-refresh state (separate from config to allow toggle functionality)
+  private isAutoRefreshEnabled: boolean = true;
+
   constructor(context: vscode.ExtensionContext) {
     this.context = context;
     this.configManager = new ConfigurationManager(context);
@@ -406,6 +409,8 @@ ${this.usageIndicator.buildAsciiProgressBar(toolCalls.percentageUsed)}`;
     // Prevent updates during this time, then restore with current data
     this.usageIndicator.clearTooltip(5000, true);
 
+    const isAutoRefreshEnabled = this.getIsAutoRefreshEnabled();
+
     const commands = [
       {
         label: "$(refresh) Refresh Usage",
@@ -423,8 +428,8 @@ ${this.usageIndicator.buildAsciiProgressBar(toolCalls.percentageUsed)}`;
         command: "syntheticUsageTracker.clearApiKey",
       },
       {
-        label: "$(toggle-auto-refresh) Toggle Auto-Refresh",
-        description: "Enable or disable automatic refresh",
+        label: isAutoRefreshEnabled ? "$(circle-slash) Disable Auto-Refresh" : "$(play) Enable Auto-Refresh",
+        description: isAutoRefreshEnabled ? "Turn off automatic refresh" : "Turn on automatic refresh",
         command: "syntheticUsageTracker.toggleAutoRefresh",
       },
       {
@@ -610,7 +615,8 @@ Timestamp: ${new Date().toISOString()}`;
   private setupAutoRefresh(): void {
     const config = this.configManager.getConfig();
 
-    if (config.refreshInterval > 0) {
+    // Only start auto-refresh if interval is greater than 0 and auto-refresh is enabled
+    if (config.refreshInterval > 0 && this.isAutoRefreshEnabled) {
       this.usageIndicator.startAutoRefresh(
         config.refreshInterval,
         () => this.refreshUsage(),
@@ -625,21 +631,43 @@ Timestamp: ${new Date().toISOString()}`;
    * navigating through settings. This improves convenience for users who
    * need to temporarily disable auto-refresh.
    */
-  private toggleAutoRefresh(): void {
+  private async toggleAutoRefresh(): Promise<void> {
     const config = this.configManager.getConfig();
+    const defaultInterval = 60;
 
-    if (config.refreshInterval > 0) {
+    if (this.isAutoRefreshEnabled) {
+      // Disable auto-refresh
       this.usageIndicator.stopAutoRefresh();
+      this.isAutoRefreshEnabled = false;
       vscode.window.showInformationMessage("Auto-refresh disabled");
     } else {
-      // Set a default refresh interval when re-enabling
-      const defaultInterval = 60;
-      this.usageIndicator.startAutoRefresh(
-        defaultInterval,
-        () => this.refreshUsage(),
-      );
-      vscode.window.showInformationMessage(`Auto-refresh enabled (${defaultInterval}s interval)`);
+      // Enable auto-refresh
+      this.isAutoRefreshEnabled = true;
+      if (config.refreshInterval > 0) {
+        this.usageIndicator.startAutoRefresh(
+          config.refreshInterval,
+          () => this.refreshUsage(),
+        );
+        vscode.window.showInformationMessage(`Auto-refresh enabled (${config.refreshInterval}s interval)`);
+      } else {
+        // Use default interval if not configured
+        this.usageIndicator.startAutoRefresh(
+          defaultInterval,
+          () => this.refreshUsage(),
+        );
+        vscode.window.showInformationMessage(`Auto-refresh enabled (${defaultInterval}s interval - default)`);
+      }
     }
+  }
+
+  /**
+   * Check if auto-refresh is currently enabled
+   *
+   * Design decision: Provide a method to query the auto-refresh state for display purposes.
+   * This allows the UI to show the correct toggle state in menus and commands.
+   */
+  private getIsAutoRefreshEnabled(): boolean {
+    return this.isAutoRefreshEnabled;
   }
 
   /**
