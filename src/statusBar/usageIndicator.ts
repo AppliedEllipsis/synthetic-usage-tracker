@@ -345,17 +345,17 @@ export class UsageIndicator {
   /**
    * Set idle state (no API key configured)
    *
-   * Design decision: Use error background color to make the lack of API key more
-   * prominent. This helps users understand that they need to configure the extension.
+   * Design decision: Don't use error background color to avoid looking like an error state.
+   * Users expect the extension to be clean/silent until configured. The command change alone
+   * (to setApiKey) is enough to indicate configuration is needed when clicked.
    * Also change the command to setApiKey so clicking the status bar prompts for a key.
    */
   setIdle(): void {
     this.displayState = DisplayState.Idle;
     this.statusBarItem.text = "$(synthetic-status-icon) Synthetic.new";
     this.statusBarItem.tooltip = "Configure API key to track usage";
-    this.statusBarItem.backgroundColor = new vscode.ThemeColor(
-      "statusBarItem.errorBackground",
-    );
+    // Don't use error background - idle state is not an error
+    this.statusBarItem.backgroundColor = undefined;
     this.statusBarItem.command = "syntheticUsageTracker.setApiKey";
     this.clearCache();
   }

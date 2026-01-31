@@ -145,7 +145,8 @@ export class SyntheticUsageTrackerExtension {
 
     if (input) {
       await this.configManager.setApiKey(input);
-      vscode.window.showInformationMessage("API key saved successfully");
+      // Design decision: Don't show notification - status bar updates automatically
+      // Notifications covering UI are intrusive
 
       // Refresh usage immediately after setting key
       await this.refreshUsage();
@@ -168,7 +169,8 @@ export class SyntheticUsageTrackerExtension {
     if (confirm === "Clear") {
       await this.configManager.deleteApiKey();
       this.usageIndicator.setIdle();
-      vscode.window.showInformationMessage("API key cleared");
+      // Design decision: Don't show notification - status bar shows idle state automatically
+      // Notifications covering UI are intrusive when user just cleared a key
     }
   }
 
