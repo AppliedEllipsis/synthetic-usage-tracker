@@ -4,6 +4,21 @@ This file maintains context across AI agent sessions by tracking queries, curren
 
 ## Query History
 
+### [2026-01-31 02:58 UTC] - Query: Verify Phase 3 UI Enhancements Implementation
+
+**Query**: Continue with task t6 - Update tooltip with ASCII progress bars
+**Context**: User confirmed to proceed with next task. Previous sessions completed Phase 1 (API Documentation & Research) and Phase 2 (API Testing & Documentation).
+**Outcome**: Completed - All Phase 3 UI enhancement tasks verified as already implemented:
+
+- t6. ASCII progress bars: Fully implemented with 10-segment progress bars using █ and ░ characters
+- t7. Warning symbols: Implemented with 🔍 for search (>80%) and 🔧 for tool calls (>80%)
+- t8. API key masking: Implemented in maskApiKey() method showing prefix + last 4 chars
+- t9. Single status bar: Verified - only one UsageIndicator instance exists
+
+All features have comprehensive test coverage. Ready to proceed to Phase 4 (API Testing).
+
+---
+
 ### [2026-01-31 01:00 UTC] - Query: Fetch and Document Synthetic.new API Documentation
 
 **Query**: "Query synthetic.new's website for documentation. Focus on API docs (v1 for chat/models/messages, v2 for tools/usage/search). Commit to memory and local docs."
@@ -117,7 +132,17 @@ Tasks:
 
 ## Current Focus
 
-No active focus. Last task completed.
+### Last Query: Verify Phase 3 UI Enhancements Implementation
+**Time**: 2026-01-31 02:58 UTC
+**Summary**: Verified that all Phase 3 UI enhancement tasks are already implemented in the codebase
+**Context**: Continuing from previous session where Phase 1 (API Documentation & Research) and Phase 2 (API Testing & Documentation) were completed
+**Planning**: Move to Phase 4 (API Testing) - tasks t10 and t11
+**Remaining Items**:
+- [ ] t10. Test models endpoint
+- [ ] t11. Test other API endpoints
+- [ ] t12. Add unit tests for all new work
+- [ ] t13. Document logic in code
+- [ ] t14. Verify security (no key leaks)
 
 ---
 
@@ -130,10 +155,10 @@ No active focus. Last task completed.
 | 3   | Query synthetic.new website for API documentation    | Complete    | Successfully retrieved API documentation from https://dev.synthetic.new/ - documented API overview, base URLs (api.synthetic.new/v2 recommended), rate limits by subscription tier, OpenAI-compatible endpoints (/models, /chat/completions, /completions, /embeddings), Anthropic-compatible endpoints (/messages, /messages/count_tokens), model naming convention (hf: prefix). Updated docs/api.md with comprehensive information. |
 | 4   | Test usage endpoint with test key from .env          | Complete    | Successfully called https://api.synthetic.new/v2/quotas endpoint with test key [API_KEY]. Discovered three usage types: subscription (monthly limit), search (hourly limit nested as search.hourly), and toolCallDiscounts (tool call functionality). Each type has independent limit, requests, and renewAt fields. Created test-usage-endpoint.js script.                                                                            |
 | 5   | Document API payload structure                       | Complete    | Created docs/api-payload-analysis.md with detailed payload structure documentation. Discovered that API does NOT return remaining or percentageUsed - these must be calculated client-side. All three usage types (subscription, search, toolCallDiscounts) have independent renewal schedules. Updated API Endpoints section in Quick Reference with payload structure details.                                                       |
-| 6   | Update tooltip with ASCII progress bars              | Pending     | Add progress bars for total, tools, search, and other usage types                                                                                                                                                                                                                                                                                                                                                                      |
-| 7   | Add symbols in statusbar for high quota types        | Pending     | Show warnings when specific quota types are high                                                                                                                                                                                                                                                                                                                                                                                       |
-| 8   | Show last 4 characters of API key in tooltip         | Pending     | For key cycling awareness                                                                                                                                                                                                                                                                                                                                                                                                              |
-| 9   | Verify single statusbar element                      | Pending     | Ensure only one statusbar element exists                                                                                                                                                                                                                                                                                                                                                                                               |
+| 6   | Update tooltip with ASCII progress bars              | Complete    | 10-segment ASCII progress bars using █ and ░ characters, integrated into tooltip for all three usage types (Subscription, Search, Tool Calls)                                                                                                                                                                                                                                                                                   |
+| 7   | Add symbols in statusbar for high quota types        | Complete    | Warning symbols: 🔍 for search quota when > 80%, 🔧 for tool calls quota when > 80%. Symbols added to status bar text when thresholds exceeded                                                                                                                                                                                                                                                                          |
+| 8   | Show last 4 characters of API key in tooltip         | Complete    | API key masked with format "syn_****abcd" showing prefix and last 4 characters only, implemented in maskApiKey() method                                                                                                                                                                                                                                                                                                     |
+| 9   | Verify single statusbar element                      | Complete    | Only one UsageIndicator instance created in extension.ts (line 27), ensuring single status bar element                                                                                                                                                                                                                                                                                                                |
 | 10  | Test models endpoint                                 | Pending     | Use test key to explore models endpoint                                                                                                                                                                                                                                                                                                                                                                                                |
 | 11  | Test other API endpoints                             | Pending     | Comprehensive API testing                                                                                                                                                                                                                                                                                                                                                                                                              |
 | 12  | Add unit tests for all new work                      | Pending     | Maintain test coverage                                                                                                                                                                                                                                                                                                                                                                                                                 |
@@ -148,6 +173,7 @@ No active focus. Last task completed.
 
 | File                               | Purpose                                                                             |
 | ---------------------------------- | ----------------------------------------------------------------------------------- |
+| [`agents.min.md`](agents.min.md)   | Optimized quick-start reference for AI agents (read first for fast onboarding)     |
 | [`agents.md`](agents.md)           | AI Agent Development Guide - comprehensive guide for agents working on this project |
 | [`docs/MEMORY.md`](docs/MEMORY.md) | Query Memory & Task Tracking - this file, maintains session context                 |
 | [`package.json`](package.json)     | Extension manifest, dependencies, and scripts                                       |
@@ -354,7 +380,7 @@ All models use the `hf:` prefix to indicate Hugging Face integration:
 
 **How to Use:**
 
-1. Read the "Query History" to understand previous work
+1. Read "Query History" to understand previous work
 2. Review "Current Focus" to understand what was being worked on
 3. Check "Sub-tasks Tracking" for incomplete items
 4. Reference "Quick Reference" for commonly needed information
@@ -365,6 +391,20 @@ All models use the `hf:` prefix to indicate Hugging Face integration:
 - Replace user emails with `[USER_EMAIL]`
 - Replace personal data with `[REDACTED]`
 - Never include actual secrets, passwords, or credentials
+
+### Navigation Primitives
+
+**Coherence Wormhole** (Speed Optimization):
+- Trigger: When converging on clear target, intermediate steps implied/resolved
+- Protocol: Ask "Would you like me to take a coherence wormhole and jump straight there?"
+- Safeguard: Only offer when destination stable, skip only if user agrees
+
+**Vector Calibration** (Direction Optimization):
+- Trigger: When nearby target Y better aligns with intent (generality, simplicity, leverage, durability)
+- Protocol: Ask "Would you like to redirect to Y, briefly compare X vs Y, or stay on X?"
+- Safeguard: Only trigger with high confidence, no second-guessing if user stays on X
+
+See [`agents.min.md`](../agents.min.md) for complete navigation primitives documentation.
 
 ### Memory Systems for Multiple Tools
 

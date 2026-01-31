@@ -130,6 +130,10 @@ edit(filePath, oldString, newString, replaceAll=true)
 - Syncs to `docs/MEMORY.md` as needed
 - No internal memory system - relies entirely on shared memory
 
+**Quick Start**:
+- Read [`agents.min.md`](../../agents.min.md) first for optimized onboarding
+- Then read `docs/MEMORY.md` and `docs/memory/shared-memory.md` for detailed context
+
 **Special Patterns**:
 - **Task Management**: Uses `todowrite` for complex tasks, `todoread` to check progress
 - **Parallel Tool Calls**: Batches independent file reads in single message for efficiency
