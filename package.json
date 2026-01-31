@@ -85,38 +85,6 @@
           "maximum": 100,
           "description": "Usage percentage threshold for showing critical notifications",
           "order": 9
-        },
-        "syntheticUsageTracker.enableKeyCycling": {
-          "type": "boolean",
-          "default": false,
-          "description": "Enable automatic key cycling when quota is exceeded",
-          "order": 10
-        },
-        "syntheticUsageTracker.cyclingStrategy": {
-          "type": "string",
-          "enum": [
-            "roundRobin",
-            "leastUsed",
-            "random",
-            "priority"
-          ],
-          "default": "roundRobin",
-          "description": "Strategy for selecting the next API key when cycling",
-          "enumDescriptions": [
-            "Round Robin: Cycle through keys in order",
-            "Least Used: Select key with most remaining quota",
-            "Random: Select a random available key",
-            "Priority: Select based on user-defined priority"
-          ],
-          "order": 11
-        },
-        "syntheticUsageTracker.autoCycleThreshold": {
-          "type": "number",
-          "default": 95,
-          "minimum": 0,
-          "maximum": 100,
-          "description": "Usage percentage threshold for automatic key cycling",
-          "order": 12
         }
       }
     },
@@ -159,41 +127,11 @@
         "command": "syntheticUsageTracker.subscribeWithDiscount",
         "title": "Subscribe with Discount",
         "category": "Synthetic Usage Tracker",
-        "icon": "$(dollar-sign)"
+        "icon": "$(heart-filled)"
       },
       {
         "command": "syntheticUsageTracker.setRefreshInterval",
         "title": "Set Refresh Interval",
-        "category": "Synthetic Usage Tracker"
-      },
-      {
-        "command": "syntheticUsageTracker.addKey",
-        "title": "Add API Key",
-        "category": "Synthetic Usage Tracker"
-      },
-      {
-        "command": "syntheticUsageTracker.removeKey",
-        "title": "Remove API Key",
-        "category": "Synthetic Usage Tracker"
-      },
-      {
-        "command": "syntheticUsageTracker.selectKey",
-        "title": "Select Active Key",
-        "category": "Synthetic Usage Tracker"
-      },
-      {
-        "command": "syntheticUsageTracker.cycleKeys",
-        "title": "Cycle to Next Key",
-        "category": "Synthetic Usage Tracker"
-      },
-      {
-        "command": "syntheticUsageTracker.listKeys",
-        "title": "List All API Keys",
-        "category": "Synthetic Usage Tracker"
-      },
-      {
-        "command": "syntheticUsageTracker.resetStatistics",
-        "title": "Reset Key Statistics",
         "category": "Synthetic Usage Tracker"
       }
     ],

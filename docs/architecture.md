@@ -126,7 +126,7 @@ Manages the status bar UI:
 - ASCII progress bars using Unicode block characters (█ for filled, ░ for empty)
 - Quota warning symbols: ⚠️ for ≥80%, 🔴 for ≥90%
 - Category-specific warnings with abbreviations (T=tools, S=search, C=chat, O=other)
-- API key suffix display showing last 4 characters (format: `Key: ****x7b9`)
+- API key suffix display showing prefix, masked middle, and last 4 characters (format: `syn_********************x7b9`)
 
 ### 5. Key Manager (`config/keyManager.ts`)
 
@@ -137,6 +137,8 @@ Manages multiple API keys with labels and health tracking:
 - Monitors key usage statistics
 - Provides cross-window synchronization
 - Manages active key selection
+
+**Note**: This component is designed but not yet integrated into the extension. The multi-key architecture below is planned for future implementation.
 
 **Key Responsibilities:**
 - Secure storage of multiple API keys with labels
@@ -439,7 +441,7 @@ Three new configuration options control multi-key cycling:
 
 ### Commands
 
-Six new commands provide manual control over key management:
+Six new commands will provide manual control over key management (planned for future implementation):
 
 | Command | Description |
 |---------|-------------|
@@ -449,6 +451,8 @@ Six new commands provide manual control over key management:
 | `syntheticUsageTracker.cycleKeys` | Manually cycle to the next key |
 | `syntheticUsageTracker.listKeys` | Display all configured keys with health scores |
 | `syntheticUsageTracker.resetStatistics` | Reset usage statistics for all keys |
+
+**Note**: These commands are not yet implemented and are not visible in the command palette.
 
 ### Design Decisions
 

@@ -10,7 +10,18 @@ where patch versions start at 10000 instead of 0. This is compatible with SemVer
 
 ## Unreleased
 
-Nothing yet
+### Removed
+- Removed unimplemented multi-key commands from command palette (Add API Key, Remove API Key, Select Active Key, Cycle to Next Key, List All API Keys, Reset Key Statistics)
+- Removed unused multi-key configuration settings (enableKeyCycling, cyclingStrategy, autoCycleThreshold)
+
+### Fixed
+- Fixed API key masking to use consistent longform format with variable asterisks across all displays (tooltip, popup, copy message)
+- All displays now show format like `syn_******************x7b9` where asterisks vary based on key length
+
+### Changed
+- Copy to clipboard now exactly matches popup view with ASCII progress bars and time remaining for each category
+- Usage-related commands (Refresh, Show Details, Copy, Clear) only appear in command palette when API key is configured
+- "Show Commands" menu now shows context-appropriate commands based on API key configuration status
 
 ## [1.0.10019] - 2026-01-31
 

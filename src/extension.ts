@@ -314,7 +314,11 @@ export class SyntheticUsageTrackerExtension {
       return;
     }
 
-    const message = this.buildDetailedUsageMessage(usage);
+    // Get API key and mask it for display
+    const apiKey = await this.configManager.getApiKey();
+    const maskedKey = apiKey ? `${apiKey.substring(0, 4)}${"*".repeat(apiKey.length - 8)}${apiKey.substring(apiKey.length - 4)}` : "Not configured";
+
+    const message = this.buildDetailedUsageMessage(usage, maskedKey);
 
     // Show information message with action buttons
     const result = await vscode.window.showInformationMessage(
@@ -347,7 +351,7 @@ export class SyntheticUsageTrackerExtension {
    * Design decision: Format information consistently across all categories with
    * both the reset time, time remaining, and visual progress bars displayed for clarity.
    */
-  private buildDetailedUsageMessage(usage: APIUsageInfo): string {
+  private buildDetailedUsageMessage(usage: APIUsageInfo, maskedKey: string): string {
     const sub = usage.subscription;
     const search = usage.search;
     const toolCalls = usage.toolCalls;
@@ -376,26 +380,29 @@ export class SyntheticUsageTrackerExtension {
 
     return `### Synthetic.new Usage Details
 
-**Subscription**
+## Subscription
 Requests: ${sub.requests.toLocaleString()} / ${sub.limit.toLocaleString()} (${sub.percentageUsed.toFixed(1)}%)
 Remaining: ${sub.remaining.toLocaleString()} (${(100 - sub.percentageUsed).toFixed(1)}%)
-Renews: ${sub.renewAtString}
+Renews At: ${sub.renewAtString}
 Time Remaining: ${formatTimeRemaining(sub.renewAt)}
 ${this.usageIndicator.buildAsciiProgressBar(sub.percentageUsed)}
 
-**Search (hourly)**
+## Search (hourly)
 Requests: ${search.requests.toLocaleString()} / ${search.limit.toLocaleString()} (${search.percentageUsed.toFixed(1)}%)
 Remaining: ${search.remaining.toLocaleString()} (${(100 - search.percentageUsed).toFixed(1)}%)
-Renews: ${search.renewAtString}
+Renews At: ${search.renewAtString}
 Time Remaining: ${formatTimeRemaining(search.renewAt)}
 ${this.usageIndicator.buildAsciiProgressBar(search.percentageUsed)}
 
-**Tool Calls**
+## Tool Calls
 Requests: ${toolCalls.requests.toLocaleString()} / ${toolCalls.limit.toLocaleString()} (${toolCalls.percentageUsed.toFixed(1)}%)
 Remaining: ${toolCalls.remaining.toLocaleString()} (${(100 - toolCalls.percentageUsed).toFixed(1)}%)
-Renews: ${toolCalls.renewAtString}
+Renews At: ${toolCalls.renewAtString}
 Time Remaining: ${formatTimeRemaining(toolCalls.renewAt)}
-${this.usageIndicator.buildAsciiProgressBar(toolCalls.percentageUsed)}`;
+${this.usageIndicator.buildAsciiProgressBar(toolCalls.percentageUsed)}
+
+━━━━━━━━━━━━━━━━
+API Key: ${maskedKey}`;
   }
 
   /**
@@ -423,23 +430,14 @@ ${this.usageIndicator.buildAsciiProgressBar(toolCalls.percentageUsed)}`;
     // Prevent updates during this time, then restore with current data
     this.usageIndicator.clearTooltip(5000, true);
 
+    const hasApiKey = await this.configManager.hasApiKey();
     const isAutoRefreshEnabled = this.getIsAutoRefreshEnabled();
 
     const commands = [
       {
-        label: "$(refresh) Refresh Usage",
-        description: "Manually refresh usage data",
-        command: "syntheticUsageTracker.refresh",
-      },
-      {
         label: "$(key) Set API Key",
         description: "Configure your Synthetic.new API key",
         command: "syntheticUsageTracker.setApiKey",
-      },
-      {
-        label: "$(clear-all) Clear API Key",
-        description: "Remove the stored API key",
-        command: "syntheticUsageTracker.clearApiKey",
       },
       {
         label: "$(clock) Set Refresh Interval",
@@ -452,26 +450,43 @@ ${this.usageIndicator.buildAsciiProgressBar(toolCalls.percentageUsed)}`;
         command: "syntheticUsageTracker.toggleAutoRefresh",
       },
       {
-        label: "$(copy) Copy Usage to Clipboard",
-        description: "Copy usage information to clipboard for sharing",
-        command: "syntheticUsageTracker.copyUsage",
-      },
-      {
-        label: "$(dashboard) Open Synthetic Dashboard",
-        description: "Open billing dashboard in browser",
-        command: "syntheticUsageTracker.openDashboard",
-      },
-      {
-        label: "$(discount) Subscribe with Discount",
+        label: "$(heart-filled) Subscribe with Discount",
         description: "Get subscription with referral discount",
         command: "syntheticUsageTracker.subscribeWithDiscount",
       },
-      {
-        label: "$(info) Show Usage Details",
-        description: "Display detailed usage information",
-        command: "syntheticUsageTracker.showUsage",
-      },
     ];
+
+    // Only show usage-related commands if API key is configured
+    if (hasApiKey) {
+      commands.push(
+        {
+          label: "$(refresh) Refresh Usage",
+          description: "Manually refresh usage data",
+          command: "syntheticUsageTracker.refresh",
+        },
+        {
+          label: "$(clear-all) Clear API Key",
+          description: "Remove the stored API key",
+          command: "syntheticUsageTracker.clearApiKey",
+        },
+        {
+          label: "$(copy) Copy Usage to Clipboard",
+          description: "Copy usage information to clipboard for sharing",
+          command: "syntheticUsageTracker.copyUsage",
+        },
+        {
+          label: "$(info) Show Usage Details",
+          description: "Display detailed usage information",
+          command: "syntheticUsageTracker.showUsage",
+        }
+      );
+    }
+
+    commands.push({
+      label: "$(dashboard) Open Synthetic Dashboard",
+      description: "Open billing dashboard in browser",
+      command: "syntheticUsageTracker.openDashboard",
+    });
 
     const selected = await vscode.window.showQuickPick(commands, {
       placeHolder: "Select a Synthetic Usage Tracker command",
@@ -485,9 +500,9 @@ ${this.usageIndicator.buildAsciiProgressBar(toolCalls.percentageUsed)}`;
   /**
    * Copy usage information to clipboard
    *
-   * Design decision: Provide formatted usage information that users can easily paste
-   * into bug reports, share with team, or use for documentation. The format is plain text
-   * for maximum compatibility with other applications.
+   * Design decision: Provide formatted usage information matching the popup view exactly,
+   * including progress bars. This ensures consistency and provides users with the same
+   * detailed information that they see in the popup, suitable for sharing and documentation.
    */
   private async copyUsageToClipboard(): Promise<void> {
     if (!this.lastUsageInfo) {
@@ -497,38 +512,13 @@ ${this.usageIndicator.buildAsciiProgressBar(toolCalls.percentageUsed)}`;
 
     const usage = this.lastUsageInfo;
     
-    // Check if tooltip clearing is needed
+    // Clear tooltip temporarily
     this.usageIndicator.clearTooltip(500);
 
     const apiKey = await this.configManager.getApiKey();
-    const maskedKey = apiKey ? `${apiKey.substring(0, 4)}****${apiKey.substring(apiKey.length - 4)}` : "Not configured";
+    const maskedKey = apiKey ? `${apiKey.substring(0, 4)}${"*".repeat(apiKey.length - 8)}${apiKey.substring(apiKey.length - 4)}` : "Not configured";
 
-    const text = `Synthetic.new Usage Tracker
-=====================
-
-## Subscription
-Requests: ${usage.subscription.requests.toFixed(1)} / ${usage.subscription.limit}
-Remaining: ${(usage.subscription.limit - usage.subscription.requests).toFixed(1)}
-Percentage: ${usage.subscription.percentageUsed.toFixed(1)}%
-Renews At: ${usage.subscription.renewAt.toLocaleString()}
-Time Remaining: ${this.calculateTimeRemainingString(usage.subscription.renewAt)}
-
-## Search (Hourly)
-Requests: ${usage.search.requests.toFixed(1)} / ${usage.search.limit}
-Remaining: ${(usage.search.limit - usage.search.requests).toFixed(1)}
-Percentage: ${usage.search.percentageUsed.toFixed(1)}%
-Renews At: ${usage.search.renewAt.toLocaleString()}
-Time Remaining: ${this.calculateTimeRemainingString(usage.search.renewAt)}
-
-## Tool Calls
-Requests: ${usage.toolCalls.requests.toFixed(1)} / ${usage.toolCalls.limit}
-Remaining: ${(usage.toolCalls.limit - usage.toolCalls.requests).toFixed(1)}
-Percentage: ${usage.toolCalls.percentageUsed.toFixed(1)}%
-Renews At: ${usage.toolCalls.renewAt.toLocaleString()}
-Time Remaining: ${this.calculateTimeRemainingString(usage.toolCalls.renewAt)}
-
-API Key: ${maskedKey}
-Timestamp: ${new Date().toISOString()}`;
+    const text = this.buildDetailedUsageMessage(usage, maskedKey) + `\nTimestamp: ${new Date().toISOString()}`;
 
     try {
       await vscode.env.clipboard.writeText(text);
@@ -536,34 +526,6 @@ Timestamp: ${new Date().toISOString()}`;
     } catch (error) {
       vscode.window.showErrorMessage("Failed to copy to clipboard: " + (error instanceof Error ? error.message : "Unknown error"));
     }
-  }
-
-  /**
-   * Calculate human-readable time remaining string
-   *
-   * Design decision: Provides easy-to-understand time calculations
-   * in the same format as the tooltip for consistency across the extension.
-   */
-  private calculateTimeRemainingString(renewAt: Date): string {
-    const now = new Date();
-    const diffMs = renewAt.getTime() - now.getTime();
-
-    if (diffMs <= 0) {
-      return "Now";
-    }
-
-    const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-    const seconds = Math.floor((diffMs % (1000 * 60)) / 1000);
-
-    const parts: string[] = [];
-    if (days > 0) parts.push(`${days}d`);
-    if (hours > 0) parts.push(`${hours}h`);
-    if (minutes > 0) parts.push(`${minutes}m`);
-    if (seconds > 0) parts.push(`${seconds}s`);
-
-    return parts.join(" ") + " from now";
   }
 
   /**

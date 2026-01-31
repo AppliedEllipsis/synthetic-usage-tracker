@@ -26,7 +26,8 @@ A VSCode extension that monitors your Synthetic.new API usage and quotas directl
 - **Secure Storage**: API keys are stored securely using VSCode SecretStorage
 - **Configurable Thresholds**: Set custom warning and critical usage percentages
 - **Quick Actions**: Refresh, set interval, configure, and view details from the command palette or status bar
-- **Copy to Clipboard**: Quickly copy formatted usage information for sharing or bug reports
+- **Copy to Clipboard**: Quickly copy formatted usage information (with progress bars) matching the popup view for sharing or bug reports
+- **Context-Aware Commands**: Usage-related commands only appear when API key is configured
 - **Intelligent Tooltip Management**: Tooltips temporarily clear on user interactions and auto-restore
 - **Silent Launch**: Extension launches silently without auto-showing popups
 - **Smart Refresh Button**: Reloads popup content when clicked instead of closing
@@ -124,17 +125,27 @@ The extension displays a maximum of 2 category warnings and 3 total symbols to k
 
 ### API Key Suffix Display
 
-The tooltip shows the last 4 characters of your active API key for easy identification:
+The tooltip shows a masked version of your API key for easy identification:
 
 ```
-Key: ****x7b9
+API Key: syn_******************x7b9
 ```
 
-This helps you quickly verify which API key is currently active without revealing the full key.
+This displays your API key with the prefix (`syn_`) and last 4 characters, with the middle masked with asterisks. The number of asterisks varies based on the key length. This helps you quickly verify which API key is currently active without revealing the full key.
+
+**Format**: `syn_****...****abcd` where:
+- `syn_` is the API key prefix
+- `****` is variable-length asterisk mask (key length - 8 characters)
+- `abcd` are the last 4 characters of your key
+
+**Example lengths**:
+- 12-character key: `syn_****abcd` (4 asterisks)
+- 20-character key: `syn_************abcd` (12 asterisks)
+- 40-character key: `syn_************************abcd` (32 asterisks)
 
 **Edge cases handled**:
 - Missing or undefined API keys: Shows "Key: Not configured"
-- Short API keys (< 4 characters): Shows available characters with asterisks
+- Short API keys (< 8 characters): Shows available characters with asterisks
 
 ### Custom Font Icons
 
@@ -199,17 +210,19 @@ The extension can be configured through VSCode settings:
 
 ## Commands
 
-| Command                                             | Description                                      |
-| --------------------------------------------------- | ------------------------------------------------ |
-| `Synthetic Usage Tracker: Refresh Usage`            | Manually refresh the usage data                  |
-| `Synthetic Usage Tracker: Configure API Key`        | Configure or update your API key                 |
-| `Synthetic Usage Tracker: Show Usage Details`       | Display detailed usage information with action buttons |
-| `Synthetic Usage Tracker: Toggle Auto-Refresh`      | Enable or disable automatic refresh (shows current state in menu) |
-| `Synthetic Usage Tracker: Set Refresh Interval`       | Set auto-refresh interval (30s-30min, accepts `60` seconds or `5min`) |
-| `Synthetic Usage Tracker: Copy Usage to Clipboard` | Copy formatted usage information to clipboard |
-| `Synthetic Usage Tracker: Clear API Key`           | Remove the stored API key                         |
-| `Synthetic Usage Tracker: Open Synthetic Dashboard` | Open the Synthetic.new dashboard in your browser |
-| `Synthetic Usage Tracker: Subscribe with Discount` | Subscribe with referral bonus credits ($10 standard, $20 pro) |
+| Command                                             | Description                                      | Availability          |
+| --------------------------------------------------- | ------------------------------------------------ | --------------------- |
+| `Synthetic Usage Tracker: Set API Key`              | Configure or update your API key                 | Always                |
+| `Synthetic Usage Tracker: Set Refresh Interval`     | Set auto-refresh interval (30s-30min, accepts `60` seconds or `5min`) | Always                |
+| `Synthetic Usage Tracker: Toggle Auto-Refresh`      | Enable or disable automatic refresh (shows current state in menu) | Always                |
+| `Synthetic Usage Tracker: Subscribe with Discount` | Subscribe with referral bonus credits ($10 standard, $20 pro) | Always                |
+| `Synthetic Usage Tracker: Open Synthetic Dashboard` | Open the Synthetic.new dashboard in your browser | Always                |
+| `Synthetic Usage Tracker: Refresh Usage`            | Manually refresh the usage data                  | API key configured ⚠️ |
+| `Synthetic Usage Tracker: Show Usage Details`       | Display detailed usage information with action buttons | API key configured ⚠️ |
+| `Synthetic Usage Tracker: Copy Usage to Clipboard`  | Copy formatted usage information to clipboard (with progress bars) | API key configured ⚠️ |
+| `Synthetic Usage Tracker: Clear API Key`            | Remove the stored API key                        | API key configured ⚠️ |
+
+⚠️ Commands marked with this icon only appear in the command palette and "Show Commands" menu when an API key is configured.
 
 ## Development
 

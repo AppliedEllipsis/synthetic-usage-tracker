@@ -4,6 +4,97 @@ This file maintains context across AI agent sessions by tracking queries, curren
 
 ## Query History
 
+### [2026-01-31 12:30 UTC] - Query: Remove unimplemented commands and hide usage commands when API key not configured
+
+**Query**: "if api key not configured the commands should not show up. also if the cycle commands and multi key commands aren't implmeneted, they should be removed from the command pallet"
+
+**Context**: User noted that cycle commands and multi-key commands are declared in package.json but not implemented. These should be removed from the command palette to avoid confusion. Additionally, commands that require an API key should only appear when a key is configured.
+
+**Outcome**: Completed - Removed unimplemented commands and added conditional display
+
+**Changes Made**:
+
+**Removed from package.json**:
+- Commands: `addKey`, `removeKey`, `selectKey`, `cycleKeys`, `listKeys`, `resetStatistics`
+- Config settings: `enableKeyCycling`, `cyclingStrategy`, `autoCycleThreshold`
+
+**Updated `showCommands()` method in extension.ts**:
+- Added `hasApiKey` check to conditionally display usage-related commands
+- Always displayed commands (no API key needed):
+  - Set API Key
+  - Set Refresh Interval
+  - Toggle Auto-Refresh
+  - Subscribe with Discount
+  - Open Synthetic Dashboard
+- Conditional commands (API key required):
+  - Refresh Usage
+  - Clear API Key
+  - Copy Usage to Clipboard
+  - Show Usage Details
+
+**Updated Documentation**:
+- README.md - Added availability column to Commands table, noted context-aware commands
+- CHANGELOG.md - Added Removed and Changed sections documenting the cleanup
+- docs/architecture.md - Added notes that multi-key features are planned but not implemented
+- docs/README.md - Added status column showing implementation status
+
+**Files Modified**:
+1. `package.json` - Removed 6 commands and 3 config settings
+2. `src/extension.ts` - Updated showCommands() with conditional display logic
+3. `README.md` - Updated Commands table with availability information
+4. `CHANGELOG.md` - Documented removed commands and changes
+5. `docs/architecture.md` - Added implementation status notes
+6. `docs/README.md` - Added status column to documentation table
+
+**Code Quality**: TypeScript compilation: Success ✅, ESLint: No errors ✅
+
+---
+
+### [2026-01-31 12:15 UTC] - Query: Make copy to clipboard match popup view exactly with progress bars
+
+**Query**: "copy should have progress bars and be exactly like the popup view"
+
+**Context**: User requested that the copy to clipboard functionality include progress bars and format exactly like the popup view for consistency.
+
+**Outcome**: Completed - Copy to clipboard now uses buildDetailedUsageMessage() method
+
+**Fix Details**:
+- Modified `copyUsageToClipboard()` method in `src/extension.ts` (lines 498-537)
+- Now uses `buildDetailedUsageMessage()` method to generate text, matching popup view format exactly
+- Includes ASCII progress bars, time remaining, and all category details
+- Removed old custom format code and unused `calculateTimeRemainingString()` method
+- Copy now identical to popup view plus a timestamp for documentation purposes
+- TypeScript compilation: Success ✅
+- ESLint: No errors ✅
+
+**Files Modified**:
+1. `src/extension.ts` - Updated copyUsageToClipboard() to reuse buildDetailedUsageMessage(), removed calculateTimeRemainingString()
+
+---
+
+### [2026-01-31 12:00 UTC] - Query: Fix API key masking consistency across all displays
+
+**Query**: "@agents.min.md the api key shown in the status bar tooltip is longform and should be shortform like the popup and copy message." (later corrected: API keys should be in longform everywhere, but mask the same)
+
+**Context**: User initially reported inconsistency between displays, then clarified that all displays (tooltip, popup, copy message) should use the same longform format with variable asterisks based on key length.
+
+**Outcome**: Completed - All displays now use consistent longform format with variable asterisks
+
+**Fix Details**:
+- Restored `maskApiKey()` method in `src/statusBar/usageIndicator.ts` to use longform: `syn_******************x7b9` (variable asterisks)
+- Updated mask in `extension.ts` `showUsageDetailsInternal()` (line 319) to use longform format
+- Updated mask in `extension.ts` `copyUsageToClipboard()` (line 511) to use longform format
+- Format: First 4 chars + asterisks (key length - 8) + last 4 chars
+- Example: 20-char key → `syn_************abcd` (12 asterisks), 40-char key → `syn_************************abcd` (32 asterisks)
+- TypeScript compilation: Success ✅
+- ESLint: No errors ✅
+
+**Files Modified**:
+1. `src/statusBar/usageIndicator.ts` - Restored longform maskApiKey()
+2. `src/extension.ts` - Updated masking in showUsageDetailsInternal() and copyUsageToClipboard()
+
+---
+
 ### [2026-01-31 09:00 UTC] - Query: Migrate to extended versioning format (X.Y.10000+)
 
 **Query**: "versioning should become X.Y.10000 as the starting point format and it increments patch by 1 at the end of it. go ahead and use that to pad the current versioning and we are going to migrate it up and do the same with file naming provided this is compatiable with vscode and open vsx marketplaces and everything. but lets make this new version 1.0.10016"
@@ -400,13 +491,13 @@ Tasks:
 
 ## Current Focus
 
-### Last Query: Release v1.0.10019
-**Time**: 2026-01-31T09:31:53.440Z
-**Summary**: Version v1.0.10019 released with changes: Version bump only
-**Context**: Release completed via buildrelease workflow. Version bumped, compiled, packaged, and moved to releases/ directory.
-**Planning**: All tasks completed for v1.0.10019. Ready for next iteration.
+### Last Query: Remove unimplemented commands and hide usage commands when API key not configured
+**Time**: 2026-01-31T12:30:00.000Z
+**Summary**: Removed unimplemented multi-key commands from package.json, removed unused multi-key config settings, updated showCommands() to only show usage-related commands when API key is configured
+**Context**: User noted that cycle commands and multi-key commands aren't implemented and should be removed from command palette. Also requested that commands requiring an API key should not show up when API key is not configured.
+**Planning**: Removed 6 unimplemented commands (addKey, removeKey, selectKey, cycleKeys, listKeys, resetStatistics), removed 3 unused config settings, updated showCommands() with conditional display based on hasApiKey status
 **Remaining Items**:
-- None for this release - all changes verified and documented
+- None - cleanup complete and verified
  Sub-tasks Tracking
 
 | #   | Sub-task                                             | Status      | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                  |

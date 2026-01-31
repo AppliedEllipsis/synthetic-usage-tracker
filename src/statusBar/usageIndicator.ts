@@ -190,27 +190,16 @@ export class UsageIndicator {
     tooltip += this.buildCategoryTooltip("Tool Calls", toolCalls);
 
     // Add masked API key at the bottom for identification
-    tooltip += `---\n**Key:** ${maskedKey}`;
+    tooltip += `━━━━━━━━━━━━━━━━\nAPI Key: ${maskedKey}`;
 
     return tooltip;
   }
 
-  /**
-   * Mask API key by showing only prefix and last 4 characters
-   *
-   * Security decision: Mask the API key to prevent accidental exposure in tooltips
-   * while still allowing users to identify which key is being used. The format is
-   * "syn_****abcd" where "syn_" is the prefix and "abcd" are the last 4 characters.
-   *
-   * Design rationale: Users often have multiple API keys and need to verify which
-   * one is active. Showing the last 4 characters provides enough information for
-   * identification without compromising security.
-   */
   private maskApiKey(apiKey: string): string {
     if (!apiKey || apiKey.length < 8) {
       return "****";
     }
-    const prefix = apiKey.substring(0, 4); // Typically "syn_"
+    const prefix = apiKey.substring(0, 4);
     const lastFour = apiKey.slice(-4);
     const maskedMiddle = "*".repeat(apiKey.length - 8);
     return `${prefix}${maskedMiddle}${lastFour}`;
@@ -228,10 +217,10 @@ export class UsageIndicator {
     const percentageRemaining = (100 - category.percentageUsed).toFixed(1);
     const timeRemaining = this.calculateTimeRemaining(category.renewAt);
 
-    let section = `**${name}**\n`;
+    let section = `## ${name}\n`;
     section += `Requests: ${category.requests.toLocaleString()} / ${category.limit.toLocaleString()} (${percentageUsed}%)\n`;
     section += `Remaining: ${category.remaining.toLocaleString()} (${percentageRemaining}%)\n`;
-    section += `Renews: ${category.renewAtString}\n`;
+    section += `Renews At: ${category.renewAtString}\n`;
     section += `Time Remaining: ${timeRemaining}\n`;
     section += `${this.buildAsciiProgressBar(category.percentageUsed)}\n\n`;
 
@@ -254,7 +243,6 @@ export class UsageIndicator {
 
     const hours = Math.floor(diffMs / (1000 * 60 * 60));
     const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-    const seconds = Math.floor((diffMs % (1000 * 60)) / 1000);
 
     // Handle different time scales for better readability
     if (hours >= 24) {
@@ -264,9 +252,9 @@ export class UsageIndicator {
     } else if (hours > 0) {
       return `${hours}h ${minutes}m from now`;
     } else if (minutes > 0) {
-      return `${minutes}m ${seconds}s from now`;
+      return `${minutes}m from now`;
     } else {
-      return `${seconds}s from now`;
+      return "now";
     }
   }
 
