@@ -4,6 +4,11 @@ This guide provides comprehensive instructions for AI agents working on the Synt
 
 ## Table of Contents
 
+- [Memory System Workflow](#memory-system-workflow)
+  - [Overview](#overview)
+  - [MEMORY.md Structure](#memorymd-structure)
+  - [When to Update MEMORY.md](#when-to-update-memorymd)
+  - [Query Documentation Guidelines](#query-documentation-guidelines)
 - [Build Instructions](#build-instructions)
   - [Release Workflow](#release-workflow)
 - [Incremental Development Approach](#incremental-development-approach)
@@ -11,6 +16,197 @@ This guide provides comprehensive instructions for AI agents working on the Synt
 - [Coding Practices](#coding-practices)
 - [Memory and Decision Logic](#memory-and-decision-logic)
 - [Project-Specific Guidelines](#project-specific-guidelines)
+
+---
+
+## Memory System Workflow
+
+### Overview
+
+The project includes a **Query Memory & Task Tracking** system to maintain context across AI agent sessions. This system helps track work progress, remember important decisions, and provide continuity between different user interactions.
+
+**Key File**: [`MEMORY.md`](MEMORY.md) - Located at the project root
+
+**Purpose**: 
+- Maintain context across multiple AI agent sessions
+- Track progress on ongoing tasks and sub-tasks
+- Document query history (sanitized of sensitive information)
+- Provide quick reference for commonly used information
+- Enable smooth handoffs between different AI sessions
+
+### MEMORY.md Structure
+
+The [`MEMORY.md`](MEMORY.md) file is organized into four main sections:
+
+#### 1. Query History
+Chronological list of all queries made to the agent, with:
+- Timestamp in ISO 8601 UTC format
+- Short descriptive title for each query
+- Full query text (sanitized - no sensitive info)
+- Context at the time of the query
+- Outcome or status
+
+**Important**: Always sanitize sensitive information before documenting:
+- API keys → `[API_KEY]`
+- Personal emails → `[USER_EMAIL]`
+- Credentials → `[CREDENTIAL]`
+- URLs with sensitive data → `[SENSITIVE_URL]`
+- File paths with personal info → `[PERSONAL_PATH]`
+
+#### 2. Current Focus
+Details about the most recent or ongoing work:
+- Last query title and timestamp
+- Summary of what was being worked on
+- Context needed to continue
+- Planning or considerations
+- Remaining items as a checklist
+
+#### 3. Sub-tasks Tracking
+Table format tracking active sub-tasks:
+| # | Sub-task | Status | Notes |
+|---|----------|--------|-------|
+| 1 | Description | [Pending/In Progress/Complete] | Additional info |
+
+#### 4. Quick Reference
+Commonly referenced information:
+- **Critical Files**: Key files with their purposes
+- **Common Commands**: Frequently used commands
+- **Configuration Storage**: Where sensitive data is stored
+- **Extension Commands**: Available VSCode commands
+- **API Endpoints**: Service endpoints
+- **Status Bar States**: Display state enumerations
+- **Memory System Usage**: Guidelines for using the memory system
+
+### When to Update MEMORY.md
+
+Update [`MEMORY.md`](MEMORY.md) in the following scenarios:
+
+1. **Beginning a New Query Session**
+   - Read the Current Focus section to understand what was previously being worked on
+   - Review Sub-tasks Tracking to see if any tasks are in progress
+   - Check if the new query relates to previous work
+
+2. **During Query Processing**
+   - Add the new query to Query History (sanitized)
+   - Update Current Focus with the current work summary
+   - Add sub-tasks to Sub-tasks Tracking as they are identified
+
+3. **Completing Sub-tasks**
+   - Update status in Sub-tasks Tracking table
+   - Add relevant notes about the completion
+   - Update Current Focus if the context has changed
+
+4. **Finishing a Query**
+   - Update Outcome in Query History
+   - Clear or update Current Focus section
+   - Mark completed sub-tasks as "Complete"
+   - Update Quick Reference if new information was learned
+
+5. **Learning New Information**
+   - Add to Quick Reference section if it's commonly referenced
+   - Update relevant sections with new insights
+
+### Query Documentation Guidelines
+
+When documenting queries in [`MEMORY.md`](MEMORY.md):
+
+#### Sanitization Rules
+**ALWAYS** replace sensitive information with placeholders:
+```markdown
+# Bad - Contains actual sensitive data
+**Query**: "My API key is syn_abc123xyz789 and I'm having trouble"
+
+# Good - Sanitized
+**Query**: "My API key is [API_KEY] and I'm having trouble"
+```
+
+#### Query Entry Format
+```markdown
+### [YYYY-MM-DD HH:MM UTC] - Query: Short descriptive title
+**Query**: Sanitized query text
+**Context**: Any relevant context at the time (environment, previous state, etc.)
+**Outcome**: Result or status (e.g., "Completed", "In Progress", "Blocked")
+```
+
+#### Current Focus Format
+```markdown
+### Last Query: [Same title as above]
+**Time**: [timestamp]
+**Summary**: Brief but detailed summary of what was being worked on
+**Context**: What was needed to continue (files to read, commands to run, etc.)
+**Planning**: What was planned or being considered (implementation approach, alternatives)
+**Remaining Items**: Checklist of incomplete items or next steps
+- [ ] Item 1
+- [ ] Item 2
+```
+
+#### Sub-task Status Values
+Use one of these status values:
+- **Pending**: Not started yet
+- **In Progress**: Currently being worked on
+- **Complete**: Finished successfully
+- **Blocked**: Waiting on something (e.g., user input, external dependency)
+
+#### Quick Reference Guidelines
+Add items to Quick Reference when:
+- You find yourself looking up the same information repeatedly
+- New files are created that are frequently referenced
+- New commands are used often
+- Configuration or architecture patterns emerge
+
+### Memory System Workflow Example
+
+**Scenario: Agent starts a new session**
+
+1. **Read MEMORY.md**:
+   - Check "Current Focus" to see what was last being worked on
+   - Review "Sub-tasks Tracking" for any in-progress tasks
+   - Scan "Query History" for recent related queries
+
+2. **Process New Query**:
+   - Add query to "Query History" section (sanitized)
+   - Update "Current Focus" with new work context
+   - Create sub-tasks in "Sub-tasks Tracking" table
+
+3. **During Work**:
+   - Update sub-task statuses as work progresses
+   - Add notes to sub-tasks for important findings
+   - Update "Current Focus" as context changes
+
+4. **Complete Query**:
+   - Update query "Outcome" in Query History
+   - Mark completed sub-tasks as "Complete"
+   - Clear or update "Current Focus" for next session
+
+### Integration with Other Documentation
+
+The memory system works alongside other documentation:
+
+- [`CHANGELOG.md`](CHANGELOG.md): Tracks released changes and version history
+- [`docs/`](docs/): Technical documentation and architecture decisions
+- [`agents.md`](agents.md): This guide - development workflow and coding standards
+- [`MEMORY.md`](MEMORY.md): Session context and task tracking
+
+**Key Difference**:
+- [`CHANGELOG.md`](CHANGELOG.md) is for **released** changes (git-tagged versions)
+- [`MEMORY.md`](MEMORY.md) is for **session context** and ongoing work (not versioned)
+
+### Security Considerations
+
+The memory system handles potentially sensitive information:
+
+1. **Never include real credentials** in [`MEMORY.md`](MEMORY.md)
+2. **Always sanitize** API keys, tokens, and secrets
+3. **Use placeholders** consistently: `[API_KEY]`, `[USER_EMAIL]`, etc.
+4. **Review before committing** to ensure no sensitive data was accidentally included
+
+### Best Practices
+
+1. **Keep it current**: Update [`MEMORY.md`](MEMORY.md) as you work, not just at the end
+2. **Be concise**: Summaries should be brief but informative
+3. **Be accurate**: Only document what actually happened or is planned
+4. **Use links**: Reference specific files with markdown links (e.g., [`src/extension.ts`](src/extension.ts))
+5. **Clean up**: Remove outdated sub-tasks and old Current Focus entries regularly
 
 ---
 
