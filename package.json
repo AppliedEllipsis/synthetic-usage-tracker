@@ -158,6 +158,12 @@
       {
         "command": "syntheticUsageTracker.subscribeWithDiscount",
         "title": "Subscribe with Discount",
+        "category": "Synthetic Usage Tracker",
+        "icon": "$(star)"
+      },
+      {
+        "command": "syntheticUsageTracker.setRefreshInterval",
+        "title": "Set Refresh Interval",
         "category": "Synthetic Usage Tracker"
       },
       {

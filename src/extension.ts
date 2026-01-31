@@ -126,6 +126,13 @@ export class SyntheticUsageTrackerExtension {
       () => this.copyUsageToClipboard(),
     );
     this.context.subscriptions.push(copyUsageCommand);
+
+    // Set refresh interval command
+    const setRefreshIntervalCommand = vscode.commands.registerCommand(
+      "syntheticUsageTracker.setRefreshInterval",
+      () => this.setRefreshInterval(),
+    );
+    this.context.subscriptions.push(setRefreshIntervalCommand);
   }
 
   /**
@@ -428,6 +435,11 @@ ${this.usageIndicator.buildAsciiProgressBar(toolCalls.percentageUsed)}`;
         command: "syntheticUsageTracker.clearApiKey",
       },
       {
+        label: "$(clock) Set Refresh Interval",
+        description: "Change auto-refresh interval (30s-30min)",
+        command: "syntheticUsageTracker.setRefreshInterval",
+      },
+      {
         label: isAutoRefreshEnabled ? "$(circle-slash) Disable Auto-Refresh" : "$(play) Enable Auto-Refresh",
         description: isAutoRefreshEnabled ? "Turn off automatic refresh" : "Turn on automatic refresh",
         command: "syntheticUsageTracker.toggleAutoRefresh",
@@ -545,6 +557,83 @@ Timestamp: ${new Date().toISOString()}`;
     if (seconds > 0) parts.push(`${seconds}s`);
 
     return parts.join(" ") + " from now";
+  }
+
+  /**
+   * Set refresh interval with validation
+   *
+   * Design decision: Accepts both seconds (as number) or minutes with 'min' suffix.
+   * Minimum 30 seconds, maximum 30 minutes. Only whole numbers accepted.
+   * Spaces in 'min' format are ignored for user convenience.
+   */
+  private async setRefreshInterval(): Promise<void> {
+    const input = await vscode.window.showInputBox({
+      prompt: "Set refresh interval",
+      placeHolder: "e.g., 60 (seconds) or 5min (5 minutes)",
+      validateInput: (value) => {
+        if (!value || value.trim().length === 0) {
+          return "Value cannot be empty";
+        }
+
+        // Remove all spaces from input (to handle "5 min" type formats)
+        const sanitized = value.replace(/\s+/g, '');
+        
+        let seconds: number | null = null;
+
+        // Check if it ends with 'min' (case-insensitive)
+        const minMatch = sanitized.match(/^(\d+)min$/i);
+        if (minMatch && minMatch[1]) {
+          seconds = parseInt(minMatch[1], 10) * 60; // Convert minutes to seconds
+        } else {
+          // Try to parse as plain seconds (must be a whole number)
+          const numMatch = sanitized.match(/^\d+$/);
+          if (numMatch) {
+            seconds = parseInt(sanitized, 10);
+          }
+        }
+
+        if (seconds === null) {
+          return "Invalid format. Use seconds (e.g., 60) or minutes with 'min' (e.g., 5min)";
+        }
+
+        if (seconds < 30) {
+          return "Minimum interval is 30 seconds";
+        }
+
+        if (seconds > 1800) {
+          return "Maximum interval is 30 minutes (1800 seconds)";
+        }
+
+        return null;
+      },
+    });
+
+    if (!input) {
+      return; // User cancelled
+    }
+
+    // Parse and validate the input (same logic as validateInput)
+    const sanitized = input.replace(/\s+/g, '');
+    let seconds: number;
+
+    if (sanitized.match(/^\d+min$/i)) {
+      seconds = parseInt(sanitized.replace(/min$/i, ''), 10) * 60;
+    } else {
+      seconds = parseInt(sanitized, 10);
+    }
+
+    // Update the configuration
+    const config = vscode.workspace.getConfiguration("syntheticUsageTracker");
+    await config.update("refreshInterval", seconds, vscode.ConfigurationTarget.Global);
+
+    const minutes = Math.round(seconds / 60 * 10) / 10; // Round to 1 decimal place
+    vscode.window.showInformationMessage(`✓ Refresh interval set to ${seconds} seconds (${minutes} min)`);
+
+    // Restart auto-refresh with new interval if enabled
+    if (this.getIsAutoRefreshEnabled()) {
+      this.usageIndicator.stopAutoRefresh();
+      this.usageIndicator.startAutoRefresh(seconds, () => this.refreshUsage());
+    }
   }
 
   /**
