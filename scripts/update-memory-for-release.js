@@ -84,9 +84,11 @@ try {
     console.log(`   - ${fileChanges.length} file${fileChanges.length !== 1 ? 's' : ''} changed`);
     console.log(`   - ${changeNotes}`);
   } else {
-    changeNotes = 'Initial release';
-    console.log('   - No previous tag found, treating as initial release');
+    changeNotes = 'Version bump only';
+    console.log('   - No previous tag found, treating as simple version bump');
   }
+
+  console.log(`\n📝 Change notes: ${changeNotes}`);
 
   // Read the memory file
   let content = fs.readFileSync(memoryFile, 'utf8');
@@ -111,7 +113,7 @@ try {
   // Create the new sub-task entry with actual changes
   const newTaskNumber = lastTaskNumber + 1;
   const date = new Date().toISOString().split('T')[0];
-  const notes = `Release v${version} - ${changeNotes}${latestTag ? ` (since ${latestTag})` : ''}`;
+  const notes = `Release v${version} - ${changeNotes}${previousTag ? ` (since ${previousTag})` : ''}`;
   const newTaskEntry = `| ${newTaskNumber}   | Release v${version}                                   | Complete    | ${notes} |`;
 
   // Insert the new task entry before the divider line
