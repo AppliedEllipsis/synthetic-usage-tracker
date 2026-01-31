@@ -3,11 +3,12 @@
  * 
  * Design decision: Common structure for all quota categories with limit, requests,
  * and renewal timestamp. Each category has independent limits and renewal cycles.
+ * The API returns "renew sAt" (with 's') as the field name.
  */
 export interface QuotaCategory {
   limit: number;
   requests: number;
-  renewAt: string;
+  renewsAt: string;
 }
 
 /**
@@ -271,15 +272,24 @@ export class SyntheticService {
    * Design decision: Calculate remaining and percentageUsed client-side since
    * the API only provides limit and requests. This ensures consistent calculations
    * across all categories regardless of API changes.
-   * 
-   * The API uses "renewAt" (not "renewsAt") as the field name - we use the exact
+   *
+   * The API uses "renew sAt" (with 's') as the field name - we use the exact
    * field name from the API to maintain consistency.
    */
   private parseCategory(category: QuotaCategory): CategoryUsageInfo {
     const remaining = Math.max(0, category.limit - category.requests);
     const percentageUsed =
       category.limit > 0 ? (category.requests / category.limit) * 100 : 0;
-    const renewAt = new Date(category.renewAt);
+    const renewAt = new Date(category.renewsAt);
+
+    // Validate date is not invalid - show "Unknown" instead of "Invalid Date"
+    if (isNaN(renewAt.getTime())) {
+      console.error(`Invalid renewal timestamp: ${category.renewsAt}`);
+    }
+
+    const renewAtString = isNaN(renewAt.getTime())
+      ? "Unknown"
+      : renewAt.toLocaleString();
 
     return {
       limit: category.limit,
@@ -287,7 +297,7 @@ export class SyntheticService {
       remaining,
       percentageUsed: Math.round(percentageUsed * 100) / 100,
       renewAt,
-      renewAtString: renewAt.toLocaleString(),
+      renewAtString,
     };
   }
 

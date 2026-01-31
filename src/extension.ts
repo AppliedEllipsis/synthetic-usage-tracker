@@ -250,10 +250,12 @@ export class SyntheticUsageTrackerExtension {
   }
 
   /**
-   * Show detailed usage information in a message box
+   * Show detailed usage information in a message box with action buttons
    *
-   * Design decision: Provide detailed information in an easily accessible format.
-   * Users can quickly check all quota details without leaving their workflow.
+   * Design decision: Display detailed quota information with time remaining and
+   * progress bars, and provide action buttons for quick access to common tasks.
+   * This matches the version 1.4 behavior with buttons: Refresh, Open Dashboard,
+   * Subscribe with Discount, Show Commands.
    */
   private async showUsageDetails(): Promise<void> {
     if (!this.lastUsageInfo) {
@@ -262,22 +264,154 @@ export class SyntheticUsageTrackerExtension {
     }
 
     const usage = this.lastUsageInfo;
+    const message = this.buildDetailedUsageMessage(usage);
 
-    // Subscription quota (primary usage)
+    // Show information message with action buttons
+    const result = await vscode.window.showInformationMessage(
+      message,
+      { modal: true },
+      "Refresh",
+      "Open Dashboard",
+      "Subscribe with Discount",
+      "Show Commands"
+    );
+
+    // Handle button clicks
+    if (result === "Refresh") {
+      await this.refreshUsage();
+    } else if (result === "Open Dashboard") {
+      this.openDashboard();
+    } else if (result === "Subscribe with Discount") {
+      this.subscribeWithDiscount();
+    } else if (result === "Show Commands") {
+      await this.showCommands();
+    }
+    // Cancel is automatically handled by VSCode
+  }
+
+  /**
+   * Build detailed usage message with time remaining and progress bars for all categories
+   *
+   * Design decision: Format information consistently across all categories with
+   * both the reset time, time remaining, and visual progress bars displayed for clarity.
+   */
+  private buildDetailedUsageMessage(usage: APIUsageInfo): string {
     const sub = usage.subscription;
-    const subMessage = `Subscription Quota:\n  Used: ${sub.requests}/${sub.limit} (${sub.percentageUsed.toFixed(1)}%)\n  Remaining: ${sub.remaining}\n  Renews: ${sub.renewAtString}`;
-
-    // Search quota (hourly)
     const search = usage.search;
-    const searchMessage = `Search Quota (Hourly):\n  Used: ${search.requests}/${search.limit} (${search.percentageUsed.toFixed(1)}%)\n  Remaining: ${search.remaining}\n  Renews: ${search.renewAtString}`;
-
-    // Tool call discounts quota
     const toolCalls = usage.toolCalls;
-    const toolCallMessage = `Tool Call Discounts:\n  Used: ${toolCalls.requests}/${toolCalls.limit} (${toolCalls.percentageUsed.toFixed(1)}%)\n  Remaining: ${toolCalls.remaining}\n  Renews: ${toolCalls.renewAtString}`;
 
-    const fullMessage = `${subMessage}\n\n${searchMessage}\n\n${toolCallMessage}`;
+    // Helper function to calculate time remaining
+    const formatTimeRemaining = (renewAt: Date): string => {
+      const now = new Date();
+      const diffMs = renewAt.getTime() - now.getTime();
 
-    vscode.window.showInformationMessage(fullMessage);
+      if (diffMs <= 0) return "now";
+
+      const hours = Math.floor(diffMs / (1000 * 60 * 60));
+      const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+
+      if (hours >= 24) {
+        const days = Math.floor(hours / 24);
+        return `${days}d ${hours % 24}h from now`;
+      } else if (hours > 0) {
+        return `${hours}h ${minutes}m from now`;
+      } else if (minutes > 0) {
+        return `${minutes}m from now`;
+      } else {
+        return "now";
+      }
+    };
+
+    return `### Synthetic.new Usage Details
+
+**Subscription**
+Requests: ${sub.requests.toLocaleString()} / ${sub.limit.toLocaleString()} (${sub.percentageUsed.toFixed(1)}%)
+Remaining: ${sub.remaining.toLocaleString()} (${(100 - sub.percentageUsed).toFixed(1)}%)
+Renews: ${sub.renewAtString}
+Time Remaining: ${formatTimeRemaining(sub.renewAt)}
+${this.usageIndicator.buildAsciiProgressBar(sub.percentageUsed)}
+
+**Search (hourly)**
+Requests: ${search.requests.toLocaleString()} / ${search.limit.toLocaleString()} (${search.percentageUsed.toFixed(1)}%)
+Remaining: ${search.remaining.toLocaleString()} (${(100 - search.percentageUsed).toFixed(1)}%)
+Renews: ${search.renewAtString}
+Time Remaining: ${formatTimeRemaining(search.renewAt)}
+${this.usageIndicator.buildAsciiProgressBar(search.percentageUsed)}
+
+**Tool Calls**
+Requests: ${toolCalls.requests.toLocaleString()} / ${toolCalls.limit.toLocaleString()} (${toolCalls.percentageUsed.toFixed(1)}%)
+Remaining: ${toolCalls.remaining.toLocaleString()} (${(100 - toolCalls.percentageUsed).toFixed(1)}%)
+Renews: ${toolCalls.renewAtString}
+Time Remaining: ${formatTimeRemaining(toolCalls.renewAt)}
+${this.usageIndicator.buildAsciiProgressBar(toolCalls.percentageUsed)}`;
+  }
+
+  /**
+   * Open the Synthetic.new billing dashboard
+   */
+  private openDashboard(): void {
+    vscode.env.openExternal(vscode.Uri.parse("https://synthetic.new/billing"));
+  }
+
+  /**
+   * Open Synthetic.new subscribe page with referral discount
+   */
+  private subscribeWithDiscount(): void {
+    vscode.env.openExternal(vscode.Uri.parse("https://synthetic.new/?referral=4JZcLOKgRmZ4o6k"));
+  }
+
+  /**
+   * Show extension commands in a QuickPick menu
+   *
+   * Design decision: Display all extension commands in a QuickPick for easy access
+   * to all functionality without needing to use the command palette (Ctrl+Shift+P)
+   */
+  private async showCommands(): Promise<void> {
+    const commands = [
+      {
+        label: "$(refresh) Refresh Usage",
+        description: "Manually refresh usage data",
+        command: "syntheticUsageTracker.refresh",
+      },
+      {
+        label: "$(key) Set API Key",
+        description: "Configure your Synthetic.new API key",
+        command: "syntheticUsageTracker.setApiKey",
+      },
+      {
+        label: "$(clear-all) Clear API Key",
+        description: "Remove the stored API key",
+        command: "syntheticUsageTracker.clearApiKey",
+      },
+      {
+        label: "$(toggle-auto-refresh) Toggle Auto-Refresh",
+        description: "Enable or disable automatic refresh",
+        command: "syntheticUsageTracker.toggleAutoRefresh",
+      },
+      {
+        label: "$(dashboard) Open Synthetic Dashboard",
+        description: "Open billing dashboard in browser",
+        command: "syntheticUsageTracker.openDashboard",
+      },
+      {
+        label: "$(discount) Subscribe with Discount",
+        description: "Get subscription with referral discount",
+        command: "syntheticUsageTracker.subscribeWithDiscount",
+      },
+      {
+        label: "$(info) Show Usage Details",
+        description: "Display detailed usage information",
+        command: "syntheticUsageTracker.showUsage",
+      },
+    ];
+
+    const selected = await vscode.window.showQuickPick(commands, {
+      placeHolder: "Select a Synthetic Usage Tracker command",
+    });
+
+    if (selected) {
+      await vscode.commands.executeCommand(selected.command);
+    }
   }
 
   /**

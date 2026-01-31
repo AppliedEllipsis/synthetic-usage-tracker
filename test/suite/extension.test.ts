@@ -109,7 +109,7 @@ suite("Synthetic Usage Tracker Extension Test Suite", () => {
       remaining: 50,
       percentageUsed: 50,
       renewsAt: new Date(),
-      renewsAtString: "2024-01-01T00:00:00.000Z",
+      renewAtString: "2024-01-01T00:00:00.000Z",
     };
 
     indicator.updateUsage(usage, {

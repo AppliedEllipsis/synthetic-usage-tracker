@@ -120,23 +120,23 @@ export class UsageIndicator {
    * Build status bar text showing overall usage
    *
    * Design decision: Display subscription usage as the primary indicator since
-   * it represents the overall subscription quota. Add warning symbols for
+   * it represents the overall subscription quota. Add warning symbol (!) for
    * categories exceeding thresholds to provide quick visual feedback.
    */
   private buildText(usage: UsageInfo, config: Config): string {
     const subscription = usage.subscription;
-    // Build warning symbols for categories
-    const symbols = this.buildCategoryWarningSymbols(usage, config);
+    // Build warning symbol for categories
+    const warningSymbol = this.buildCategoryWarningSymbols(usage, config);
 
-    let text = `$(api) ${subscription.percentageUsed.toFixed(0)}%`;
+    let text = `$(synthetic-status-icon) ${subscription.percentageUsed.toFixed(0)}%`;
 
     if (config.showRawNumbers) {
       text += ` (${subscription.requests}/${subscription.limit})`;
     }
 
-    // Add warning symbols if any category is over threshold
-    if (symbols.length > 0) {
-      text += ` ${symbols.join("")}`;
+    // Add warning symbol if any category exceeds threshold
+    if (warningSymbol.length > 0) {
+      text += ` ${warningSymbol}`;
     }
 
     return text;
@@ -204,53 +204,77 @@ export class UsageIndicator {
    *
    * Design decision: Use ASCII progress bar for visual representation of quota usage.
    * This provides immediate visual feedback about how much of the quota has been used.
+   * Progress bars are left-aligned with each category section for better readability.
    */
   private buildCategoryTooltip(name: string, category: CategoryUsageInfo): string {
     const percentageUsed = category.percentageUsed.toFixed(1);
     const percentageRemaining = (100 - category.percentageUsed).toFixed(1);
+    const timeRemaining = this.calculateTimeRemaining(category.renewAt);
 
     let section = `**${name}**\n`;
-    section += `Renews: ${category.renewAtString}\n`;
-    section += `Used: ${category.requests.toLocaleString()} (${percentageUsed}%)\n`;
+    section += `Requests: ${category.requests.toLocaleString()} / ${category.limit.toLocaleString()} (${percentageUsed}%)\n`;
     section += `Remaining: ${category.remaining.toLocaleString()} (${percentageRemaining}%)\n`;
-    section += `Limit: ${category.limit.toLocaleString()}\n`;
+    section += `Renews: ${category.renewAtString}\n`;
+    section += `Time Remaining: ${timeRemaining}\n`;
     section += `${this.buildAsciiProgressBar(category.percentageUsed)}\n\n`;
 
     return section;
   }
 
   /**
+   * Calculate time remaining until renewal in human-readable format
+   *
+   * Design decision: Format time as "Xh Ym from now" or "Xd Yh from now" for clarity.
+   * Handles edge cases like negative time (already renewed) and very short durations.
+   */
+  private calculateTimeRemaining(renewAt: Date): string {
+    const now = new Date();
+    const diffMs = renewAt.getTime() - now.getTime();
+
+    if (diffMs <= 0) {
+      return "now";
+    }
+
+    const hours = Math.floor(diffMs / (1000 * 60 * 60));
+    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diffMs % (1000 * 60)) / 1000);
+
+    // Handle different time scales for better readability
+    if (hours >= 24) {
+      const days = Math.floor(hours / 24);
+      const remainingHours = hours % 24;
+      return `${days}d ${remainingHours}h from now`;
+    } else if (hours > 0) {
+      return `${hours}h ${minutes}m from now`;
+    } else if (minutes > 0) {
+      return `${minutes}m ${seconds}s from now`;
+    } else {
+      return `${seconds}s from now`;
+    }
+  }
+
+  /**
    * Build warning symbols for categories exceeding thresholds
    *
-   * Design decision: Use category-specific emoji symbols to quickly identify which
-   * quota categories are over their warning threshold without needing to hover.
-   * This provides immediate visual feedback about potential resource constraints.
+   * Design decision: Return a single '!' symbol when either search or tool_calls
+   * quota exceeds the warning threshold. This provides immediate visual feedback
+   * about potential resource constraints without cluttering the UI with multiple icons.
    *
    * Symbol selection rationale:
-   * - 🔍 (magnifying glass) for search quota - represents search operations
-   * - 🔧 (wrench) for tool calls quota - represents tool/function operations
-   * - Only show symbols when the respective quota exceeds the warning threshold (80%)
-   * - This provides targeted, category-specific feedback without cluttering the UI
+   * - Single '!' appears when search OR tool_calls exceeds threshold (80%)
+   * - Subscription quota is reflected in the main percentage display, so no symbol needed
+   * - Simplified display reduces visual clutter while still alerting users
    */
-  private buildCategoryWarningSymbols(usage: UsageInfo, _config: Config): string[] {
-    const symbols: string[] = [];
+  private buildCategoryWarningSymbols(usage: UsageInfo, config: Config): string {
+    const searchHigh = usage.search.percentageUsed > config.warningThreshold;
+    const toolCallsHigh = usage.toolCalls.percentageUsed > config.warningThreshold;
 
-    // Design decision: Only show symbols for search and tool calls quotas when > 80%
-    // Rationale: Search (hourly) and tool calls quotas can be depleted quickly and
-    // independently, so they need immediate visibility. Subscription quota changes
-    // are reflected in the main percentage display, so no separate symbol needed.
-
-    // Check search quota - add 🔍 when over 80%
-    if (usage.search.percentageUsed > 80) {
-      symbols.push("🔍");
+    // Return single '!' if search OR tool_calls is high
+    if (searchHigh || toolCallsHigh) {
+      return "!";
     }
 
-    // Check tool calls quota - add 🔧 when over 80%
-    if (usage.toolCalls.percentageUsed > 80) {
-      symbols.push("🔧");
-    }
-
-    return symbols;
+    return "";
   }
 
   /**
@@ -260,8 +284,10 @@ export class UsageIndicator {
    * Each segment represents 10% of the total quota. Uses standard ASCII characters
    * (█ for filled, ░ for empty) for maximum compatibility and clean appearance.
    * Does not include colors/status - that's handled by the status bar background color.
+   *
+   * Public method to allow extension.ts to reuse for popup display.
    */
-  private buildAsciiProgressBar(percentage: number): string {
+  buildAsciiProgressBar(percentage: number): string {
     const totalSegments = 10;
     const filledSegments = Math.round((percentage / 100) * totalSegments);
     const emptySegments = totalSegments - filledSegments;
@@ -293,7 +319,7 @@ export class UsageIndicator {
    */
   setLoading(): void {
     this.displayState = DisplayState.Loading;
-    this.statusBarItem.text = "$(loading~spin) Synthetic.new";
+    this.statusBarItem.text = "$(synthetic-status-loading) Synthetic.new";
     this.statusBarItem.tooltip = "Loading usage data...";
     this.statusBarItem.backgroundColor = undefined;
     this.clearCache();
