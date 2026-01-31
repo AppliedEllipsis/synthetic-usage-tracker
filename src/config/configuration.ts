@@ -75,6 +75,11 @@ export class ConfigurationManager {
   async getApiKey(): Promise<string | undefined> {
     // First try new format (array of keys with labels)
     // This supports future multi-key functionality
+    //
+    // Design decision: Check new format first before falling back to legacy format
+    // Rationale: Existing users should use the new format for multi-key support.
+    // By checking new format first, we encourage migration while maintaining backward
+    // compatibility through the legacy fallback.
     const keysJson = await this.context.secrets.get("syntheticApiKeys");
     if (keysJson) {
       try {
@@ -169,6 +174,14 @@ export class ConfigurationManager {
   /**
    * Watch for changes in shared state (for cross-window key updates)
    * Uses polling to detect changes from other windows
+   *
+   * Design decision: Polling is used instead of event-based synchronization because
+   * VS Code's globalState doesn't support change events across windows. Polling every
+   * 5 seconds provides a good balance between responsiveness and performance.
+   *
+   * Alternative considered: Use workspace state with onDidChangeConfiguration
+   * Rejected: Configuration events don't fire for globalState changes, only for
+   * workspace configuration changes.
    */
   watchSharedStateChanges(pollInterval: number = 5000): vscode.Disposable {
     let lastKnownTimestamp = 0;

@@ -39,7 +39,7 @@ export interface SearchQuota {
 export interface QuotaResponse {
   subscription: QuotaCategory;
   search: SearchQuota;
-  toolCalls: QuotaCategory;
+  toolCallDiscounts: QuotaCategory;
 }
 
 /**
@@ -261,7 +261,7 @@ export class SyntheticService {
     return {
       subscription: this.parseCategory(data.subscription),
       search: this.parseCategory(data.search.hourly),
-      toolCalls: this.parseCategory(data.toolCalls),
+      toolCalls: this.parseCategory(data.toolCallDiscounts),
     };
   }
 

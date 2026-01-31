@@ -19,10 +19,13 @@ Multiple base URLs are referenced in different documentation sources:
 | Base URL | Source | Notes |
 |----------|--------|-------|
 | `https://api.glhf.chat/v1/` | Getting Started documentation | Legacy base URL shown in docs |
-| `https://api.synthetic.new/openai/v1` | Chat completions examples | For OpenAI-compatible endpoints |
-| `https://api.synthetic.new/v2` | Extension default | **Recommended** - used by this extension |
+| `https://api.synthetic.new/openai/v1` | OpenAI-compatible endpoints | For chat, models, completions, embeddings, messages |
+| `https://api.synthetic.new/v2` | Synthetic-native endpoints | **Only** for /quotas endpoint |
 
-**Note:** The extension currently uses `https://api.synthetic.new/v2` as the default endpoint. Users can configure this in VSCode settings if needed.
+**Important:**
+- Use `https://api.synthetic.new/v2` **only** for `/quotas` endpoint
+- Use `https://api.synthetic.new/openai/v1` for all other endpoints (models, chat, completions, embeddings, messages)
+- **Note:** `/v2/models` does NOT exist - models must be fetched via `/openai/v1/models`
 
 ### Authentication
 
@@ -110,55 +113,80 @@ The API returns a JSON object with three distinct quota categories:
 ```typescript
 {
   "subscription": {
-    "limit": number,        // Total request limit
-    "requests": number,     // Number of requests used
-    "renewAt": string       // ISO 8601 date string (note: "renewAt" not "renewsAt")
+    "limit": number,              // Total request limit
+    "requests": number,           // Number of requests used
+    "renewAt": string             // ISO 8601 date string
   },
   "search": {
     "hourly": {
-      "limit": number,     // Hourly search limit
-      "requests": number,  // Search requests used
-      "renewAt": string    // ISO 8601 date string
+      "limit": number,           // Hourly search limit
+      "requests": number,        // Search requests used
+      "renewAt": string          // ISO 8601 date string
     }
   },
-  "toolCalls": {
-    "limit": number,       // Tool calls limit
-    "requests": number,    // Tool calls used
-    "renewAt": string      // ISO 8601 date string
+  "toolCallDiscounts": {
+    "limit": number,             // Tool call functionality quota
+    "requests": number,          // Tool calls used (counted at discounted rate)
+    "renewAt": string            // ISO 8601 date string
   }
 }
 ```
 
 **Key observations:**
-1. Three distinct quota categories: `subscription`, `search`, and `toolCalls`
+1. Three distinct quota categories: `subscription`, `search`, and `toolCallDiscounts`
 2. `search` quota is uniquely wrapped in an `hourly` object
-3. Each category has `limit`, `requests`, and `renewAt` fields (note: the API uses `renewAt` not `renewsAt`)
-4. No calculated fields - `remaining` and `percentageUsed` are computed client-side
-5. Different renewal cycles for each category
+3. `toolCallDiscounts` tracks tool invocation quotas at discounted rates
+4. Each category has `limit`, `requests`, and `renewAt` fields (the API uses `renewAt` not `renewsAt`)
+5. No calculated fields - `remaining` and `percentageUsed` are computed client-side
+6. Different renewal cycles for each category
 
 ### Models Endpoint
 
-The extension also supports querying available models through the OpenAI-compatible endpoint:
+Models are available through the OpenAI-compatible endpoint:
 
 ```
 GET https://api.synthetic.new/openai/v1/models
 ```
 
+**Important:** `/v2/models` does NOT exist. Models must be fetched via `/openai/v1/models`.
+
 **Response Format:**
 
 ```typescript
 {
-  "object": string,
   "data": Array<{
-    "id": string,           // Model ID (e.g., "hf:deepseek-ai/DeepSeek-V3")
-    "object": string,
-    "created": number,
-    "owned_by": string
+    "id": string,                    // Model ID (e.g., "hf:zai-org/GLM-4.7")
+    "hugging_face_id": string,        // Hugging Face model ID
+    "name": string,                   // Model name
+    "provider": string,               // Provider (e.g., "synthetic")
+    "always_on": boolean,             // Whether model is always available
+    "input_modalities": string[],     // Input types (["text"])
+    "output_modalities": string[],    // Output types (["text"])
+    "context_length": number,         // Maximum context window
+    "max_output_length": number,      // Maximum output tokens
+    "pricing": {
+      "prompt": string,               // Price per prompt token
+      "completion": string,           // Price per completion token
+      "image": string,                // Price per image (if applicable)
+      "request": string,              // Price per request
+      "input_cache_reads": string,    // Price for cache reads
+      "input_cache_writes": string    // Price for cache writes
+    },
+    "created": number,                // Creation timestamp
+    "quantization": string,           // Quantization (e.g., "fp8")
+    "supported_sampling_parameters": string[],  // Parameters (temp, top_p, etc.)
+    "supported_features": string[],   // Features (tools, json_mode, etc.)
+    "openrouter": {
+      "slug": string                  // OpenRouter model identifier
+    },
+    "datacenters": Array<{
+      "country_code": string          // Datacenter location
+    }>
   }>
 }
 ```
 
-The API returns 18 available models, all with `hf:` prefix indicating Hugging Face integration.
+The API returns available models, all with `hf:` prefix indicating Hugging Face integration.
 
 ### Example Response
 
@@ -176,7 +204,7 @@ The API returns 18 available models, all with `hf:` prefix indicating Hugging Fa
       "renewAt": "2026-01-30T20:25:50.409Z"
     }
   },
-  "toolCalls": {
+  "toolCallDiscounts": {
     "limit": 1620,
     "requests": 271,
     "renewAt": "2026-01-31T10:17:00.411Z"
@@ -260,13 +288,25 @@ interface SearchQuota {
 }
 ```
 
-#### `ToolCallsQuota`
+#### `ToolCallDiscountsQuota`
 
-Direct quota category for tool calls usage:
+Quota category for tool call discounts:
 
 ```typescript
-interface ToolCallsQuota extends QuotaCategory {
-  // Direct quota category - no nesting
+interface ToolCallDiscountsQuota extends QuotaCategory {
+  // Tool call functionality quota - counts at discounted rate
+}
+```
+
+#### `QuotaResponse`
+
+Raw API response structure with three distinct quota categories:
+
+```typescript
+interface QuotaResponse {
+  subscription: QuotaCategory;       // Subscription quota
+  search: SearchQuota;               // Search quota (wrapped in hourly object)
+  toolCallDiscounts: QuotaCategory;  // Tool call functionality quota
 }
 ```
 
@@ -300,11 +340,13 @@ Parsed usage information with all three quota categories:
 
 ```typescript
 interface UsageInfo {
-  subscription: CategoryUsageInfo;  // Subscription usage
-  search: CategoryUsageInfo;        // Search usage (extracted from hourly wrapper)
-  toolCalls: CategoryUsageInfo;     // Tool calls usage
+  subscription: CategoryUsageInfo;       // Subscription usage
+  search: CategoryUsageInfo;             // Search usage (extracted from hourly wrapper)
+  toolCalls: CategoryUsageInfo;          // Tool call discounts usage (parsed from toolCallDiscounts)
 }
 ```
+
+**Note:** The API returns `toolCallDiscounts` but the extension maps this to `toolCalls` internally for consistency.
 
 #### `ApiErrorType`
 

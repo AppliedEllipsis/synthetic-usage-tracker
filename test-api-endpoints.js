@@ -3,8 +3,16 @@
  * Tests various Synthetic.new API endpoints with the test key
  */
 
-const API_KEY = 'syn_067d71519de9f74130907cf10a286897';
+// Load environment variables
+require('dotenv').config();
+
+const API_KEY = process.env.SYNTHETIC_TEST_API_KEY;
 const BASE_URL = 'https://api.synthetic.new';
+
+if (!API_KEY) {
+  console.error('Error: SYNTHETIC_TEST_API_KEY not found in .env file');
+  process.exit(1);
+}
 
 // Endpoints to test
 const endpoints = [

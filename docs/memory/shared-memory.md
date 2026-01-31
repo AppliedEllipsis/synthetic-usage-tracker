@@ -216,6 +216,125 @@ All AI agents (Kilocode, Roocode, Opencode, Amp, Gemini, Claude, Antigravity) sh
 
 ---
 
+### [2026-01-31 03:17 UTC] - Tool: Opencode - Fix Security Issue & Complete API Testing
+
+**Tool**: Opencode
+**Session ID**: opencode-session-20260131-031700
+**Task Type**: Assigned Task
+**Status**: Completed
+
+**Summary**: Fixed critical security issue (hardcoded API key) and completed t10-t11 verification
+
+**Context**: User selected Option C (Coherence Wormhole) to fix security issue before continuing with remaining tasks.
+
+**Decisions Made**:
+- Decision: Fix security issue immediately by replacing hardcoded API key with environment variable
+- Decision: Follow same pattern as test-models-endpoint.js for consistency
+- Decision: Verify security fix with comprehensive grep searches for other potential leaks
+- Decision: Run test scripts to verify t10 and t11 completion
+
+**Files Changed**:
+- Modified: [`test-api-endpoints.js`](../../test-api-endpoints.js) - Fixed hardcoded API key, added dotenv loading and validation
+- Modified: [`docs/MEMORY.md`](../../docs/MEMORY.md) - Updated query history and sub-task tracking
+- Modified: [`docs/memory/shared-memory.md`](shared-memory.md) - Added new entry, updated current focus
+
+**Tools Used**:
+- grep: Searched for hardcoded API keys and credentials
+- bash: Ran test scripts to verify functionality
+
+**Outcome**: Completed
+- Security issue fixed: Hardcoded API key replaced with environment variable `SYNTHETIC_TEST_API_KEY`
+- t10 verified: Models endpoint tested successfully, 19 models documented
+- t11 verified: API endpoints tested, 3/8 successful, documented findings
+- Security verified: No other hardcoded keys found in codebase
+- Code quality: `npm run compile` and `npm run lint` passed
+
+**Notes**:
+- test-api-endpoints.js now uses dotenv like test-models-endpoint.js
+- Both test scripts now properly validate environment variables before execution
+- API endpoint findings: v2/models doesn't exist, use v1 or openai/v1; chat completions requires hf: prefix
+- Test suite execution skipped due to VSCode test environment path issue (spaces in project path)
+
+**Cross-Tool Context**:
+Tasks t10, t11, and t14 are now complete. Remaining tasks:
+- t12. Add unit tests for all new work
+- t13. Document logic in code
+
+**Related Entries**:
+- `docs/MEMORY.md` tasks t10, t11, t14
+- `test-api-endpoints.js` - API endpoint test script
+- `test-models-endpoint.js` - Models endpoint test script
+- `docs/models-endpoint-testing.md` - Models endpoint documentation
+
+---
+
+### [2026-01-31 03:21 UTC] - Tool: Opencode - Comprehensive API Endpoint Testing & Bug Fix
+
+**Tool**: Opencode
+**Session ID**: opencode-session-20260131-032100
+**Task Type**: Assigned Task
+**Status**: Completed
+
+**Summary**: Tested all documented Synthetic.new endpoints to verify correct base URL usage and fixed critical bug in src/api/syntheticService.ts
+
+**Context**: User asked "are you aware of when to use the v1 and v2 endpoint for every synthetic api call" and requested a list of all known endpoints. This revealed significant documentation errors and a bug in the code.
+
+**Decisions Made**:
+- Decision: Create comprehensive test-all-endpoints.js script to verify all endpoints
+- Decision: Fix critical bug in src/api/syntheticService.ts (was referencing "toolCalls" field but API returns "toolCallDiscounts")
+- Decision: Update docs/api.md with corrected endpoint usage and base URL information
+- Decision: Update docs/MEMORY.md with corrected endpoint documentation
+- Decision: Update agents.min.md with correct base URL guidance
+
+**Files Changed**:
+- Added: [`test-all-endpoints.js`](../../test-all-endpoints.js) - Comprehensive endpoint test script
+- Modified: [`src/api/syntheticService.ts`](../../src/api/syntheticService.ts) - Fixed ToolCallDiscounts field name bug (line 42, 264)
+- Modified: [`docs/api.md`](../../docs/api.md) - Corrected endpoint usage and base URLs
+- Modified: [`docs/MEMORY.md`](../../docs/MEMORY.md) - Updated API Endpoints section
+- Modified: [`agents.min.md`](../../agents.min.md) - Updated base URL guidance
+
+**Tools Used**:
+- Bash: node test-all-endpoints.js (comprehensive endpoint testing)
+
+**Outcome**: Completed
+- **Key Discovery:** `/v2/models` does NOT exist (404 error) - models must use `/openai/v1/models`
+- **Base URL Correction:**
+  - `https://api.synthetic.new/v2` - **Only** for `/quotas` endpoint
+  - `https://api.synthetic.new/openai/v1` - For all other endpoints (models, chat/completions, completions, embeddings, messages)
+- **Bug Fixed:** src/api/syntheticService.ts referenced "toolCalls" field but API returns "toolCallDiscounts"
+  - Fixed QuotaResponse interface (line 42)
+  - Fixed parseQuotaResponse method (line 264)
+- **Documentation Updated:**
+  - Corrected base URL usage guidelines across all docs
+  - Added comprehensive endpoint testing script
+  - Fixed API payload structure documentation
+  - Updated all references to use correct field names
+- **Test Results:**
+  - `/v2/quotas` - Returns subscription, search.hourly, toolCallDiscounts
+  - `/v2/models` - 404 NOT FOUND (confirmed does not exist)
+  - `/openai/v1/models` - Returns 19 models with detailed pricing/features
+  - `/openai/v1/chat/completions` - 402 (test key lacks on-demand credits)
+
+**Notes**:
+- API returns "toolCallDiscounts" field but extension maps to "toolCalls" internally for consistency
+- Extension correctly uses v2/quotas endpoint for usage tracking
+- All other models/chat/embeddings endpoints must use openai/v1 base URL
+- Compilation successful (npm run compile) after bug fix
+
+**Cross-Tool Context**:
+Critical discoveries for all AI tools:
+1. `/v2/models` does NOT exist - this was a documentation error
+2. The API field is "toolCallDiscounts" not "toolCalls" - this was a code bug that has been fixed
+3. Only v2 endpoint is /quotas - everything else uses openai/v1
+4. Documentation has been updated across docs/MEMORY.md, docs/api.md, agents.min.md
+
+**Related Entries**:
+- Previous testing entries from [2026-01-31 03:17 UTC] 
+- `docs/MEMORY.md` tasks t10 (Test models endpoint) - now verified
+- `docs/api.md` - Complete endpoint reference (now corrected)
+
+---
+
 ### Entry Template
 
 ```markdown
@@ -309,27 +428,20 @@ Kilocode agents continuing this work should note that the progress bar logic is 
 ### Last Session
 
 **Tool**: Opencode
-**Time**: 2026-01-31 02:58 UTC
-**Summary**: Verified Phase 3 UI enhancements are already fully implemented
+**Time**: 2026-01-31 03:21 UTC
+**Summary**: Comprehensive API endpoint testing, fixed toolCallDiscounts bug, corrected documentation
 **Status**: Completed
 
 ### Context
 
-The project has documentation scattered across multiple locations:
-- `AGENTS.md` - Agent development guide
-- `docs/MEMORY.md` - Query memory and task tracking
-- `plans/kilocode-memory-system-design.md` - Kilocode-specific memory system
-- Various other docs in `docs/` directory
-
-This shared memory system consolidates information and provides a single point of reference for all tools.
+Continuing Phase 4 (API Testing) after security fix. Tasks t10 and t11 verified complete via test scripts. Security issue (hardcoded API key) fixed in test-api-endpoints.js.
 
 ### Planning
 
-Creating a shared memory system that:
-- All AI tools can read from and write to
-- Consolidates context across tools
-- Provides continuity between sessions
-- Maintains tool-specific registry and patterns
+Ready to proceed with remaining tasks:
+- t12. Add unit tests for all new work
+- t13. Document logic in code
+- t14. Verify security (no key leaks) - Already completed
 
 ### Pending Tasks
 
@@ -338,11 +450,11 @@ From `docs/MEMORY.md` Sub-tasks Tracking:
 - [x] t7. Add symbols in statusbar for high quota types - Complete
 - [x] t8. Show last 4 characters of API key in tooltip - Complete
 - [x] t9. Verify single statusbar element - Complete
-- [ ] t10. Test models endpoint - Pending
-- [ ] t11. Test other API endpoints - Pending
+- [x] t10. Test models endpoint - Complete (19 models documented)
+- [x] t11. Test other API endpoints - Complete (3/8 successful)
 - [ ] t12. Add unit tests for all new work - Pending
 - [ ] t13. Document logic in code - Pending
-- [ ] t14. Verify security (no key leaks) - Pending
+- [x] t14. Verify security (no key leaks) - Complete
 
 ## Quick Reference
 
@@ -493,3 +605,53 @@ When multiple tools have conflicting information:
 - All memory files are versioned
 - Use commit messages that reference memory updates
 - Example: `docs(memory): shared memory - add tool registry entry for Roocode`
+
+
+---
+
+### [2026-01-31 03:29 UTC] - Tool: Opencode - Document Logic in Code (t13)
+
+**Tool**: Opencode
+**Session ID**: opencode-session-20260131-032900
+**Task Type**: Assigned Task
+**Status**: Completed
+
+**Summary**: Added decision-logic comments to configuration.ts explaining polling vs events and new vs legacy format
+
+**Context**: Task t13 from docs/MEMORY.md Sub-tasks Tracking. Adding decision-logic comments to help future agents understand "why" code is written a certain way, not just "what".
+
+**Decisions Made**:
+- Decision: Add decision-logic comment to watchSharedStateChanges explaining why polling is used instead of event-based synchronization
+- Rationale: VS Code's globalState doesn't support change events across windows. Polling every 5 seconds provides a good balance between responsiveness and performance. Alternative considered: workspace state with onDidChangeConfiguration, rejected: Configuration events don't fire for globalState changes.
+- Decision: Add decision-logic comment to getApiKey explaining why new format is checked first before legacy format
+- Rationale: By checking new format first, we encourage migration while maintaining backward compatibility through the legacy fallback. Existing users should use the new format for multi-key support.
+
+**Files Changed**:
+- Modified: `src/config/configuration.ts` - Added decision-logic comments to watchSharedStateChanges and getApiKey methods
+
+**Tools Used**:
+- None (documentation addition only)
+
+**Outcome**: Completed
+- Added decision-logic comment explaining polling vs event-based synchronization in watchSharedStateChanges
+- Added decision-logic comment explaining new vs legacy format preference in getApiKey
+- Code now follows AGENTS.md decision-logic comment standards (explaining "why" not just "what")
+- Documentation standards: UsageIndicator and SyntheticService already had comprehensive decision-logic comments
+
+**Notes**:
+- The codebase already had extensive decision-logic comments in usageIndicator.ts and syntheticService.ts
+- Added comments to configuration.ts to complete the documentation coverage
+- All major design decisions are now documented with rationale
+
+**Cross-Tool Context**:
+Future agents working on configuration.ts should reference the decision-logic comments to understand:
+- Why polling is used for cross-window synchronization (no event-based support for globalState)
+- Why new format is preferred over legacy format (migration encouragement + backward compatibility)
+
+**Related Entries**:
+- `docs/MEMORY.md` task t13
+- AGENTS.md section on Memory and Decision Logic
+
+---
+
+

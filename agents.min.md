@@ -87,8 +87,9 @@ npm run package     # Create .vsix package
 **Documentation**: https://dev.synthetic.new/
 
 **Base URLs**:
-- Recommended: `https://api.synthetic.new/v2` (quotas, models)
-- OpenAI-compatible: `https://api.synthetic.new/openai/v1` (chat/completions, models)
+- `https://api.synthetic.new/v2` - **Only** for `/quotas` endpoint
+- `https://api.synthetic.new/openai/v1` - For all other endpoints (models, chat/completions, completions, embeddings, messages)
+- **Important:** `/v2/models` does NOT exist - use `/openai/v1/models`
 
 **Quotas Endpoint** (`/v2/quotas`):
 ```json
@@ -142,6 +143,10 @@ wormhole and jump straight there, or continue step by step?"
 - Skip only if user agrees
 - Never skip for verification, auditability, or trust-critical work
 - No assumptions, no forced shortcuts
+
+**Coherence Wormhole Safeguard**:
+- Offer only when the destination is stable and intermediate steps are unlikely to change the outcome
+- If the reasoning path is important for verification, auditability, or trust, do not offer the shortcut unless the user explicitly opts in to skipping steps
 
 ---
 
