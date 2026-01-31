@@ -161,7 +161,7 @@
     "lint:fix": "eslint src --ext ts --fix",
     "test": "vscode-test",
     "package": "vsce package",
-    "buildrelease": "npm version patch && node scripts/update-memory-for-release.js && git add docs/MEMORY.md && git commit -m \"docs: update project memory for release\" && npm run compile && npm run package && powershell -Command \"$pkg = Get-Content package.json -Raw | ConvertFrom-Json; $filename = \\\"$($pkg.name)-$($pkg.version).vsix\\\"; Move-Item -Path $filename -Destination releases/ -Force\"",
+    "buildrelease": "node scripts/update-changelog-for-release.js && git add CHANGELOG.md && git commit -m \"docs: update CHANGELOG for release\" && node scripts/update-memory-for-release.js && git add docs/MEMORY.md && git commit -m \"docs: update project memory for release\" && npm version patch && git tag -a v$(node -p \"require('./package.json').version\") -m \"Release v$(node -p \\\"require('./package.json').version\\\")\" && git push && git push --tags && npm run compile && npm run package && powershell -Command \"$pkg = Get-Content package.json -Raw | ConvertFrom-Json; $filename = \\\"$($pkg.name)-$($pkg.version).vsix\\\"; Move-Item -Path $filename -Destination releases/ -Force\"",
     "prepare": "husky install"
   },
   "devDependencies": {

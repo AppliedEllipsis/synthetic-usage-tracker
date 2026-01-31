@@ -224,66 +224,11 @@ The extension can be configured through VSCode settings:
 
 ⚠️ Commands marked with this icon only appear in the command palette and "Show Commands" menu when an API key is configured.
 
-## Development
-
-### Prerequisites
-
-- Node.js 18 or higher
-- npm or yarn
-- VSCode
-
-### Setup
-
-```bash
-# Clone the repository
-git clone https://github.com/AppliedEllipsis/synthetic-usage-tracker.git
-cd synthetic-usage-tracker
-
-# Install dependencies
-npm install
-
-# Run in watch mode for development
-npm run watch
-
-# Run tests
-npm run test
-
-# Run linter
-npm run lint
-```
-
-### Building
-
-```bash
-# Compile the extension
-npm run compile
-
-# Package as .vsix file
-npm run package
-```
-
-### Building a Release
-
-The `buildrelease` command automates the complete release process:
-
-```bash
-npm run buildrelease
-```
-
-This command performs the following steps in sequence:
-
-1. **Increment patch version**: Automatically increments the patch version (e.g., 1.0.5 → 1.0.6)
-2. **Compile TypeScript**: Builds the extension
-3. **Package extension**: Creates the `.vsix` file
-4. **Move to releases**: Moves the `.vsix` file to the `releases/` directory
-
-The packaged extension is placed at `releases/synthetic-usage-tracker-X.Y.Z.vsix`, where `X.Y.Z` is the new version number.
-
-**Note**: This command requires a clean git working directory (no uncommitted changes).
-
 ## Contributing
 
 Contributions are welcome! Please read our [Contributing Guidelines](CONTRIBUTING.md) before submitting a pull request.
+
+For developers, please refer to [`agents.md`](agents.md) and [`agents.min.md`](agents.min.md) for development guidelines and build processes.
 
 ## License
 

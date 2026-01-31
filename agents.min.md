@@ -113,6 +113,50 @@ percentageUsed = (requests / limit) * 100
 
 ---
 
+## 🏗️ Build & Release Workflow
+
+**Prerequisites**: Node.js 18+, npm 9+, TypeScript 5.7.2, VSCode 1.96.0+, @vscode/vsce
+
+```bash
+# Build Commands
+npm install      # Install dependencies
+npm run compile  # Compile TypeScript
+npm run lint     # Check code quality
+npm run lint:fix # Auto-fix linting issues
+npm run test     # Run test suite
+npm run watch    # Watch mode (recompiles on changes)
+npm run package  # Create .vsix package
+```
+
+**Release Workflow** (`npm run buildrelease`):
+```bash
+npm run buildrelease
+```
+
+**Automated process** (10 steps):
+1. Update CHANGELOG: Moves "Unreleased" to `## [X.Y.Z] - YYYY-MM-DD`
+2. Commit CHANGELOG: Creates git commit for changelog update
+3. Update memory: Runs memory update script
+4. Commit memory: Creates git commit for memory update
+5. Bump version: `npm version patch` increments patch version
+6. Create git tag: Tags version commit with `vX.Y.Z`
+7. Push to remote: `git push && git push --tags`
+8. Compile TypeScript: Build the extension
+9. Package extension: Create `.vsix` file
+10. Move to releases: Move `.vsix` to `releases/` directory
+
+**Before running buildrelease**:
+- [ ] Update CHANGELOG.md: Unreleased section complete and accurate
+- [ ] Update README.md: If user-facing changes made
+- [ ] Verify tests pass: `npm run test`
+- [ ] Verify compilation: `npm run compile`
+- [ ] Verify linting: `npm run lint`
+- [ ] Clean working tree: All changes committed or stashed
+
+**Output**: `releases/synthetic-usage-tracker-X.Y.Z.vsix`
+
+---
+
 ## 💾 Configuration Storage
 
 | Data Type | Storage | Key |
@@ -121,7 +165,7 @@ percentageUsed = (requests / limit) * 100
 | Configuration | `workspace configuration` | `syntheticUsageTracker` namespace |
 | Shared State | `context.globalState` | `syntheticApiKeyUpdateTimestamp` |
 
-**Test Key**: Available in `.env` file (not git-tracked)
+**Test Key**: Available in `.env` file
 
 ---
 
@@ -201,11 +245,7 @@ or stay on X?"
 6. Manual test (F5 to launch extension)
 
 **Release Workflow** (`npm run buildrelease`):
-1. Bump patch version (npm version patch)
-2. Compile TypeScript
-3. Package extension
-4. Move to `releases/` directory
-5. Update CHANGELOG.md after release
+See 🏗️ Build & Release Workflow section above for complete automated 10-step process.
 
 ---
 

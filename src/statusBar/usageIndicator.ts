@@ -43,6 +43,7 @@ export class UsageIndicator {
   private lastText: string | null = null;
   private lastTooltip: string | null = null;
   private lastDisplayState: DisplayState | null = null;
+  private lastConfig: Config | null = null;
   private currentUsage: UsageInfo | null = null;
   private tooltipRestoreTimeout: NodeJS.Timeout | null = null;
   private preventTooltipUpdateUntil: number = 0;
@@ -130,6 +131,7 @@ export class UsageIndicator {
         this.lastTooltip = tooltip;
       }
       this.lastDisplayState = this.displayState;
+      this.lastConfig = config;
     }
   }
 
@@ -197,11 +199,11 @@ export class UsageIndicator {
 
   private maskApiKey(apiKey: string): string {
     if (!apiKey || apiKey.length < 8) {
-      return "****";
+      return apiKey ? "***" : "(not configured)";
     }
     const prefix = apiKey.substring(0, 4);
     const lastFour = apiKey.slice(-4);
-    const maskedMiddle = "*".repeat(apiKey.length - 8);
+    const maskedMiddle = "•".repeat(Math.max(1, apiKey.length - 8));
     return `${prefix}${maskedMiddle}${lastFour}`;
   }
 
@@ -404,12 +406,13 @@ export class UsageIndicator {
   }
 
   /**
-    * Clear cache to force next update
-    */
+     * Clear cache to force next update
+     */
   private clearCache(): void {
     this.lastText = null;
     this.lastTooltip = null;
     this.lastDisplayState = null;
+    this.lastConfig = null;
   }
 
   /**
@@ -490,20 +493,14 @@ export class UsageIndicator {
   }
 
   /**
-   * Get default config for tooltip restoration
-   *
-   * Design decision: Use default config values when restoring tooltip
-   * during timeout. Actual values don't matter much here as we're just
-   * showing the tooltip with current usage data.
-   */
+    * Get cached config for tooltip restoration
+    *
+    * Design decision: Use cached config values when restoring tooltip
+    * during timeout. This ensures the masked API key is preserved from
+    * the latest update, showing the actual key in use.
+    */
   private getCurrentConfig(): Config | null {
-    return {
-      apiKey: "",
-      showPercentage: true,
-      showRawNumbers: false,
-      warningThreshold: 80,
-      criticalThreshold: 90,
-    };
+    return this.lastConfig;
   }
 
   /**

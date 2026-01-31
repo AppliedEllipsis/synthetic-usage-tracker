@@ -462,7 +462,7 @@ This command:
 
 ### Release Workflow
 
-The `buildrelease` command automates the complete release process, from version bumping to packaging. Use this workflow when preparing a new release for distribution.
+The `buildrelease` command automates the complete release process, from CHANGELOG updates to git push and packaging. Use this workflow when preparing a new release for distribution.
 
 #### Building a Release
 
@@ -474,17 +474,35 @@ npm run buildrelease
 
 This command performs the following steps in sequence:
 
-1. **Increment patch version**: Runs `npm version patch` to automatically increment the patch version (e.g., 1.0.5 → 1.0.6)
-2. **Compile TypeScript**: Runs `npm run compile` to build the extension
-3. **Package extension**: Runs `npm run package` to create the `.vsix` file
-4. **Move to releases**: Moves the `.vsix` file to the [`releases/`](releases/) directory
+1. **Update CHANGELOG**: Moves the "Unreleased" section to a version header with today's date
+2. **Commit CHANGELOG**: Creates a git commit for the CHANGELOG update
+3. **Update memory**: Runs memory update script to document the release
+4. **Commit memory**: Creates a git commit for the memory update
+5. **Bump version**: Runs `npm version patch` to increment the patch version (e.g., 1.0.10020 → 1.0.10021)
+6. **Create git tag**: Tags the version commit with the version number
+7. **Push to remote**: Pushes commits and tags to the remote repository
+8. **Compile TypeScript**: Builds the extension
+9. **Package extension**: Creates the `.vsix` file
+10. **Move to releases**: Moves the `.vsix` file to the [`releases/`](releases/) directory
+
+#### Pre-Release Requirements
+
+Before running the release workflow:
+
+1. **Update CHANGELOG.md**: Add all changes to the "Unreleased" section with proper categorization (Added, Changed, Fixed, Removed)
+   - Use "Nothing yet" placeholder if there are no changes
+2. **Ensure working tree is clean**: All changes should be committed or stashed
+3. **Verify tests pass**: `npm run test`
+4. **Verify compilation**: `npm run compile`
+5. **Verify linting**: `npm run lint`
+6. **Update user-facing documentation**: Update [`README.md`](README.md) if user-facing changes were made
 
 #### Version Incrementing
 
 The release workflow uses semantic versioning:
 - **Patch version** (X.Y.Z): Bug fixes and minor improvements that don't break existing functionality
-- The workflow currently increments the patch version automatically
-- For major or minor version changes, update the version manually in [`package.json`](package.json) before running the workflow
+- The workflow automatically increments the patch version
+- For major or minor version changes, manually update the version in [`package.json`](package.json) and run the workflow separately
 
 #### Output Location
 
@@ -496,23 +514,13 @@ releases/synthetic-usage-tracker-X.Y.Z.vsix
 
 Where `X.Y.Z` is the new version number.
 
-#### Release Checklist
-
-Before running the release workflow:
-
-- [ ] All tests pass: `npm run test`
-- [ ] Code compiles without errors: `npm run compile`
-- [ ] No linting issues: `npm run lint`
-- [ ] Update [`CHANGELOG.md`](CHANGELOG.md) with release notes
-- [ ] Update [`README.md`](README.md) if user-facing changes were made
-- [ ] Ensure working directory is clean (no uncommitted changes)
-
 #### Important Notes
 
-- The release workflow creates a git commit for the version bump
-- The commit is tagged with the new version number
-- For manual version control, you can use `npm version minor` or `npm version major` instead of the automated workflow
-- Always test the `.vsix` file in a clean VSCode instance before distributing
+- The release workflow creates multiple git commits (CHANGELOG, memory, version bump)
+- The version bump commit is tagged with the new version number
+- All commits and tags are pushed to the remote repository
+- The `.vsix` file can be uploaded to VSCode Marketplace or Open VSX Registry
+- Always test the `.vsix` file in a clean VSCode instance before publishing
 
 ### Build Troubleshooting
 
@@ -830,53 +838,47 @@ Update [`CHANGELOG.md`](CHANGELOG.md) for:
 1. **During development**: Add all new changes to the "Unreleased" section at the top of CHANGELOG.md
 2. **Before release**: Ensure the "Unreleased" section is complete and accurate
 3. **Run release**: Execute `npm run buildrelease` which:
-   - Increments the version in package.json
-   - Creates a git commit with the version bump
-   - Creates a git tag (e.g., v1.0.3)
+   - Automatically updates CHANGELOG to move Unreleased to `## [X.Y.Z] - YYYY-MM-DD`
+   - Commits CHANGELOG and memory updates
+   - Increments version in package.json
+   - Creates git tag (e.g., v1.0.3)
+   - Pushes commits and tags to remote
    - Compiles and packages the extension
-4. **Update CHANGELOG**: After the release, move the "Unreleased" section to a new version header with the format `## [X.Y.Z] - YYYY-MM-DD`
-5. **Verify**: Ensure the version header matches the git tag created during the release
 
-**Design decision: Using an "Unreleased" section helps distinguish between changes that have been formally released (with git tags) and changes that are still in development. This prevents confusion about which features are currently available in published versions.**
+**Design decision: Using an "Unreleased" section and automating the release workflow helps distinguish between formally released changes (with git tags) and changes still in development. This prevents confusion about which features are available in published versions.**
 
 ### CHANGELOG Update Process
 
-After running `npm run buildrelease`, the CHANGELOG needs to be updated to reflect the completed release. This process ensures the version history accurately matches the git tags and published releases.
+The `buildrelease` workflow now **automatically** updates the CHANGELOG before version bumping. This process ensures the version history accurately matches the git tags and published releases.
 
-#### When to Update the CHANGELOG
+#### Automated UPDATE Process
 
-Update the CHANGELOG **after** successfully completing the release workflow:
-- After `npm run buildrelease` has finished successfully
-- After verifying the `.vsix` file exists in the [`releases/`](releases/) directory
-- After confirming the version number in [`package.json`](package.json) matches the expected release
+The `buildrelease` command runs `scripts/update-changelog-for-release.js` which:
 
-#### Verification Steps
+1. Reads the "Unreleased" section from CHANGELOG.md
+2. Returns early if the Unreleased section is empty or only contains "Nothing yet"
+3. Creates a new version header with format `## [X.Y.Z] - YYYY-MM-DD`
+4. Moves all Unreleased content under the new version header
+5. Creates a new empty "Unreleased" section with "Nothing yet"
+6. Writes the updated CHANGELOG.md
 
-Before updating the CHANGELOG, verify the release is complete:
+The workflow then commits this change, followed by memory update, version bump, git tag creation, and git push.
 
-1. **Check package.json version**:
-   ```bash
-   grep '"version"' package.json
-   ```
-   Expected output: `"version": "X.Y.Z"` where X.Y.Z is the new version
+#### Manual CHANGELOG Updates During Development
 
-2. **Verify build file exists**:
-   ```bash
-   ls -la releases/
-   ```
-   Expected output: `synthetic-usage-tracker-X.Y.Z.vsix` file exists
+**During development**: Add all new changes to the "Unreleased" section at the top of CHANGELOG.md:
+- Use "Nothing yet" placeholder if there are no changes
+- Categorize properly: "Added", "Changed", "Fixed", "Removed"
+- Include detailed descriptions
 
-3. **Check git tag**:
-   ```bash
-   git tag -l
-   ```
-   Expected output: `vX.Y.Z` tag exists
+**Before running buildrelease**:
+- Ensure the "Unreleased" section contains all changes for the release
+- Verify all changes are accurate and complete
+- Make sure user-facing changes are described clearly
 
-#### Update Process
+#### Version Header Format
 
-**Step 1: Move Unreleased section to version header**
-
-Take the entire "Unreleased" section (including all subsections like Added, Changed, Fixed) and move it to a new version header. The version header format is:
+The automated script uses this format:
 
 ```markdown
 ## [X.Y.Z] - YYYY-MM-DD
@@ -886,24 +888,7 @@ Where:
 - `X.Y.Z` is the version number from package.json
 - `YYYY-MM-DD` is the current date (ISO 8601 format)
 
-**Step 2: Create new empty Unreleased section**
-
-After moving the previous Unreleased content, create a new empty Unreleased section at the top of the file:
-
-```markdown
-## Unreleased
-
-Nothing yet
-```
-
-**Step 3: Verify the changes**
-
-Ensure:
-- The new version header matches the git tag created during `npm run buildrelease`
-- The version number in the header matches the version in package.json
-- The date is correct (current date in ISO 8601 format)
-- The new Unreleased section is at the top with "Nothing yet"
-- No duplicate version headers exist
+**Note**: The version number is read from package.json **after** version bump, so ensure your Unreleased content is ready before running buildrelease.
 
 #### Example
 
