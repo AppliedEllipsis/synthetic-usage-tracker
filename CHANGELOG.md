@@ -15,16 +15,20 @@ Nothing yet
 
 ## [1.0.10021] - 2026-01-31
 
-## [1.0.10020] - 2026-01-31
+*(Will become v1.0.10022)*
 
-## [1.0.10020] - 2026-01-31
+Version bump and maintenance:
+- Updated project memory and documentation with buildrelease workflow learnings
+- Fixed CHANGELOG cleanup from previous release attempts
 
-*(Will become v1.0.10021)*
+
+## [1.0.10021] - 2026-01-31
 
 ### Fixed
 - Fixed API key tooltip to properly display mask with dots (•) and last 4 characters
 - Tooltip now shows format like `syn_••••••••••••x789` for proper identification
 - Cached config to preserve API key during tooltip restoration
+- Fixed package.json buildrelease script to remove manual git tag creation (npm version patch creates it automatically)
 
 ### Added
 - Created automated changelog update script (scripts/update-changelog-for-release.js)
@@ -37,13 +41,13 @@ Nothing yet
   * Update project memory
   * Commit memory
   * Bump version (npm version patch)
-  * Create git tag (vX.Y.Z)
   * Push commits and tags to remote
   * Compile TypeScript
   * Package extension (.vsix)
   * Move to releases/ directory
 - Updated agents.md and agents.min.md with comprehensive build documentation
 - Cleaned README.md by removing development sections (moved to agents files)
+- Updated project memory with buildrelease workflow learnings
 
 ## [1.0.10020] - 2026-01-31
 
