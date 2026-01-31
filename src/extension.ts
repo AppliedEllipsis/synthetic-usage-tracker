@@ -213,6 +213,10 @@ export class SyntheticUsageTrackerExtension {
       if (config.enableNotifications) {
         this.checkUsageThresholds(usage, config);
       }
+
+      // Design decision: Auto-show usage details after successful refresh
+      // Provides immediate feedback without requiring user to click status bar again
+      await this.showUsageDetails();
     } catch (error) {
       console.error("Failed to refresh usage:", error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
