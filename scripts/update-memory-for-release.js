@@ -15,33 +15,43 @@ console.log(`\n📦 Preparing release for v${version}...`);
 
 // Get the previous version tag
 try {
-  // Get all tags and sort them to find the one before current version
+  // Get all tags and sort them by version
   const allTags = execSync('git tag --list v\\* --sort=-v:refname', {
     encoding: 'utf8',
     cwd: projectRoot
   }).trim().split('\n').filter(Boolean);
   
-  // Find tags that are less than current version
-  const versionTags = allTags
-    .filter(tag => {
-      const tagVersion = tag.replace(/^v/, '');
-      return tagVersion < version;
-    })
-    .sort((a, b) => b.localeCompare(a, undefined, { numeric: true }));
-  
-  const latestTag = versionTags[0] || '';
+  // The first tag (latest) was just created by npm version patch, so use the second one
+  let previousTag = '';
+  if (allTags.length >= 2) {
+    previousTag = allTags[1]; // Second tag is the actual previous release
+  } else if (allTags.length === 1) {
+    // Only one tag (current version) - check if there are commits before it
+    const currentTag = allTags[0].replace(/^v/, '');
+    if (currentTag === version) {
+      // This tag is for current version, check git log before it
+      const commitsBeforeTag = execSync(`git log ${allTags[0]}~1..HEAD --oneline 2>/dev/null || echo ""`, {
+        encoding: 'utf8',
+        cwd: projectRoot
+      }).trim();
+      if (!commitsBeforeTag) {
+        // No commits between tag~1 and HEAD, this is a fresh tag
+        previousTag = allTags[0]; // Use the tag itself (rare case)
+      }
+    }
+  }
   
   // Get changes since the last tag
   let changes = [];
   let changeNotes = '';
   
-  if (latestTag) {
-    console.log(`📋 Analyzing changes since ${latestTag}...`);
-    const diffOutput = execSync(`git log ${latestTag}..HEAD --oneline`, { encoding: 'utf8', cwd: projectRoot });
+  if (previousTag) {
+    console.log(`📋 Analyzing changes since ${previousTag}...`);
+    const diffOutput = execSync(`git log ${previousTag}..HEAD --oneline`, { encoding: 'utf8', cwd: projectRoot });
     const commits = diffOutput.trim().split('\n').filter(Boolean);
     
     // Get changed files
-    const changedFiles = execSync(`git diff --name-only ${latestTag}..HEAD`, { encoding: 'utf8', cwd: projectRoot });
+    const changedFiles = execSync(`git diff --name-only ${previousTag}..HEAD`, { encoding: 'utf8', cwd: projectRoot });
     const fileChanges = changedFiles.trim().split('\n').filter(Boolean);
     
     // Categorize changes
