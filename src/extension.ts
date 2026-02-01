@@ -181,61 +181,21 @@ export class SyntheticUsageTrackerExtension {
   /**
    * Set API key through VS Code input box
    *
-   * Design decision: Use interactive input dialog for better UX compared to editing
-   * settings directly. This approach is familiar to users and provides immediate feedback.
+   * Design decision: Redirect to addKey() to ensure multi-key storage is used.
+   * This prevents storage conflicts where keys were being deleted.
    */
   private async setApiKey(): Promise<void> {
-    // Generate a random placeholder for visual guidance
-    const placeholder = `syn_${Math.random().toString(36).substring(2, 8)}`;
-
-    const input = await vscode.window.showInputBox({
-      prompt: "Enter your Synthetic.new API key",
-      placeHolder: placeholder,
-      password: true,
-      validateInput: (value) => {
-        if (!value || value.trim().length === 0) {
-          return "API key cannot be empty";
-        }
-        if (!SyntheticService.validateApiKey(value)) {
-          return "Invalid API key format. API keys should start with 'syn_'";
-        }
-        return null;
-      },
-    });
-
-    if (input) {
-      await this.configManager.setApiKey(input);
-      // Design decision: Don't show notification - status bar updates automatically
-      // Notifications covering UI are intrusive
-
-      // Refresh usage immediately after setting key
-      await this.refreshUsage();
-      // Design decision: Clear tooltip temporarily after key is set
-      // Tooltip restores after 500ms to keep it available most of the time
-      this.usageIndicator.clearTooltip(500);
-    }
+    await this.addKey();
   }
 
   /**
-   * Clear the stored API key
+   * Clear the stored API keys
    *
-   * Design decision: Require user confirmation to prevent accidental deletion.
-   * This is important because users can't recover the key from the extension.
+   * Design decision: Redirect to clearAllKeys() to ensure multi-key storage is used.
+   * This prevents storage conflicts where only single key was being deleted.
    */
   private async clearApiKey(): Promise<void> {
-    const confirm = await vscode.window.showWarningMessage(
-      "Are you sure you want to clear your API key?",
-      "Clear",
-      "Cancel",
-    );
-
-    if (confirm === "Clear") {
-      await this.configManager.deleteApiKey();
-      this.usageIndicator.setIdle();
-      // Design decision: Clear tooltip for 2 seconds after key is cleared
-      // Provides clear visual feedback that the key has been removed
-      this.usageIndicator.clearTooltip(2000);
-    }
+    await this.clearAllKeys();
   }
 
   /**
@@ -245,7 +205,7 @@ export class SyntheticUsageTrackerExtension {
    * immediate feedback. Users see an error state rather than stale data.
    */
   private async refreshUsage(): Promise<void> {
-    const apiKey = await this.configManager.getApiKey();
+    const apiKey = await this.keyManager.getActiveKey();
 
     if (!apiKey) {
       this.usageIndicator.setIdle();
@@ -351,7 +311,7 @@ export class SyntheticUsageTrackerExtension {
     }
 
     // Get API key and mask it for display
-    const apiKey = await this.configManager.getApiKey();
+    const apiKey = await this.keyManager.getActiveKey();
     const maskedKey = apiKey ? `${apiKey.substring(0, 4)}${"*".repeat(apiKey.length - 8)}${apiKey.substring(apiKey.length - 4)}` : "Not configured";
 
     const message = this.buildDetailedUsageMessage(usage, maskedKey);
@@ -471,24 +431,44 @@ API Key: ${maskedKey}`;
 
     const commands = [
       {
-        label: "$(key) Set API Key",
-        description: "Configure your Synthetic.new API key",
-        command: "syntheticUsageTracker.setApiKey",
+        label: "$(plus) Add API Key",
+        description: "Add a new API key to your collection",
+        command: "syntheticUsageTracker.addKey",
       },
       {
-        label: "$(clock) Set Refresh Interval",
-        description: "Change auto-refresh interval (30s-30min)",
-        command: "syntheticUsageTracker.setRefreshInterval",
+        label: "$(arrow-right) Cycle to Next Key",
+        description: "Switch to the next API key in your collection",
+        command: "syntheticUsageTracker.cycleKey",
       },
       {
-        label: isAutoRefreshEnabled ? "$(circle-slash) Disable Auto-Refresh" : "$(play) Enable Auto-Refresh",
-        description: isAutoRefreshEnabled ? "Turn off automatic refresh" : "Turn on automatic refresh",
-        command: "syntheticUsageTracker.toggleAutoRefresh",
+        label: "$(trash) Remove API Key",
+        description: "Remove a specific API key from your collection",
+        command: "syntheticUsageTracker.removeKey",
       },
       {
-        label: "$(heart-filled) Subscribe with Discount",
-        description: "Get subscription with referral discount",
-        command: "syntheticUsageTracker.subscribeWithDiscount",
+        label: "$(circle-slash) Clear All Keys",
+        description: "Remove all API keys from your collection",
+        command: "syntheticUsageTracker.clearAllKeys",
+      },
+      {
+        label: "$(key) Manage API Keys",
+        description: "Manage all API keys in one place",
+        command: "syntheticUsageTracker.manageKeys",
+      },
+      {
+        label: "$(refresh) Refresh Usage",
+        description: "Manually refresh usage data",
+        command: "syntheticUsageTracker.refresh",
+      },
+      {
+        label: "$(copy) Copy Usage to Clipboard",
+        description: "Copy usage information to clipboard for sharing",
+        command: "syntheticUsageTracker.copyUsage",
+      },
+      {
+        label: "$(info) Show Usage Details",
+        description: "Display detailed usage information",
+        command: "syntheticUsageTracker.showUsage",
       },
     ];
 
@@ -496,27 +476,27 @@ API Key: ${maskedKey}`;
     if (hasApiKey) {
       commands.push(
         {
-          label: "$(refresh) Refresh Usage",
-          description: "Manually refresh usage data",
-          command: "syntheticUsageTracker.refresh",
+          label: "$(clock) Set Refresh Interval",
+          description: "Change auto-refresh interval (30s-30min)",
+          command: "syntheticUsageTracker.setRefreshInterval",
         },
         {
-          label: "$(clear-all) Clear API Key",
-          description: "Remove the stored API key",
-          command: "syntheticUsageTracker.clearApiKey",
-        },
-        {
-          label: "$(copy) Copy Usage to Clipboard",
-          description: "Copy usage information to clipboard for sharing",
-          command: "syntheticUsageTracker.copyUsage",
-        },
-        {
-          label: "$(info) Show Usage Details",
-          description: "Display detailed usage information",
-          command: "syntheticUsageTracker.showUsage",
+          label: isAutoRefreshEnabled
+            ? "$(circle-slash) Disable Auto-Refresh"
+            : "$(play) Enable Auto-Refresh",
+          description: isAutoRefreshEnabled
+            ? "Turn off automatic refresh"
+            : "Turn on automatic refresh",
+          command: "syntheticUsageTracker.toggleAutoRefresh",
         }
       );
     }
+
+    commands.push({
+      label: "$(heart-filled) Subscribe with Discount",
+      description: "Get subscription with referral discount",
+      command: "syntheticUsageTracker.subscribeWithDiscount",
+    });
 
     commands.push({
       label: "$(dashboard) Open Synthetic Dashboard",

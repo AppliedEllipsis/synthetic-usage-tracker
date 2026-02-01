@@ -31,12 +31,14 @@ where patch versions start at 10000 instead of 0. This is compatible with SemVer
 - Fixed storage conflicts: Old commands (configure, eraseKey) now redirect to new KeyManager methods
 - Updated showCommands() to display multi-key commands with icons
 - Updated copyUsageToClipboard() to use KeyManager.getActiveKey()
+- Updated showUsageDetails() to use KeyManager.getActiveKey()
 
 ### Fixed
 - Fixed storage conflict: Old "Configure API Key" command was deleting multi-key collection
 - Fixed storage conflict: Old "Erase API Key" command now redirects to "Clear All Keys"
 - Fixed command display: "Show Commands" now shows all multi-key commands with icons
-- Fixed method calls: Updated to use keyManager instead of configManager for key operations
+- Fixed method calls: Updated all methods to use KeyManager instead of configManager for key operations
+- Fixed key forgetting: All API key operations now use KeyManager storage properly
 
 
 ## [1.0.10023] - 2026-01-31
