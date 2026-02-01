@@ -16,29 +16,50 @@ where patch versions start at 10000 instead of 0. This is compatible with SemVer
   - Remove API Key command with icon $(trash)
   - Cycle to Next Key command with icon $(arrow-right)
   - Clear All Keys command with icon $(circle-slash)
-  - Manage API Keys MAE action with icon $(key) for centralized key management
   - KeyManager integration with automatic interface updates on key changes
   - Multi-key configuration settings (enableKeyCycling, cyclingStrategy, autoCycleThreshold)
+  - Three cycling strategies: roundRobin, leastRecentlyUsed, highestHealthScore
   - Manual cycling only (no auto-cycling per user request)
+  - Health score tracking for intelligent key selection
+  - Cross-window key synchronization via globalState polling
+- Update notification system
+  - Version tracking using VSCode's globalState
+  - Update modal shown on version changes or fresh install
+  - Version-specific update messages in RELEASE_NOTES
+  - Users can dismiss updates by clicking "Accept"
+  - release-notes.md file for managing version-specific messages
+- Adaptive UI elements
+  - Details popup: Shows "Cycle Keys" button when multiple keys exist, "Subscribe with Discount" otherwise
+  - showCommands menu: Smart filtering based on current state
+  - Commands only appear when they can be used in current state
+- Full user control over API keys
+  - Users can remove all API keys including the last one
+  - Clear All Keys command always visible in showCommands menu
+  - Extension properly handles zero-key state with idle status
 
 ### Changed
 - KeyManager integrated into extension.ts for multi-key support
 - Updated initialize() to use KeyManager instead of ConfigurationManager
 - Added handleKeysChanged() callback for automatic interface updates
 - Added onKeysChanged() callback to KeyManager for change notifications
-- Enhanced command menu with icons for better visual feedback
-- Added Manage API Keys submenu with all key management options
+- Enhanced command menu with icons and smart filtering
 - Fixed storage conflicts: Old commands (configure, eraseKey) now redirect to new KeyManager methods
-- Updated showCommands() to display multi-key commands with icons
+- Updated showCommands() with conditional command display
+  - Cycle to Next Key: only shows with 2+ keys configured
+  - Remove API Key: only shows with 1+ key configured
+  - Clear All Keys: always shows (even with 0 keys)
+  - Usage commands (Set Refresh Interval, Toggle Auto-Refresh): only shows when API key configured
+- Updated details popup with adaptive button based on key count
 - Updated copyUsageToClipboard() to use KeyManager.getActiveKey()
 - Updated showUsageDetails() to use KeyManager.getActiveKey()
 
 ### Fixed
 - Fixed storage conflict: Old "Configure API Key" command was deleting multi-key collection
 - Fixed storage conflict: Old "Erase API Key" command now redirects to "Clear All Keys"
-- Fixed command display: "Show Commands" now shows all multi-key commands with icons
-- Fixed method calls: Updated all methods to use KeyManager instead of configManager for key operations
-- Fixed key forgetting: All API key operations now use KeyManager storage properly
+- Fixed command display: Removed broken "Manage API Keys" menu item
+- Fixed command filtering: Users only see commands they can actually use
+- Fixed key removal: Now allows removing all API keys including the last one
+- Fixed KeyManager: Updated to handle empty collections properly
 
 
 ## [1.0.10023] - 2026-01-31

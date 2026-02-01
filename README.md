@@ -4,7 +4,7 @@
 
 A VSCode extension that monitors your Synthetic.new API usage and quotas directly from the status bar.
 
-[![Version](https://img.shields.io/badge/version-1.0.10022-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.0.10024-blue)](CHANGELOG.md)
 [![VSCode Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/Ellipsis.synthetic-usage-tracker?logo=visual-studio-code&label=VSCode%20Marketplace&cacheSeconds=3600)](https://marketplace.visualstudio.com/items?itemName=Ellipsis.synthetic-usage-tracker)
 [![VSCode Marketplace Installs](https://img.shields.io/visual-studio-marketplace/i/Ellipsis.synthetic-usage-tracker?logo=visual-studio-code&color=007acc&cacheSeconds=3600)](https://marketplace.visualstudio.com/items?itemName=Ellipsis.synthetic-usage-tracker)
 [![VSCode Marketplace Rating](https://img.shields.io/visual-studio-marketplace/stars/Ellipsis.synthetic-usage-tracker?logo=visual-studio-code&color=007acc&cacheSeconds=3600)](https://marketplace.visualstudio.com/items?itemName=Ellipsis.synthetic-usage-tracker)
@@ -18,6 +18,14 @@ A VSCode extension that monitors your Synthetic.new API usage and quotas directl
 ## Features
 
 - **Real-time Usage Tracking**: Monitor your Synthetic.new API quota usage directly from the VSCode status bar
+- **Multi-Key Cycling Management**: Add, remove, and cycle through multiple API keys with labels
+  - Add multiple API keys with custom labels
+  - Cycle through keys manually using different strategies (round-robin, least recently used, highest health score)
+  - Remove individual keys or clear all keys
+  - Cross-window synchronization for key state
+- **Update Notifications**: Automatic update notifications with version-specific messages
+  - Shows update modal on version changes or fresh installations
+  - Users can dismiss notifications to prevent future displays
 - **Three-Quota Tracking**: Track usage across three distinct quota types - subscription (monthly), search.hourly (hourly search limit), and toolCallDiscounts (tool call functionality)
 - **Auto-refresh**: Automatically updates usage data at configurable intervals (minimum 30 seconds, maximum 30 minutes)
 - **Visual Indicators**: Custom font icons for normal and loading states, color-coded status bar based on usage thresholds
@@ -26,6 +34,9 @@ A VSCode extension that monitors your Synthetic.new API usage and quotas directl
 - **API Key Suffix Display**: Shows last 4 characters of the active API key in tooltips (masked for security)
 - **Secure Storage**: API keys are stored securely using VSCode SecretStorage
 - **Configurable Thresholds**: Set custom warning and critical usage percentages
+- **Adaptive UI**: Smart command filtering based on current state
+  - Only shows commands that can be used in current situation
+  - Details popup adapts button text based on key count
 - **Quick Actions**: Refresh, set interval, configure, and view details from the command palette or status bar
 - **Copy to Clipboard**: Quickly copy formatted usage information (with progress bars) matching the popup view for sharing or bug reports
 - **Context-Aware Commands**: Usage-related commands only appear when API key is configured
@@ -208,22 +219,33 @@ The extension can be configured through VSCode settings:
 | `syntheticUsageTracker.enableNotifications` | boolean | `true`                         | Show notifications for API errors and quota warnings  |
 | `syntheticUsageTracker.warningThreshold`    | number  | `80`                           | Usage percentage threshold for warning notifications  |
 | `syntheticUsageTracker.criticalThreshold`   | number  | `90`                           | Usage percentage threshold for critical notifications |
+| `syntheticUsageTracker.enableKeyCycling`    | boolean | `false`                        | Enable multi-key cycling functionality (manual only - auto-cycling disabled) |
+| `syntheticUsageTracker.cyclingStrategy`     | string  | `roundRobin`                   | Strategy for manual key cycling when enabled (options: roundRobin, leastRecentlyUsed, highestHealthScore) |
+| `syntheticUsageTracker.autoCycleThreshold`   | number  | `95`                           | Threshold for auto-cycling (disabled by default - manual cycling only) |
 
 ## Commands
 
 | Command                                             | Description                                      | Availability          |
 | --------------------------------------------------- | ------------------------------------------------ | --------------------- |
-| `Synthetic Usage Tracker: Set API Key`              | Configure or update your API key                 | Always                |
+| `Synthetic Usage Tracker: Add API Key`             | Add a new API key to your collection             | Always                |
+| `Synthetic Usage Tracker: Remove API Key`          | Remove a specific API key from your collection  | 1+ keys configured 🔑 |
+| `Synthetic Usage Tracker: Cycle to Next Key`       | Switch to the next API key (requires 2+ keys)    | 2+ keys configured 🔑 |
+| `Synthetic Usage Tracker: Clear All Keys`          | Remove all API keys from your collection           | Always (even with 0 keys) |
 | `Synthetic Usage Tracker: Set Refresh Interval`     | Set auto-refresh interval (30s-30min, accepts `60` seconds or `5min`) | Always                |
 | `Synthetic Usage Tracker: Toggle Auto-Refresh`      | Enable or disable automatic refresh (shows current state in menu) | Always                |
-| `Synthetic Usage Tracker: Subscribe with Discount` | Subscribe with referral bonus credits ($10 standard, $20 pro) | Always                |
-| `Synthetic Usage Tracker: Open Synthetic Dashboard` | Open the Synthetic.new dashboard in your browser | Always                |
 | `Synthetic Usage Tracker: Refresh Usage`            | Manually refresh the usage data                  | API key configured ⚠️ |
 | `Synthetic Usage Tracker: Show Usage Details`       | Display detailed usage information with action buttons | API key configured ⚠️ |
 | `Synthetic Usage Tracker: Copy Usage to Clipboard`  | Copy formatted usage information to clipboard (with progress bars) | API key configured ⚠️ |
-| `Synthetic Usage Tracker: Clear API Key`            | Remove the stored API key                        | API key configured ⚠️ |
+| `Synthetic Usage Tracker: Subscribe with Discount` | Subscribe with referral bonus credits ($10 standard, $20 pro) | Always                |
+| `Synthetic Usage Tracker: Open Synthetic Dashboard` | Open the Synthetic.new dashboard in your browser | Always                |
 
-⚠️ Commands marked with this icon only appear in the command palette and "Show Commands" menu when an API key is configured.
+🔑 Commands marked with this key icon appear based on the number of API keys configured.
+⚠️ Commands marked with this icon only appear when an API key is configured.
+
+**Smart Command Filtering**:
+- The "Show Commands" menu only displays commands that are usable in the current state
+- This reduces confusion and provides a cleaner, more relevant menu
+- Commands dynamically appear/disappear as you add or remove keys
 
 ## Contributing
 

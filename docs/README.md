@@ -10,6 +10,7 @@ Welcome to the comprehensive documentation for the Synthetic.new Usage Tracker V
 - [API Payload Analysis](api-payload-analysis.md) - Usage endpoint payload structure documentation
 - [Models Endpoint Testing](models-endpoint-testing.md) - Models endpoint testing and discovery
 - [Phase 6 Test Results](phase6-test-results.md) - Unit testing results for Phase 4 features
+- [Multi-Key Architecture](multi-key-architecture.md) - Multi-key cycling system documentation
 - [Development Guide](development.md) - Setting up the development environment
 - [Troubleshooting](troubleshooting.md) - Common issues and solutions
 
@@ -79,14 +80,17 @@ docs/
 ├── api-payload-analysis.md  # Usage endpoint payload structure documentation
 ├── models-endpoint-testing.md  # Models endpoint testing documentation
 ├── phase6-test-results.md  # Phase 6 unit testing results for Phase 4 features
+├── multi-key-architecture.md  # Multi-key architecture documentation
 ├── development.md      # Development setup guide
 ├── troubleshooting.md  # Common issues and solutions
 ├── mcp.md             # MCP configuration and usage guide
 ├── MEMORY.md           # Query history and task tracking
-├── multi-key-architecture.md  # Multi-key architecture documentation
 └── memory/            # Shared memory system for AI tools
     ├── shared-memory.md      # Consolidated memory pool
     ├── tool-registry.md      # AI tool registry
     ├── git_commit_format.md # Git commit message format
     └── README.md            # Memory system documentation
+../
+├── release-notes.md   # Version-specific update notifications (new in v1.0.10024)
+└── CHANGELOG.md       # Complete changelog of all versions
 ```
