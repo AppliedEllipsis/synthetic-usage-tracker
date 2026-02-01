@@ -18,12 +18,15 @@ A VSCode extension that monitors your Synthetic.new API usage and quotas directl
 
 - **Real-time Usage Tracking**: Monitor your Synthetic.new API quota usage directly from the VSCode status bar
 - **Three-Quota Tracking**: Track usage across three distinct quota types - subscription (monthly), search.hourly (hourly search limit), and toolCallDiscounts (tool call functionality)
+- **Multi-Key Management**: Support for multiple API keys with easy cycling and secure storage
+- **Manual Key Cycling**: Quickly switch between multiple API keys using round-robin rotation
+- **Secure Storage**: API keys are stored securely using VSCode SecretStorage with encryption
+- **Key Management Commands**: Add, remove, and clear API keys with confirmation dialogs
 - **Auto-refresh**: Automatically updates usage data at configurable intervals (minimum 30 seconds, maximum 30 minutes)
 - **Visual Indicators**: Custom font icons for normal and loading states, color-coded status bar based on usage thresholds
 - **Enhanced Tooltips**: Hover over the status bar to see detailed category breakdowns with ASCII progress bars and time remaining
 - **Quota Warning Symbols**: Visual indicators (⚠️ for warning, 🔴 for critical) in the status bar when thresholds are exceeded
 - **API Key Suffix Display**: Shows last 4 characters of the active API key in tooltips (masked for security)
-- **Secure Storage**: API keys are stored securely using VSCode SecretStorage
 - **Configurable Thresholds**: Set custom warning and critical usage percentages
 - **Quick Actions**: Refresh, set interval, configure, and view details from the command palette or status bar
 - **Copy to Clipboard**: Quickly copy formatted usage information (with progress bars) matching the popup view for sharing or bug reports
@@ -80,6 +83,92 @@ A VSCode extension that monitors your Synthetic.new API usage and quotas directl
    - Press `Ctrl+,` to open Settings
    - Search for "Synthetic Usage Tracker"
    - Adjust settings to your preference
+
+## Multi-Key Management
+
+The extension supports managing multiple API keys for flexibility and redundancy. All keys are stored securely in VSCode's encrypted SecretStorage.
+
+### Adding API Keys
+
+You can add multiple API keys to configure different Synthetic.new accounts or projects:
+
+1. **Add a New Key**:
+   - Press `Ctrl+Shift+P` (or `Cmd+Shift+P` on Mac)
+   - Type `Synthetic Usage Tracker: Add API Key`
+   - Enter your Synthetic.new API key (must start with `syn_`)
+   - Optionally add a label for easy identification (e.g., "Dev Account", "Production Key")
+   - The key is automatically added to your secure storage
+
+### Cycling Between Keys
+
+When you have multiple API keys configured, you can quickly switch between them:
+
+1. **Cycle to Next Key**:
+   - Press `Ctrl+Shift+P`
+   - Type `Synthetic Usage Tracker: Cycle to Next Key`
+   - The extension rotates to the next key in round-robin fashion
+   - Usage data automatically refreshes with the new active key
+
+2. **From Usage Details Popup**:
+   - Click on the status bar to view usage details
+   - **Single key configured**: Shows "Refresh", "Open Dashboard", and "Subscribe with Discount" buttons
+   - **Multiple keys configured**: "Subscribe with Discount" button is replaced with "Cycle Keys" button
+   - Click "Cycle Keys" to switch to the next key and view its usage in the same popup
+   - The popup refreshes automatically with the new key's data
+
+### Managing and Removing Keys
+
+You can remove individual keys or clear all keys:
+
+1. **Remove a Specific Key**:
+   - Press `Ctrl+Shift+P`
+   - Type `Synthetic Usage Tracker: Remove API Key`
+   - Select the key you want to remove from the list
+   - Confirm removal in the dialog
+   - The extension will activate the next available key
+
+2. **Clear All Keys**:
+   - Press `Ctrl+Shift+P`
+   - Type `Synthetic Usage Tracker: Clear All Keys`
+   - Confirm the action in the dialog
+   - All API keys are removed from secure storage
+   - The extension returns to idle state (no keys configured)
+
+### Viewing Active Key
+
+The status bar tooltip shows which key is currently active:
+
+```
+API Key: syn_••••••••••••x789
+```
+
+The masked display reveals:
+- Key prefix (`syn_`)
+- Last 4 characters for identification
+- Middle characters masked with dots (•) for security
+
+### Cross-Window Synchronization
+
+When you manage keys in one VSCode window, changes automatically sync across all open windows:
+
+- Adding a key in one window → available in all windows
+- Switching keys in one window → syncs to all windows
+- Removing keys → updates across all windows
+
+The extension uses polling (every 5 seconds) to detect changes made in other windows.
+
+### Security and Storage
+
+All API keys are stored using VSCode's SecretStorage API:
+
+- **Encrypted storage**: Keys are encrypted at the operating system level
+- **Workspace isolation**: Keys are stored per-workspace, not globally
+- **No plaintext storage**: Keys are never written to files or settings
+- **Secure deletion**: Removing keys permanently deletes them from encrypted storage
+
+### Backward Compatibility
+
+The extension automatically migrates from legacy single-key format (stored as `syntheticApiKey`) to the new multi-key format (stored as `syntheticApiKeys`). Your existing single key is preserved during migration.
 
 ## Three-Quota Structure
 
