@@ -466,21 +466,69 @@ This command:
 
 The `buildrelease` command automates the complete release process, from CHANGELOG updates to git push and packaging. Use this workflow when preparing a new release for distribution.
 
+#### Critical: LLM Agent Workflow for "buildrelease" Command
+
+**When the user says "buildrelease", follow this exact sequence:**
+
+1. **Update CHANGELOG with predicted version**:
+   ```bash
+   node scripts/update-changelog-for-release.js
+   ```
+   - This script reads package.json current version (e.g., 1.0.10023)
+   - Predicts next version by incrementing patch (e.g., 1.0.10024)
+   - Moves "Unreleased" section to `## [1.0.10024] - YYYY-MM-DD`
+   - Creates new empty "Unreleased" section
+
+2. **Verify CHANGELOG update**:
+   - Check that the version header matches what `npm version patch` will create
+   - The script uses the same prediction logic as `npm version patch`
+   - Current version + 1 patch = predicted version in CHANGELOG
+
+3. **Ensure working tree is clean before continuing**
+
+4. **Run buildrelease**:
+   ```bash
+   npm run buildrelease
+   ```
+   - This confirms the CHANGELOG (already updated)
+   - Runs memory update
+   - Runs `npm version patch` (increments to predicted version)
+   - Pushes commits and tags
+   - Compiles and packages
+
+5. **Handle version mismatches if they occur**:
+   - If `npm version patch` fails or needs to run again
+   - You may need to manually update the CHANGELOG version to match
+   - Example: If patch increments again to 1.0.10025, update changelog header
+
+**Why this workflow exists**:
+- The LLM agent explicitly updates the CHANGELOG before running buildrelease
+- This ensures the CHANGELOG version matches the package.json version after bump
+- The `update-changelog-for-release.js` script predicts the same version `npm version patch` will create
+- This gives the agent control over the process and allows for manual intervention if needed
+
 #### Building a Release
 
 Execute the release workflow:
 
 ```bash
+# Step 1: Update CHANGELOG (LLM agent does this first)
+node scripts/update-changelog-for-release.js
+
+# Step 2: Verify the version prediction
+# Check that the CHANGELOG shows the correct next version
+
+# Step 3: Run buildrelease
 npm run buildrelease
 ```
 
 This command performs the following steps in sequence:
 
-1. **Update CHANGELOG**: Moves the "Unreleased" section to a version header with today's date
+1. **Confirm CHANGELOG changes**: Adds CHANGELOG.md to staging
 2. **Commit CHANGELOG**: Creates a git commit for the CHANGELOG update
 3. **Update memory**: Runs memory update script to document the release
 4. **Commit memory**: Creates a git commit for the memory update
-5. **Bump version**: Runs `npm version patch` to increment the patch version (e.g., 1.0.10020 → 1.0.10021)
+5. **Bump version**: Runs `npm version patch` to increment the patch version (e.g., 1.0.10023 → 1.0.10024)
 6. **Create git tag**: Tags the version commit with the version number
 7. **Push to remote**: Pushes commits and tags to the remote repository
 8. **Compile TypeScript**: Builds the extension
