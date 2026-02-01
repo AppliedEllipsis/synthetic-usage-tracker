@@ -466,7 +466,7 @@ API Key: ${maskedKey}`;
     // Prevent updates during this time, then restore with current data
     this.usageIndicator.clearTooltip(5000, true);
 
-    const hasApiKey = await this.configManager.hasApiKey();
+     const hasApiKey = await this.keyManager.hasApiKey();
     const isAutoRefreshEnabled = this.getIsAutoRefreshEnabled();
 
     const commands = [
@@ -551,7 +551,7 @@ API Key: ${maskedKey}`;
     // Clear tooltip temporarily
     this.usageIndicator.clearTooltip(500);
 
-    const apiKey = await this.configManager.getApiKey();
+    const apiKey = await this.keyManager.getActiveKey();
     const maskedKey = apiKey ? `${apiKey.substring(0, 4)}${"*".repeat(apiKey.length - 8)}${apiKey.substring(apiKey.length - 4)}` : "Not configured";
 
     const text = this.buildDetailedUsageMessage(usage, maskedKey) + `\nTimestamp: ${new Date().toISOString()}`;

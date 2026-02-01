@@ -10,7 +10,33 @@ where patch versions start at 10000 instead of 0. This is compatible with SemVer
 
 ## Unreleased
 
-Nothing yet
+### Added
+- Multi-key cycling functionality with manual key management
+  - Add API Key command with icon $(plus)
+  - Remove API Key command with icon $(trash)
+  - Cycle to Next Key command with icon $(arrow-right)
+  - Clear All Keys command with icon $(circle-slash)
+  - Manage API Keys MAE action with icon $(key) for centralized key management
+  - KeyManager integration with automatic interface updates on key changes
+  - Multi-key configuration settings (enableKeyCycling, cyclingStrategy, autoCycleThreshold)
+  - Manual cycling only (no auto-cycling per user request)
+
+### Changed
+- KeyManager integrated into extension.ts for multi-key support
+- Updated initialize() to use KeyManager instead of ConfigurationManager
+- Added handleKeysChanged() callback for automatic interface updates
+- Added onKeysChanged() callback to KeyManager for change notifications
+- Enhanced command menu with icons for better visual feedback
+- Added Manage API Keys submenu with all key management options
+- Fixed storage conflicts: Old commands (configure, eraseKey) now redirect to new KeyManager methods
+- Updated showCommands() to display multi-key commands with icons
+- Updated copyUsageToClipboard() to use KeyManager.getActiveKey()
+
+### Fixed
+- Fixed storage conflict: Old "Configure API Key" command was deleting multi-key collection
+- Fixed storage conflict: Old "Erase API Key" command now redirects to "Clear All Keys"
+- Fixed command display: "Show Commands" now shows all multi-key commands with icons
+- Fixed method calls: Updated to use keyManager instead of configManager for key operations
 
 
 ## [1.0.10023] - 2026-01-31
