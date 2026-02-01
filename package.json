@@ -85,6 +85,27 @@
           "maximum": 100,
           "description": "Usage percentage threshold for showing critical notifications",
           "order": 9
+        },
+        "syntheticUsageTracker.enableKeyCycling": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable multi-key cycling functionality (manual only - auto-cycling disabled)",
+          "order": 10
+        },
+        "syntheticUsageTracker.cyclingStrategy": {
+          "type": "string",
+          "default": "roundRobin",
+          "enum": ["roundRobin", "leastRecentlyUsed", "highestHealthScore"],
+          "description": "Strategy for manual key cycling when enabled",
+          "order": 11
+        },
+        "syntheticUsageTracker.autoCycleThreshold": {
+          "type": "number",
+          "default": 95,
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Threshold for auto-cycling (disabled by default - manual cycling only)",
+          "order": 12
         }
       }
     },
@@ -132,6 +153,26 @@
       {
         "command": "syntheticUsageTracker.setRefreshInterval",
         "title": "Set Refresh Interval",
+        "category": "Synthetic Usage Tracker"
+      },
+      {
+        "command": "syntheticUsageTracker.addKey",
+        "title": "Add API Key",
+        "category": "Synthetic Usage Tracker"
+      },
+      {
+        "command": "syntheticUsageTracker.removeKey",
+        "title": "Remove API Key",
+        "category": "Synthetic Usage Tracker"
+      },
+      {
+        "command": "syntheticUsageTracker.cycleKey",
+        "title": "Cycle to Next Key",
+        "category": "Synthetic Usage Tracker"
+      },
+      {
+        "command": "syntheticUsageTracker.clearAllKeys",
+        "title": "Clear All Keys",
         "category": "Synthetic Usage Tracker"
       }
     ],

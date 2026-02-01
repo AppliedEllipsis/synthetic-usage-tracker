@@ -4,6 +4,201 @@ This file maintains context across AI agent sessions by tracking queries, curren
 
 ## Query History
 
+### [2026-02-01 04:00 UTC] - Query: Hide inactive functions in showCommands
+
+**Query**: "when shoing the showCommands function, don't show functions that can't be used like cycle keys if there is only 1 key and similar logic"
+
+**Context**: User wants the showCommands menu to only display commands that are usable in the current state, rather than showing all commands even when they can't be used.
+
+**Outcome**: Completed - showCommands now only displays relevant commands based on current state
+
+**Changes Made**:
+
+**Smart Command Filtering** (`src/extension.ts`):
+- Moved key management commands to conditional display based on key count
+- Cycle to Next Key: only shown when 2+ keys configured
+- Remove API Key: only shown when 1+ key configured
+- Clear All Keys: only shown when 1+ keys configured
+- Kept universal commands always visible: Add API Key, Refresh Usage, Copy Usage, Show Usage Details, Subscribe, Open Dashboard
+- Usage-related commands (Set Refresh Interval, Toggle Auto-Refresh): only shown when API key configured (existing behavior maintained)
+
+**Behavior Changes**:
+- Before: All commands shown regardless of state, user learns command is unavailable after clicking
+- After: Only usable commands shown, cleaner menu with fewer options
+
+**Command Display Rules**:
+- Always show: Add API Key, Refresh Usage, Copy Usage, Show Usage Details, Subscribe, Open Dashboard
+- Show if 1+ key: Remove API Key, Clear All Keys
+- Show if 2+ keys: Cycle to Next Key
+- Show if hasApiKey: Set Refresh Interval, Toggle Auto-Refresh
+
+**Files Modified**:
+1. `src/extension.ts` - Updated showCommands() with conditional command display logic
+
+**Code Quality**:
+- TypeScript compilation: Success ✅
+- ESLint: No errors ✅
+
+---
+
+### [2026-02-01 03:30 UTC] - Query: Allow removing all API keys
+
+**Query**: "they are allowed to remove or clear all api keys for the tool"
+
+**Context**: User wants to be able to remove all API keys including the last one. Previously, the system prevented removing the last API key with a warning message.
+
+**Outcome**: Completed - Users can now remove all API keys including the last one
+
+**Changes Made**:
+
+**Remove Key Function** (`src/extension.ts`):
+- Removed check that prevented removing the last API key
+- Users can now remove all keys by removing them individually or using "Clear All Keys"
+- Extension properly handles zero key state by showing idle status in status bar
+
+**Behavior Changes**:
+- Before: "Cannot remove the last API key. Add another key first." warning
+- After: User can remove the last key, then shows "No API keys configured."
+
+**Files Modified**:
+1. `src/extension.ts` - Removed last-key-removal prevention check in removeKey() method
+
+**Code Quality**:
+- TypeScript compilation: Success ✅
+- ESLint: No errors ✅
+
+---
+
+### [2026-02-01 03:00 UTC] - Query: Implement update notifications and version tracking
+
+**Query**: "Make a new Branch based off of this one. update notifications and last version hversion history. after the load if there is not a stored last version then assume this is either freshly installed or updated and should display a update message if saved in the release to have an update message displayed and dismissed where the user has to hit, accept or cancel and by dismiss I mean accept then it will store the current version as last version. if last version matches current version, do not display this message as it's assumed they've already dismissed it" and "I want the update message for this version to say this extension has been updated to handled keys in a different way, you may have to reassign your API keys."
+
+**Context**: User wants to implement an update notification system that: 1) Creates a new branch for this feature, 2) Stores last seen version in globalState, 3) Shows update modal when version changes or no version stored, 4) Stores current version after user accepts/dismisses, 5) Doesn't show notification if version matches (already dismissed)
+
+**Outcome**: Completed - Update notification system implemented
+
+**Changes Made**:
+
+**Version Tracking System** (`src/extension.ts`):
+- Added RELEASE_NOTES constant map with version → message mappings
+- Added getExtensionVersion() function to read version from package.json
+- Added global currentVersion variable (set during activation)
+- Added checkForUpdatesAndShowNotification() method: reads last seen version from globalState, compares to current version, shows modal if changed/missing
+- Added storeCurrentVersion() method: stores current version in globalState after user accepts
+- Modified activate(): set currentVersion, call checkForUpdatesAndShowNotification() before other initialization
+- Update message modal: "Synthetic.new Usage Tracker Updated to v{version}" with Accept button and detail message
+
+**Release Notes File** (`release-notes.md`):
+- Created release notes template file
+- Added version 1.0.10023 entry with update message
+- Message: "This extension has been updated to handle API keys in a different way. You may need to reassign your API keys."
+
+**Version Storage Logic**:
+- stored in globalState under "lastSeenVersion"
+- Checked at start of activation
+- If no version stored (fresh install) or version changed (update): show notification
+- If version matches (already dismissed): skip notification
+- User clicking "Accept" stores current version as lastSeenVersion
+
+**Files Created**:
+1. `release-notes.md` - Release notes file with version-specific update messages
+
+**Files Modified**:
+1. `src/extension.ts` - Added version tracking, update notification system
+2. Branch created: `feature_update_notifications_1769929885479`
+
+**Code Quality**:
+- TypeScript compilation: Success ✅
+- ESLint: No errors ✅
+
+---
+
+### [2026-02-01 02:30 UTC] - Query: Update details popup to show Cycle Keys button
+
+**Query**: "if there are multiple keys, change the details popup subscribe with discount button to be a cycle keys button"
+
+**Context**: User wants the details popup to dynamically adjust its buttons based on the number of configured keys. When multiple keys exist, the "Subscribe with Discount" button should be replaced with a "Cycle Keys" button.
+
+**Outcome**: Completed - Details popup now shows "Cycle Keys" button when multiple keys are configured
+
+**Changes Made**:
+
+**Details Popup Adaptive Buttons** (`src/extension.ts`):
+- Added check for multiple keys using `keyManager.getAllKeys()`
+- If keys.length > 1, button shows "Cycle Keys" instead of "Subscribe with Discount"
+- Clicking "Cycle Keys" when multiple keys exist:
+  - Executes `cycleKey()` to switch to next key
+  - Executes `refreshUsage()` to fetch data for new key
+  - Shows popup again with updated data via `showUsageDetailsInternal(true)`
+- Single key behavior unchanged: "Subscribe with Discount" button still appears and functions normally
+
+**Fix Applied**:
+- Removed "Manage API Keys" menu item from showCommands() menu (command was not registered)
+- This fixed the "command 'syntheticUsageTracker.manageKeys' not found" error
+
+**Files Modified**:
+1. `src/extension.ts` - Updated showUsageDetailsInternal() to check key count and adapt button text
+
+**Code Quality**:
+- TypeScript compilation: Success ✅
+- ESLint: No errors ✅
+
+---
+
+### [2026-02-01 00:00 UTC] - Query: Implement multi-key cycling functionality
+
+**Query**: "Create a new Branch with timestamp in name, that will be used for cycling through multiple API accounts it will need a command to add new key erase key or current key cycle key and clear all keys upon cycling all interfaces should update and query new key data. this should not Auto cycle"
+
+**Context**: User wants to implement manual multi-key cycling functionality with commands: addKey, removeKey, cycleKey, clearAllKeys. All interfaces should update when keys cycle, and data should be queried after cycling.
+
+**Outcome**: In Progress - Integration complete, ready for testing
+
+**Changes Made**:
+
+**Configuration Settings** (`package.json`):
+- Added `enableKeyCycling`: boolean - Enable multi-key cycling (manual only)
+- Added `cyclingStrategy`: string - Strategy for manual key cycling (roundRobin, leastRecentlyUsed, highestHealthScore)
+- Added `autoCycleThreshold`: number - Threshold for auto-cycling (disabled by default)
+- Note: Auto-cycling is disabled per user request - manual cycling only
+
+**Commands Added** (`package.json`):
+- `syntheticUsageTracker.addKey` - Add a new API key
+- `syntheticUsageTracker.removeKey` - Remove a specific API key
+- `syntheticUsageTracker.cycleKey` - Cycle to next key (round-robin)
+- `syntheticUsageTracker.clearAllKeys` - Clear all API keys
+
+**KeyManager Integration** (`src/extension.ts`):
+- Added KeyManager instance to extension class
+- Integrated `onKeysChanged()` callback to handle key changes
+- Updated `initialize()` to use `keyManager.hasApiKey()` instead of `configManager.hasApiKey()`
+- Updated `deactivate()` to dispose of keyManager
+- Added `handleKeysChanged()` method to refresh usage when keys change
+
+**New Command Handlers** (`src/extension.ts`):
+- `addKey()` - Add new API key with optional label, uses KeyManager.addApiKey()
+- `removeKey()` - Show key selection, confirm removal, uses KeyManager.removeApiKey()
+- `cycleKey()` - Cycle to next key in round-robin fashion, uses KeyManager.setActiveKeyByIndex()
+- `clearAllKeys()` - Clear all keys with confirmation, iteratively removes each key
+- `maskKey()` - Helper to mask API key for display (first 4 and last 4 chars with asterisks)
+
+**Files Modified**:
+1. `package.json` - Added multi-key configuration properties and new commands
+2. `src/extension.ts` - Integrated KeyManager, added multi-key command handlers
+
+**Code Quality**:
+- TypeScript compilation: Success ✅
+- ESLint: No errors ✅
+
+**Branch**: feature_multi-key-cycling_1769923335971
+
+**Notes**:
+- Manual cycling only (no auto-cycling per user request)
+- All interfaces update automatically via KeyManager's onKeysChanged() callback
+- New key data is queried after cycling via handleKeysChanged() method
+- Extension maintains backward compatibility with legacy single-key format
+
+---
+
 ### [2026-01-31 21:30 UTC] - Query: Update from ai-project-scaffolding-1
 
 **Query**: "~update_from_project# D:\_projects\ai-project-scaffolding-1"
@@ -665,14 +860,17 @@ Tasks:
 
 ## Current Focus
 
-### Last Query: Release v1.0.10022
-**Time**: 2026-01-31T11:58:40.835Z
-**Summary**: Version v1.0.10022 released with changes: Version bump only
-**Context**: Release completed via buildrelease workflow. Version bumped, compiled, packaged, and moved to releases/ directory.
-**Planning**: All tasks completed for v1.0.10022. Ready for next iteration.
+### Last Query: Hide inactive functions in showCommands
+**Time**: 2026-02-01 04:05 UTC
+**Summary**: Updated showCommands to only display commands usable in current state; Clear All Keys always shown
+**Context**: Commands now conditionally appear based on key count and API key status; Clear All Keys is always visible
+**Planning**: Feature complete and tested (compiles and lints)
+
 **Remaining Items**:
-- None for this release - all changes verified and documented
- Sub-tasks Tracking
+- [ ] User testing of update notification system
+- [ ] Consider adding release notes for future versions
+
+### Sub-tasks Tracking
 
 | #   | Sub-task                                             | Status      | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | --- | ---------------------------------------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

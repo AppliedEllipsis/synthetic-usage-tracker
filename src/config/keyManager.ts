@@ -251,18 +251,14 @@ export class KeyManager {
   /**
    * Remove an API key from the collection
    *
-   * Design decision: Prevent removal of the last key to ensure the extension always has
-   * at least one key configured. This prevents the extension from becoming unusable.
+   * Design decision: Allow removal of all keys including the last one.
+   * Users should have full control over their API keys.
    *
-   * Design rationale: Adjust active index when removing the active key to ensure a valid
-   * key remains active. Default to the first key if the removed key was active.
+   * Design rationale: After removing the last key, the collection becomes empty and
+   * the extension shows idle status. Users can add keys again at any time.
    */
   async removeApiKey(key: string): Promise<void> {
     const collection = await this.getCollection();
-
-    if (collection.keys.length <= 1) {
-      throw new Error("Cannot remove the last API key. Add another key first.");
-    }
 
     const index = collection.keys.findIndex((entry) => entry.key === key);
     if (index === -1) {
@@ -272,23 +268,32 @@ export class KeyManager {
     // Remove the key
     collection.keys.splice(index, 1);
 
-    // Adjust active index if needed
-    if (collection.state.activeIndex >= collection.keys.length) {
-      collection.state.activeIndex = collection.keys.length - 1;
+    // If collection becomes empty, reset active index to 0
+    if (collection.keys.length === 0) {
+      collection.state.activeIndex = 0;
+    } else {
+      // Adjust active index if needed
+      if (collection.state.activeIndex >= collection.keys.length) {
+        collection.state.activeIndex = collection.keys.length - 1;
+      }
     }
 
     // Update health scores map
     collection.state.healthScores.delete(index);
-    // Rebuild health scores map with corrected indices
-    const newHealthScores = new Map<number, number>();
-    collection.state.healthScores.forEach((score, oldIndex) => {
-      if (oldIndex < index) {
-        newHealthScores.set(oldIndex, score);
-      } else if (oldIndex > index) {
-        newHealthScores.set(oldIndex - 1, score);
-      }
-    });
-    collection.state.healthScores = newHealthScores;
+    if (collection.keys.length > 0) {
+      // Rebuild health scores map with corrected indices
+      const newHealthScores = new Map<number, number>();
+      collection.state.healthScores.forEach((score, oldIndex) => {
+        if (oldIndex < index) {
+          newHealthScores.set(oldIndex, score);
+        } else if (oldIndex > index) {
+          newHealthScores.set(oldIndex - 1, score);
+        }
+      });
+      collection.state.healthScores = newHealthScores;
+    } else {
+      collection.state.healthScores.clear();
+    }
 
     // Increment version for cross-window sync
     collection.version++;

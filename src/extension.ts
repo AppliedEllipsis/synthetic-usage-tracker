@@ -1,8 +1,48 @@
 import * as vscode from "vscode";
+import * as fs from "fs";
 import { ConfigurationManager } from "./config/configuration";
+import { KeyManager } from "./config/keyManager";
 import { UsageIndicator } from "./statusBar/usageIndicator";
 import { SyntheticService } from "./api/syntheticService";
 import type { UsageInfo as APIUsageInfo } from "./api/syntheticService";
+import type { ApiKeyEntry } from "./types/keys";
+import { ActivationReason } from "./types/keys";
+
+/**
+ * Release notes for update notifications
+ *
+ * Design decision: Store release notes as a constant map for easy lookup by version.
+ * This allows the extension to show appropriate update messages when users upgrade.
+ */
+const RELEASE_NOTES: Record<string, string> = {
+  "1.0.10023": "This extension has been updated to handle API keys in a different way. You may need to reassign your API keys.",
+};
+
+/**
+ * Get extension version from package.json
+ *
+ * Design decision: Read package.json synchronously at module load time to avoid
+ * async complexity. Use fs.readFileSync with a fallback for extension context.
+ */
+const getExtensionVersion = (context?: vscode.ExtensionContext): string => {
+  try {
+    // Try to get version from extension context first (available during activation)
+    if (context) {
+      const packagePath = context.asAbsolutePath("package.json");
+      const packageContents = fs.readFileSync(packagePath, "utf-8");
+      const packageData = JSON.parse(packageContents) as { version: string };
+      return packageData.version;
+    }
+    // Fallback: return hard-coded version (matches package.json)
+    return "1.0.10023";
+  } catch (error) {
+    console.error("Failed to read package.json:", error);
+    return "1.0.10023";
+  }
+};
+
+// Store current version globally (will be set during activation)
+let currentVersion: string = "1.0.10023";
 
 /**
  * Main extension class for Synthetic Usage Tracker
@@ -13,6 +53,7 @@ import type { UsageInfo as APIUsageInfo } from "./api/syntheticService";
  */
 export class SyntheticUsageTrackerExtension {
   private configManager: ConfigurationManager;
+  private keyManager: KeyManager;
   private usageIndicator: UsageIndicator;
   private isInitialized: boolean = false;
   private context: vscode.ExtensionContext;
@@ -27,6 +68,7 @@ export class SyntheticUsageTrackerExtension {
   constructor(context: vscode.ExtensionContext) {
     this.context = context;
     this.configManager = new ConfigurationManager(context);
+    this.keyManager = new KeyManager(context);
     this.usageIndicator = new UsageIndicator(context);
 
     // Register configuration change callback
@@ -34,6 +76,59 @@ export class SyntheticUsageTrackerExtension {
 
     // Register cross-window key update callback
     this.configManager.onKeysRefreshed(() => this.handleKeysRefreshed());
+
+    // Register keys changed callback for KeyManager
+    this.keyManager.onKeysChanged(() => this.handleKeysChanged());
+  }
+
+  /**
+   * Check for extension updates and show notification if needed
+   *
+   * Design decision: Compare current version with last seen version stored in globalState.
+   * If version changed or no version stored, show update notification and store current
+   * version after user dismisses it. This prevents showing the same notification twice.
+   */
+  private async checkForUpdatesAndShowNotification(): Promise<void> {
+    const lastSeenVersion = this.context.globalState.get<string>("lastSeenVersion");
+
+    // If version hasn't changed, don't show notification
+    if (lastSeenVersion === currentVersion) {
+      return;
+    }
+
+    // Get update message for current version
+    const updateMessage = RELEASE_NOTES[currentVersion];
+
+    if (!updateMessage) {
+      // No update message for this version, just store it
+      await this.storeCurrentVersion();
+      return;
+    }
+
+    // Show update notification
+    const result = await vscode.window.showInformationMessage(
+      `Synthetic.new Usage Tracker Updated to v${currentVersion}`,
+      {
+        modal: true,
+        detail: updateMessage,
+      },
+      "Accept",
+    );
+
+    if (result === "Accept") {
+      await this.storeCurrentVersion();
+    }
+  }
+
+  /**
+   * Store current version as last seen version
+   *
+   * Design decision: Store version in globalState rather than secrets or local storage.
+   * GlobalState persists across VSCode restarts and syncs across workspaces when sync is enabled,
+   * ensuring users only see each update notification once.
+   */
+  private async storeCurrentVersion(): Promise<void> {
+    await this.context.globalState.update("lastSeenVersion", currentVersion);
   }
 
   /**
@@ -45,6 +140,12 @@ export class SyntheticUsageTrackerExtension {
    */
   async activate(): Promise<void> {
     try {
+      // Get current version from package.json
+      currentVersion = getExtensionVersion(this.context);
+
+      // Check for extension updates first (before commands registration for UX)
+      await this.checkForUpdatesAndShowNotification();
+
       // Register commands before initialization so they're always available
       this.registerCommands();
 
@@ -67,7 +168,7 @@ export class SyntheticUsageTrackerExtension {
    * and error notifications. Users expect the extension to be silent until configured.
    */
   private async initialize(): Promise<void> {
-    const hasApiKey = await this.configManager.hasApiKey();
+    const hasApiKey = await this.keyManager.hasApiKey();
     if (!hasApiKey) {
       this.usageIndicator.setIdle();
       return;
@@ -140,66 +241,54 @@ export class SyntheticUsageTrackerExtension {
       () => this.subscribeWithDiscount(),
     );
     this.context.subscriptions.push(subscribeCommand);
+
+    // Add API key command (multi-key)
+    const addKeyCommand = vscode.commands.registerCommand(
+      "syntheticUsageTracker.addKey",
+      () => this.addKey(),
+    );
+    this.context.subscriptions.push(addKeyCommand);
+
+    // Remove API key command (multi-key)
+    const removeKeyCommand = vscode.commands.registerCommand(
+      "syntheticUsageTracker.removeKey",
+      () => this.removeKey(),
+    );
+    this.context.subscriptions.push(removeKeyCommand);
+
+    // Cycle key command (multi-key)
+    const cycleKeyCommand = vscode.commands.registerCommand(
+      "syntheticUsageTracker.cycleKey",
+      () => this.cycleKey(),
+    );
+    this.context.subscriptions.push(cycleKeyCommand);
+
+    // Clear all keys command (multi-key)
+    const clearAllKeysCommand = vscode.commands.registerCommand(
+      "syntheticUsageTracker.clearAllKeys",
+      () => this.clearAllKeys(),
+    );
+    this.context.subscriptions.push(clearAllKeysCommand);
   }
 
   /**
    * Set API key through VS Code input box
    *
-   * Design decision: Use interactive input dialog for better UX compared to editing
-   * settings directly. This approach is familiar to users and provides immediate feedback.
+   * Design decision: Redirect to addKey() to ensure multi-key storage is used.
+   * This prevents storage conflicts where keys were being deleted.
    */
   private async setApiKey(): Promise<void> {
-    // Generate a random placeholder for visual guidance
-    const placeholder = `syn_${Math.random().toString(36).substring(2, 8)}`;
-
-    const input = await vscode.window.showInputBox({
-      prompt: "Enter your Synthetic.new API key",
-      placeHolder: placeholder,
-      password: true,
-      validateInput: (value) => {
-        if (!value || value.trim().length === 0) {
-          return "API key cannot be empty";
-        }
-        if (!SyntheticService.validateApiKey(value)) {
-          return "Invalid API key format. API keys should start with 'syn_'";
-        }
-        return null;
-      },
-    });
-
-    if (input) {
-      await this.configManager.setApiKey(input);
-      // Design decision: Don't show notification - status bar updates automatically
-      // Notifications covering UI are intrusive
-
-      // Refresh usage immediately after setting key
-      await this.refreshUsage();
-      // Design decision: Clear tooltip temporarily after key is set
-      // Tooltip restores after 500ms to keep it available most of the time
-      this.usageIndicator.clearTooltip(500);
-    }
+    await this.addKey();
   }
 
   /**
-   * Clear the stored API key
+   * Clear the stored API keys
    *
-   * Design decision: Require user confirmation to prevent accidental deletion.
-   * This is important because users can't recover the key from the extension.
+   * Design decision: Redirect to clearAllKeys() to ensure multi-key storage is used.
+   * This prevents storage conflicts where only single key was being deleted.
    */
   private async clearApiKey(): Promise<void> {
-    const confirm = await vscode.window.showWarningMessage(
-      "Are you sure you want to clear your API key?",
-      "Clear",
-      "Cancel",
-    );
-
-    if (confirm === "Clear") {
-      await this.configManager.deleteApiKey();
-      this.usageIndicator.setIdle();
-      // Design decision: Clear tooltip for 2 seconds after key is cleared
-      // Provides clear visual feedback that the key has been removed
-      this.usageIndicator.clearTooltip(2000);
-    }
+    await this.clearAllKeys();
   }
 
   /**
@@ -209,7 +298,7 @@ export class SyntheticUsageTrackerExtension {
    * immediate feedback. Users see an error state rather than stale data.
    */
   private async refreshUsage(): Promise<void> {
-    const apiKey = await this.configManager.getApiKey();
+    const apiKey = await this.keyManager.getActiveKey();
 
     if (!apiKey) {
       this.usageIndicator.setIdle();
@@ -315,10 +404,15 @@ export class SyntheticUsageTrackerExtension {
     }
 
     // Get API key and mask it for display
-    const apiKey = await this.configManager.getApiKey();
+    const apiKey = await this.keyManager.getActiveKey();
     const maskedKey = apiKey ? `${apiKey.substring(0, 4)}${"*".repeat(apiKey.length - 8)}${apiKey.substring(apiKey.length - 4)}` : "Not configured";
 
     const message = this.buildDetailedUsageMessage(usage, maskedKey);
+
+    // Check if there are multiple keys to show appropriate button
+    const allKeys = await this.keyManager.getAllKeys();
+    const hasMultipleKeys = allKeys.length > 1;
+    const cycleButton = hasMultipleKeys ? "Cycle Keys" : "Subscribe with Discount";
 
     // Show information message with action buttons
     const result = await vscode.window.showInformationMessage(
@@ -326,7 +420,7 @@ export class SyntheticUsageTrackerExtension {
       { modal: true },
       "Refresh",
       "Open Dashboard",
-      "Subscribe with Discount",
+      cycleButton,
       "Show Commands"
     );
 
@@ -337,8 +431,14 @@ export class SyntheticUsageTrackerExtension {
       await this.showUsageDetailsInternal(true);
     } else if (result === "Open Dashboard") {
       this.openDashboard();
-    } else if (result === "Subscribe with Discount") {
-      this.subscribeWithDiscount();
+    } else if (result === cycleButton) {
+      if (hasMultipleKeys) {
+        await this.cycleKey();
+        await this.refreshUsage();
+        await this.showUsageDetailsInternal(true);
+      } else {
+        this.subscribeWithDiscount();
+      }
     } else if (result === "Show Commands") {
       await this.showCommands();
     }
@@ -422,65 +522,96 @@ API Key: ${maskedKey}`;
   /**
    * Show extension commands in a QuickPick menu
    *
-   * Design decision: Display all extension commands in a QuickPick for easy access
-   * to all functionality without needing to use the command palette (Ctrl+Shift+P)
+   * Design decision: Display only relevant commands based on current state.
+   * Commands that cannot be used in the current state are hidden to user confusion.
+   * For example, cycle key only shows when there are 2+ keys.
    */
   private async showCommands(): Promise<void> {
     // Design decision: Clear tooltip for 5 seconds when showing commands
     // Prevent updates during this time, then restore with current data
     this.usageIndicator.clearTooltip(5000, true);
 
-    const hasApiKey = await this.configManager.hasApiKey();
+     const hasApiKey = await this.keyManager.hasApiKey();
     const isAutoRefreshEnabled = this.getIsAutoRefreshEnabled();
+
+    // Get key count to determine which key management commands to show
+    const allKeys = await this.keyManager.getAllKeys();
+    const keyCount = allKeys.length;
 
     const commands = [
       {
-        label: "$(key) Set API Key",
-        description: "Configure your Synthetic.new API key",
-        command: "syntheticUsageTracker.setApiKey",
+        label: "$(plus) Add API Key",
+        description: "Add a new API key to your collection",
+        command: "syntheticUsageTracker.addKey",
       },
       {
-        label: "$(clock) Set Refresh Interval",
-        description: "Change auto-refresh interval (30s-30min)",
-        command: "syntheticUsageTracker.setRefreshInterval",
+        label: "$(refresh) Refresh Usage",
+        description: "Manually refresh usage data",
+        command: "syntheticUsageTracker.refresh",
       },
       {
-        label: isAutoRefreshEnabled ? "$(circle-slash) Disable Auto-Refresh" : "$(play) Enable Auto-Refresh",
-        description: isAutoRefreshEnabled ? "Turn off automatic refresh" : "Turn on automatic refresh",
-        command: "syntheticUsageTracker.toggleAutoRefresh",
+        label: "$(copy) Copy Usage to Clipboard",
+        description: "Copy usage information to clipboard for sharing",
+        command: "syntheticUsageTracker.copyUsage",
       },
       {
-        label: "$(heart-filled) Subscribe with Discount",
-        description: "Get subscription with referral discount",
-        command: "syntheticUsageTracker.subscribeWithDiscount",
+        label: "$(info) Show Usage Details",
+        description: "Display detailed usage information",
+        command: "syntheticUsageTracker.showUsage",
       },
     ];
+
+    // Show key management commands based on current state
+    if (keyCount >= 2) {
+      // Cycle key requires at least 2 keys
+      commands.push({
+        label: "$(arrow-right) Cycle to Next Key",
+        description: "Switch to the next API key in your collection",
+        command: "syntheticUsageTracker.cycleKey",
+      });
+    }
+
+    if (keyCount >= 1) {
+      // Remove key requires at least 1 key
+      commands.push({
+        label: "$(trash) Remove API Key",
+        description: "Remove a specific API key from your collection",
+        command: "syntheticUsageTracker.removeKey",
+      });
+    }
+
+    // Clear All Keys always shows (even with 0 keys, will show "No API keys configured" message)
+    commands.push({
+      label: "$(circle-slash) Clear All Keys",
+      description: "Remove all API keys from your collection",
+      command: "syntheticUsageTracker.clearAllKeys",
+    });
 
     // Only show usage-related commands if API key is configured
     if (hasApiKey) {
       commands.push(
         {
-          label: "$(refresh) Refresh Usage",
-          description: "Manually refresh usage data",
-          command: "syntheticUsageTracker.refresh",
+          label: "$(clock) Set Refresh Interval",
+          description: "Change auto-refresh interval (30s-30min)",
+          command: "syntheticUsageTracker.setRefreshInterval",
         },
         {
-          label: "$(clear-all) Clear API Key",
-          description: "Remove the stored API key",
-          command: "syntheticUsageTracker.clearApiKey",
-        },
-        {
-          label: "$(copy) Copy Usage to Clipboard",
-          description: "Copy usage information to clipboard for sharing",
-          command: "syntheticUsageTracker.copyUsage",
-        },
-        {
-          label: "$(info) Show Usage Details",
-          description: "Display detailed usage information",
-          command: "syntheticUsageTracker.showUsage",
+          label: isAutoRefreshEnabled
+            ? "$(circle-slash) Disable Auto-Refresh"
+            : "$(play) Enable Auto-Refresh",
+          description: isAutoRefreshEnabled
+            ? "Turn off automatic refresh"
+            : "Turn on automatic refresh",
+          command: "syntheticUsageTracker.toggleAutoRefresh",
         }
       );
     }
+
+    commands.push({
+      label: "$(heart-filled) Subscribe with Discount",
+      description: "Get subscription with referral discount",
+      command: "syntheticUsageTracker.subscribeWithDiscount",
+    });
 
     commands.push({
       label: "$(dashboard) Open Synthetic Dashboard",
@@ -515,7 +646,7 @@ API Key: ${maskedKey}`;
     // Clear tooltip temporarily
     this.usageIndicator.clearTooltip(500);
 
-    const apiKey = await this.configManager.getApiKey();
+    const apiKey = await this.keyManager.getActiveKey();
     const maskedKey = apiKey ? `${apiKey.substring(0, 4)}${"*".repeat(apiKey.length - 8)}${apiKey.substring(apiKey.length - 4)}` : "Not configured";
 
     const text = this.buildDetailedUsageMessage(usage, maskedKey) + `\nTimestamp: ${new Date().toISOString()}`;
@@ -634,11 +765,42 @@ API Key: ${maskedKey}`;
   }
 
   /**
-   * Handle cross-window key updates
-   *
-   * Design decision: When the key is updated in another window, refresh the usage data
-   * to stay in sync. This ensures all windows show consistent information.
-   */
+    * Handle keys changed events from KeyManager
+    *
+    * Design decision: When keys are modified (add, remove, cycle), refresh usage
+    * data with the new active key. This ensures all interfaces update immediately.
+    */
+  private async handleKeysChanged(): Promise<void> {
+    if (!this.isInitialized) {
+      return;
+    }
+
+    try {
+      const hasKey = await this.keyManager.hasApiKey();
+      if (!hasKey) {
+        this.usageIndicator.setIdle();
+        return;
+      }
+
+      await this.refreshUsage();
+
+      const config = this.configManager.getConfig();
+      if (config.enableNotifications) {
+        vscode.window.showInformationMessage(
+          "API keys updated. Usage data refreshed.",
+        );
+      }
+    } catch (error) {
+      console.error("Failed to handle keys changed:", error);
+    }
+  }
+
+  /**
+    * Handle cross-window key updates
+    *
+    * Design decision: When a key is updated in another window, refresh usage data
+    * to stay in sync. This ensures all windows show consistent information.
+    */
   private async handleKeysRefreshed(): Promise<void> {
     if (!this.isInitialized) {
       return;
@@ -683,7 +845,182 @@ API Key: ${maskedKey}`;
   }
 
   /**
-   * Toggle auto-refresh on/off
+    * Add a new API key to the collection
+    *
+    * Design decision: Support multiple API keys with labels for organization.
+    * Manual cycling only - no automatic cycling per user request.
+    */
+  private async addKey(): Promise<void> {
+    const input = await vscode.window.showInputBox({
+      prompt: "Enter your Synthetic.new API key",
+      password: true,
+      validateInput: (value) => {
+        if (!value || value.trim().length === 0) {
+          return "API key cannot be empty";
+        }
+        if (!SyntheticService.validateApiKey(value)) {
+          return "Invalid API key format. API keys should start with 'syn_'";
+        }
+        return null;
+      },
+    });
+
+    if (!input) {
+      return;
+    }
+
+    const labelInput = await vscode.window.showInputBox({
+      prompt: "Enter a label for this key (optional)",
+      placeHolder: "e.g., Work Key, Personal Key, Project A",
+    });
+
+    try {
+      await this.keyManager.addApiKey(input, labelInput || undefined, ActivationReason.ManualSelection);
+      const config = this.configManager.getConfig();
+      if (config.enableNotifications) {
+        vscode.window.showInformationMessage("API key added successfully.");
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      vscode.window.showErrorMessage(`Failed to add key: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * Remove a specific API key from the collection
+   *
+   * Design decision: Show key selection and confirm before removal.
+   * Prevents accidental deletion and provides clear feedback.
+   * Users are allowed to remove all keys including the last one.
+   */
+  private async removeKey(): Promise<void> {
+    const allKeys = await this.keyManager.getAllKeys();
+
+    if (allKeys.length === 0) {
+      vscode.window.showInformationMessage("No API keys configured.");
+      return;
+    }
+
+    const activeIndex = await this.keyManager.getActiveIndex();
+    const activeKey = allKeys[activeIndex];
+
+    const keyOptions = allKeys.map((key: ApiKeyEntry, index: number) => ({
+      label: `${key.label || `Key ${index + 1}`} (${this.maskKey(key.key)})`,
+      key: key.key,
+    }));
+
+    const selected = await vscode.window.showQuickPick(
+      keyOptions,
+      {
+        placeHolder: activeKey
+          ? `Current: ${activeKey.label || `Key ${activeIndex + 1}`} (${this.maskKey(activeKey.key)})`
+          : "Select a key to remove",
+      },
+    );
+
+    if (!selected) {
+      return;
+    }
+
+    try {
+      await this.keyManager.removeApiKey(selected.key);
+      const config = this.configManager.getConfig();
+      if (config.enableNotifications) {
+        vscode.window.showInformationMessage("API key removed successfully.");
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      vscode.window.showErrorMessage(`Failed to remove key: ${errorMessage}`);
+    }
+  }
+
+  /**
+    * Cycle to the next API key in the collection
+    *
+    * Design decision: Manual cycling only - switches to next key in round-robin fashion.
+    * No automatic cycling per user request.
+    */
+  private async cycleKey(): Promise<void> {
+    const allKeys = await this.keyManager.getAllKeys();
+
+    if (allKeys.length < 2) {
+      vscode.window.showInformationMessage(
+        "Need at least 2 API keys to cycle. Add another key first.",
+      );
+      return;
+    }
+
+    const activeIndex = await this.keyManager.getActiveIndex();
+    const activeKey = allKeys[activeIndex];
+    const nextIndex = (activeIndex + 1) % allKeys.length;
+    const nextKey = allKeys[nextIndex];
+
+    try {
+      await this.keyManager.setActiveKeyByIndex(nextIndex, ActivationReason.ManualSelection);
+      const config = this.configManager.getConfig();
+      if (config.enableNotifications) {
+        const activeLabel = activeKey?.label || `Key ${activeIndex + 1}`;
+        const nextLabel = nextKey?.label || `Key ${nextIndex + 1}`;
+        vscode.window.showInformationMessage(
+          `Cycled from ${activeLabel} to ${nextLabel}`,
+        );
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      vscode.window.showErrorMessage(`Failed to cycle key: ${errorMessage}`);
+    }
+  }
+
+  /**
+    * Clear all API keys from the collection
+    *
+    * Design decision: Require strong confirmation to prevent accidental deletion of all keys.
+    * This is a destructive operation that requires user awareness.
+    */
+  private async clearAllKeys(): Promise<void> {
+    const allKeys = await this.keyManager.getAllKeys();
+
+    if (allKeys.length === 0) {
+      vscode.window.showInformationMessage("No API keys configured.");
+      return;
+    }
+
+    const confirm = await vscode.window.showWarningMessage(
+      `Are you sure you want to remove all ${allKeys.length} API keys? This action cannot be undone.`,
+      "Clear All Keys",
+      "Cancel",
+    );
+
+    if (confirm !== "Clear All Keys") {
+      return;
+    }
+
+    try {
+      for (const key of allKeys) {
+        await this.keyManager.removeApiKey(key.key);
+      }
+      const config = this.configManager.getConfig();
+      if (config.enableNotifications) {
+        vscode.window.showInformationMessage("All API keys removed successfully.");
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      vscode.window.showErrorMessage(`Failed to clear keys: ${errorMessage}`);
+    }
+  }
+
+  /**
+    * Mask API key for display purposes
+    *
+    * Design decision: Show only first 4 and last 4 characters with asterisks
+    * in between to avoid exposing the full key while making it identifiable.
+    */
+  private maskKey(apiKey: string): string {
+    return `${apiKey.substring(0, 4)}${"*".repeat(apiKey.length - 8)}${apiKey.substring(apiKey.length - 4)}`;
+  }
+
+  /**
+    * Toggle auto-refresh on/off
    *
    * Design decision: Provide a quick command to toggle auto-refresh without
    * navigating through settings. This improves convenience for users who
@@ -737,6 +1074,7 @@ API Key: ${maskedKey}`;
   deactivate(): void {
     this.usageIndicator.dispose();
     this.configManager.dispose();
+    this.keyManager.dispose();
     this.sharedStateWatcherDisposable?.dispose();
   }
 }
