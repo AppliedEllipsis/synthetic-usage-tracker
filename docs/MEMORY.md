@@ -4,6 +4,43 @@ This file maintains context across AI agent sessions by tracking queries, curren
 
 ## Query History
 
+### [2026-02-01 04:00 UTC] - Query: Hide inactive functions in showCommands
+
+**Query**: "when shoing the showCommands function, don't show functions that can't be used like cycle keys if there is only 1 key and similar logic"
+
+**Context**: User wants the showCommands menu to only display commands that are usable in the current state, rather than showing all commands even when they can't be used.
+
+**Outcome**: Completed - showCommands now only displays relevant commands based on current state
+
+**Changes Made**:
+
+**Smart Command Filtering** (`src/extension.ts`):
+- Moved key management commands to conditional display based on key count
+- Cycle to Next Key: only shown when 2+ keys configured
+- Remove API Key: only shown when 1+ key configured
+- Clear All Keys: only shown when 1+ keys configured
+- Kept universal commands always visible: Add API Key, Refresh Usage, Copy Usage, Show Usage Details, Subscribe, Open Dashboard
+- Usage-related commands (Set Refresh Interval, Toggle Auto-Refresh): only shown when API key configured (existing behavior maintained)
+
+**Behavior Changes**:
+- Before: All commands shown regardless of state, user learns command is unavailable after clicking
+- After: Only usable commands shown, cleaner menu with fewer options
+
+**Command Display Rules**:
+- Always show: Add API Key, Refresh Usage, Copy Usage, Show Usage Details, Subscribe, Open Dashboard
+- Show if 1+ key: Remove API Key, Clear All Keys
+- Show if 2+ keys: Cycle to Next Key
+- Show if hasApiKey: Set Refresh Interval, Toggle Auto-Refresh
+
+**Files Modified**:
+1. `src/extension.ts` - Updated showCommands() with conditional command display logic
+
+**Code Quality**:
+- TypeScript compilation: Success ✅
+- ESLint: No errors ✅
+
+---
+
 ### [2026-02-01 03:30 UTC] - Query: Allow removing all API keys
 
 **Query**: "they are allowed to remove or clear all api keys for the tool"
@@ -823,10 +860,10 @@ Tasks:
 
 ## Current Focus
 
-### Last Query: Allow removing all API keys
-**Time**: 2026-02-01 03:30 UTC
-**Summary**: Removed restriction preventing removal of the last API key
-**Context**: Users can now remove all API keys including the last one; extension properly handles zero-key state with idle status
+### Last Query: Hide inactive functions in showCommands
+**Time**: 2026-02-01 04:05 UTC
+**Summary**: Updated showCommands to only display commands usable in current state; Clear All Keys always shown
+**Context**: Commands now conditionally appear based on key count and API key status; Clear All Keys is always visible
 **Planning**: Feature complete and tested (compiles and lints)
 
 **Remaining Items**:

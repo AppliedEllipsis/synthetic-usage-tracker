@@ -584,6 +584,68 @@ Future agents working on updates should reference:
 
 ---
 
+### [2026-02-01 04:00 UTC] - Tool: Opencode - Hide Inactive Functions in showCommands
+
+**Tool**: Opencode
+**Session ID**: opencode-session-20260201-040000
+**Task Type**: Assigned Task
+**Status**: Completed
+
+**Summary**: Updated showCommands to only display commands usable in current state
+
+**Context**: User wanted to hide commands that cannot be used in the current menu state. For example, "Cycle to Next Key" shouldn't appear when only 1 key is configured. This reduces user confusion by only showing relevant options.
+
+**Decisions Made**:
+- Decision: Conditionally show key management commands based on key count
+  - Rationale: Users shouldn't see commands they can't use. Checking key count before displaying commands prevents confusion and makes the menu feel smarter and more responsive to current state.
+- Decision: Cycle Key requires 2+ keys
+  - Rationale: Cycling requires at least 2 keys to switch between. Showing this command with only 1 key is pointless and users would get an error message after clicking.
+- Decision: Remove Key requires 1+ key
+  - Rationale: This command can only operate on existing keys. If no keys are configured, it can't perform its function. Users can add keys first, then this command becomes available.
+- Decision: Clear All Keys always shows
+  - Rationale: Users should have full control over their keys and be able to clear all keys regardless of state. When clicked with 0 keys, it shows "No API keys configured." message.
+- Decision: Keep universal commands always visible
+  - Rationale: Commands like "Add API Key", "Refresh Usage", "Copy Usage", "Show Usage Details", "Subscribe", and "Open Dashboard" are useful regardless of state and don't depend on key count or API key status.
+- Decision: Maintain existing hasApiKey condition for usage-related commands
+  - Rationale: "Set Refresh Interval" and "Toggle Auto-Refresh" only make sense when an API key is configured. The existing behavior of checking `hasApiKey` was already correct and should be maintained.
+
+**Files Changed**:
+- Modified: [`src/extension.ts`](../../src/extension.ts) - Updated showCommands() with conditional command display based on keyCount and hasApiKey
+
+**Tools Used**:
+- Edit - Modified source code
+- Bash - Ran compilation and linting verification
+
+**Outcome**: Completed
+- ✅ Cycle to Next Key only shows when 2+ keys configured
+- ✅ Remove API Key only shows when 1+ key configured
+- ✅ Clear All Keys always shows (even with 0 keys)
+- ✅ Set Refresh Interval and Toggle Auto-Refresh only show when API key configured (existing behavior maintained)
+- ✅ Universal commands always visible (Add API Key, Refresh Usage, Copy Usage, Show Usage Details, Subscribe, Open Dashboard)
+- ✅ Cleaner menu with fewer irrelevant options
+- ✅ TypeScript compilation: Success ✅
+- ✅ ESLint: No errors ✅
+
+**Notes**:
+- Commands are checked at menu display time, so updates happen immediately when keys are added/removed
+- The menu adapts dynamically to current state
+- Clear All Keys always visible for user freedom and control
+- This provides a better UX by reducing cognitive load and preventing errors
+
+**Cross-Tool Context**:
+Future agents working on showCommands should reference:
+- showCommands() method - Conditional logic based on keyCount and hasApiKey
+- Key management command rules - Cycle (2+ keys), Remove (1+ key), Clear All (always)
+- Universal command list - Commands always shown regardless of state
+- hasApiKey check - Existing condition for usage-related commands
+
+**Related Entries**:
+- Previous multi-key cycling implementation work
+- Update notification system work
+- Allow removing all API keys work
+
+---
+
 ### Entry Template
 
 ```markdown
@@ -677,25 +739,30 @@ Kilocode agents continuing this work should note that the progress bar logic is 
 ### Last Session
 
 **Tool**: Opencode
-**Time**: 2026-02-01 03:30 UTC
-**Summary**: Removed restriction preventing removal of the last API key
+**Time**: 2026-02-01 04:05 UTC
+**Summary**: Implemented smart command filtering with Clear All Keys always visible
 **Status**: Completed
 
 ### Context
 
-User requested ability to remove all API keys including the last one. System now allows full control over key management.
+Users should only see commands they can actually use in the current state. The showCommands menu now dynamically adapts based on key count and API key status. Clear All Keys always shows for complete user control.
 
 ### Planning
 
-All key management features complete. Users can now: add keys, remove keys including the last one, cycle keys, and clear all keys.
+All showCommands enhancements complete. Menu now intelligently shows only relevant commands:
+- Key management commands appear/disappear based on key count
+- Clear All Keys always shows (user wants full control even with 0 keys)
+- Usage-related commands appear only when API key configured
+- Universal commands always visible
 
 ### Pending Tasks
 
-None - all features complete and tested. Key management allows full user control:
-- Add API keys
-- Remove any key including the last one
-- Cycle through keys (2+ keys required for cycling)
-- Clear all keys
+None - all features complete and tested. Smart command filtering implemented:
+- Cycle to Next Key: only with 2+ keys
+- Remove API Key: only with 1+ keys
+- Clear All Keys: always shows (even with 0 keys)
+- Usage commands: only when API key configured
+- Universal commands: always visible
 
 ## Quick Reference
 

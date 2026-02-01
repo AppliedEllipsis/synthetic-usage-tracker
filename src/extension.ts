@@ -522,8 +522,9 @@ API Key: ${maskedKey}`;
   /**
    * Show extension commands in a QuickPick menu
    *
-   * Design decision: Display all extension commands in a QuickPick for easy access
-   * to all functionality without needing to use the command palette (Ctrl+Shift+P)
+   * Design decision: Display only relevant commands based on current state.
+   * Commands that cannot be used in the current state are hidden to user confusion.
+   * For example, cycle key only shows when there are 2+ keys.
    */
   private async showCommands(): Promise<void> {
     // Design decision: Clear tooltip for 5 seconds when showing commands
@@ -533,26 +534,15 @@ API Key: ${maskedKey}`;
      const hasApiKey = await this.keyManager.hasApiKey();
     const isAutoRefreshEnabled = this.getIsAutoRefreshEnabled();
 
+    // Get key count to determine which key management commands to show
+    const allKeys = await this.keyManager.getAllKeys();
+    const keyCount = allKeys.length;
+
     const commands = [
       {
         label: "$(plus) Add API Key",
         description: "Add a new API key to your collection",
         command: "syntheticUsageTracker.addKey",
-      },
-      {
-        label: "$(arrow-right) Cycle to Next Key",
-        description: "Switch to the next API key in your collection",
-        command: "syntheticUsageTracker.cycleKey",
-      },
-      {
-        label: "$(trash) Remove API Key",
-        description: "Remove a specific API key from your collection",
-        command: "syntheticUsageTracker.removeKey",
-      },
-      {
-        label: "$(circle-slash) Clear All Keys",
-        description: "Remove all API keys from your collection",
-        command: "syntheticUsageTracker.clearAllKeys",
       },
       {
         label: "$(refresh) Refresh Usage",
@@ -570,6 +560,32 @@ API Key: ${maskedKey}`;
         command: "syntheticUsageTracker.showUsage",
       },
     ];
+
+    // Show key management commands based on current state
+    if (keyCount >= 2) {
+      // Cycle key requires at least 2 keys
+      commands.push({
+        label: "$(arrow-right) Cycle to Next Key",
+        description: "Switch to the next API key in your collection",
+        command: "syntheticUsageTracker.cycleKey",
+      });
+    }
+
+    if (keyCount >= 1) {
+      // Remove key requires at least 1 key
+      commands.push({
+        label: "$(trash) Remove API Key",
+        description: "Remove a specific API key from your collection",
+        command: "syntheticUsageTracker.removeKey",
+      });
+    }
+
+    // Clear All Keys always shows (even with 0 keys, will show "No API keys configured" message)
+    commands.push({
+      label: "$(circle-slash) Clear All Keys",
+      description: "Remove all API keys from your collection",
+      command: "syntheticUsageTracker.clearAllKeys",
+    });
 
     // Only show usage-related commands if API key is configured
     if (hasApiKey) {
