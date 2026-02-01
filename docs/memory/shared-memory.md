@@ -36,13 +36,14 @@ graph TB
         OM[.opencode/memory]
     end
 
-    subgraph Documentation
-        AM[AGENTS.md]
-        DM[docs/MEMORY.md]
-        GC[git_commit_format.md]
-    end
+     subgraph Documentation
+         AM[AGENTS.md]
+         DM[docs/MEMORY.md]
+         GC[git_commit_format.md]
+         CP[common_prompts.md]
+     end
 
-    K -->|Read/Write| SM
+     K -->|Read/Write| SM
     R -->|Read/Write| SM
     O -->|Read/Write| SM
     A -->|Read/Write| SM
@@ -696,6 +697,113 @@ When multiple tools have conflicting information:
 - Use commit messages that reference memory updates
 - Example: `docs(memory): shared memory - add tool registry entry for Roocode`
 
+## Prompt Reference System
+
+This system provides reusable prompt patterns for AI agents to enhance consistency and learning across sessions.
+
+### Prompt Format
+
+Prompts follow this structure:
+
+```markdown
+#prompt_name#
+{prompt description with placeholders}
+```
+
+**Important**: Use `~` (tilde) instead of `!` for prompt names to avoid shell command conflicts.
+
+### Placeholder Usage
+
+- Use `{placeholder_name}` for dynamic content
+- Replace placeholders with actual values when executing prompts
+- Prompts can have or without a name
+- Prompt matching is fuzzy/general, not necessarily exact
+
+### Available Prompts
+
+#### #update_from_project#
+
+**Description**: Look into {path provided} for project memory updates that we might add to best practices, enhance yourself based off non-project specific best practices, document and memorize, and implement it.
+
+**Use when**:
+- Discovering workflows from other projects
+- Learning best practices from existing codebases
+- Extracting reusable patterns
+- Enhancing scaffolding or documentation
+
+**Placeholders**:
+- `{path provided}` - Path to project to examine
+
+**Matching Logic**:
+- Look for general prompt intent, not exact string match
+- "update memory" patterns match this prompt
+- "update from project" patterns match this prompt
+- Context-aware: distinguish from code comments or inline explanations
+
+### Adding New Prompts
+
+**When to add**:
+- Discover a workflow that would be useful to repeat
+- Learn a new pattern from another project
+- Create a reusable template for common tasks
+- Document best practices that should be standardized
+
+**How to add**:
+1. Use `#prompt_name#` format (with `~` not `!`)
+2. Include prompt description with `{placeholders}`
+3. Document when to use the prompt
+4. Add matching logic (what triggers this prompt)
+5. Include example usage if helpful
+
+### Prompt Management
+
+- Keep prompts focused and reusable
+- Use descriptive names with `~` prefix
+- Document placeholders clearly
+- Update prompts based on feedback and usage
+- Make matching flexible/general, not strict
+
+### Matching Guidelines
+
+- Agents should check for ~ patterns that look like prompt requests
+- Distinguish from inline code or comments
+- Look for intent/context, not exact string match
+- "update" + "memory/project" matches #update_from_project#
+- User requests like "update from project" should trigger prompts
+- Consider user's specific tool and context when matching
+
+### Integration with Memory System
+
+- Prompt additions should be documented in docs/MEMORY.md
+- Update Quick Reference section with new prompt patterns
+- Reference prompts in AGENTS.md and agents.min.md for context
+- Share prompt knowledge via docs/memory/shared-memory.md
+- Always check docs/common_prompts.md when user asks to update memory or learn from projects
+
+### Example Usage
+
+**User says**: "Update from z-ai-monitor project"
+
+**Agent action**:
+1. Check docs/common_prompts.md for matching prompts
+2. Find #update_from_project# matches (general matching, not exact)
+3. Execute prompt with placeholder: `{path provided}` = `z-ai-monitor`
+4. Process: look into D:\_projects\z-ai-monitor for best practices...
+
+**User says**: "Update memory with what I learned"
+
+**Agent action**:
+1. Check for prompt patterns matching "update memory"
+2. If no specific match found, proceed with general memory update
+3. Check docs/common_prompts.md for relevant prompts
+4. Execute if match found, otherwise use standard memory update workflow
+
+**User says**: "~update_from_project# D:\_projects\some-project"
+
+**Agent action**:
+1. Recognize this as an explicit prompt reference
+2. Parse prompt name and placeholder value
+3. Execute #update_from_project# with `{path provided}` = `D:\_projects\some-project`
 
 ---
 
@@ -741,6 +849,82 @@ Future agents working on configuration.ts should reference the decision-logic co
 **Related Entries**:
 - `docs/MEMORY.md` task t13
 - AGENTS.md section on Memory and Decision Logic
+
+### [2026-01-31 15:30 UTC] - Tool: Opencode - Update from ai-project-scaffolding-1
+
+**Tool**: Opencode
+**Session ID**: opencode-session-20260131-153000
+**Task Type**: Assigned Task
+**Status**: Completed
+
+**Summary**: Learned best practices from ai-project-scaffolding-1 project and enhanced synthetic-usage-tracker with prompt reference system, improved tool registry, and added comprehensive documentation patterns.
+
+**Context**: User requested to examine D:\_projects\ai-project-scaffolding-1 for best practices and enhance the current project based on learnings. Executed ~update_from_project# prompt to discover and implement improvements.
+
+**Decisions Made**:
+
+- Decision: Add prompt reference system to project
+  - Rationale: The scaffolding project has a well-documented prompt reference system in docs/common_prompts.md that provides reusable prompt patterns. This enhances consistency across sessions and makes prompts discoverable.
+  - Implementation: Created docs/common_prompts.md with #update_from_project# prompt and matching logic.
+
+- Decision: Enhance tool registry with prompt awareness
+  - Rationale: The scaffolding project documents prompt matching logic in the tool registry, making tools aware of when they're executing prompts vs. general queries.
+  - Implementation: Updated Opencode tool registry entry in docs/memory/tool-registry.md to include Prompt Matching section.
+
+- Decision: Integrate prompt reference into shared memory
+  - Rationale: The scaffolding project includes prompt reference system in its shared memory, making it part of the core memory infrastructure.
+  - Implementation: Added "Prompt Reference System" section to docs/memory/shared-memory.md with detailed guidelines.
+
+- Decision: Add common_prompts.md to Quick Reference in shared memory structure
+  - Rationale: The scaffolding project includes CP (common prompts) in its mermaid graph and quick reference sections.
+  - Implementation: Updated mermaid diagram to include CP[common_prompts.md] and added CP to Quick Reference.
+
+- Decision: Document prompt matching guidelines
+  - Rationale: Clear guidelines help agents recognize when users are making prompt requests vs. general queries.
+  - Implementation: Documented fuzzy matching logic, context awareness, and integration points in docs/common_prompts.md and docs/memory/shared-memory.md.
+
+**Files Changed**:
+- Added: [`docs/common_prompts.md`](../../docs/common_prompts.md) - Prompt reference system with #update_from_project#
+- Modified: [`docs/memory/shared-memory.md`](../../memory/shared-memory.md) - Added Prompt Reference System section, updated mermaid diagram to include CP, enhanced tool registry entry for Opencode
+- Modified: [`docs/memory/tool-registry.md`](../../memory/tool-registry.md) - Added Prompt Matching section to Opencode entry
+- Staged: `docs/memory/git_workflow_guide.md` and `docs/memory/pull_request_guidelines.md` (from previous session, kept for future use)
+- Staged: `docs/memory/git_workflow_guide.md` and `docs/memory/pull_request_guidelines.md` (created in z_memory_update branch)
+
+**Tools Used**:
+- Write - Created docs/common_prompts.md
+- Edit - Updated docs/memory/shared-memory.md
+- Edit - Updated docs/memory/tool-registry.md
+- Read - Analyzed ai-project-scaffolding-1 documentation
+
+**Outcome**: Completed
+
+- ✅ Added prompt reference system to project
+- ✅ Created docs/common_prompts.md with #update_from_project# prompt
+- ✅ Enhanced tool registry with prompt matching awareness
+- ✅ Integrated prompt reference system into shared memory
+- ✅ Updated mermaid diagram to include common prompts
+- ✅ Added prompt matching guidelines and examples
+
+**Notes**:
+
+- Prompt reference system provides reusable patterns for common workflows
+- Fuzzy matching with `~` prefix helps distinguish prompts from code comments
+- Agents should check docs/common_prompts.md when user makes requests like "update from project"
+- The system supports both named prompts (e.g., #update_from_project#) and intent-based matching (e.g., "update memory")
+
+**Cross-Tool Context**:
+
+Future agents working on synthetic-usage-tracker should:
+1. Check docs/common_prompts.md when user requests appear to reference prompts
+2. Use fuzzy matching logic - look for intent, not exact string matching
+3. Distinguish prompt requests from inline code or regular task descriptions
+4. Add new prompts to docs/common_prompts.md when discovering reusable patterns
+5. Update tool registry entries when adding new capabilities or awareness
+
+**Related Entries**:
+- `ai-project-scaffolding-1/docs/common_prompts.md` - Original prompt reference system source
+- `ai-project-scaffolding-1/docs/memory/shared-memory.md` - Shared memory structure with prompt system integration
+- `docs/common_prompts.md` - New prompt reference system in synthetic-usage-tracker
 
 ---
 
