@@ -4,13 +4,13 @@
 
 A VSCode extension that monitors your Synthetic.new API usage and quotas directly from the status bar.
 
-[![VSCode Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/Ellipsis.synthetic-usage-tracker?logo=visual-studio-code&label=VSCode%20Marketplace&cacheSeconds=3600)](https://marketplace.visualstudio.com/items?itemName=Ellipsis.synthetic-usage-tracker)
-[![VSCode Marketplace Installs](https://img.shields.io/visual-studio-marketplace/i/Ellipsis.synthetic-usage-tracker?logo=visual-studio-code&color=007acc&cacheSeconds=3600)](https://marketplace.visualstudio.com/items?itemName=Ellipsis.synthetic-usage-tracker)
-[![VSCode Marketplace Rating](https://img.shields.io/visual-studio-marketplace/stars/Ellipsis.synthetic-usage-tracker?logo=visual-studio-code&color=007acc&cacheSeconds=3600)](https://marketplace.visualstudio.com/items?itemName=Ellipsis.synthetic-usage-tracker)
+[![VSCode Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/Ellipsis.synthetic-usage-tracker?logo=visual-studio-code&label=VSCode%20Marketplace&cacheSeconds=3600&logoColor=white&style=flat-square)](https://marketplace.visualstudio.com/items?itemName=Ellipsis.synthetic-usage-tracker)
+[![VSCode Marketplace Installs](https://img.shields.io/visual-studio-marketplace/i/Ellipsis.synthetic-usage-tracker?logo=visual-studio-code&color=007acc&cacheSeconds=3600&logoColor=white&style=flat-square)](https://marketplace.visualstudio.com/items?itemName=Ellipsis.synthetic-usage-tracker)
+[![VSCode Marketplace Rating](https://img.shields.io/visual-studio-marketplace/stars/Ellipsis.synthetic-usage-tracker?logo=visual-studio-code&color=007acc&cacheSeconds=3600&logoColor=white&style=flat-square)](https://marketplace.visualstudio.com/items?itemName=Ellipsis.synthetic-usage-tracker)
 
-[![Open VSX Version](https://img.shields.io/open-vsx/v/Ellipsis/synthetic-usage-tracker?logo=open-vsx&label=Open%20VSX)](https://open-vsx.org/extension/Ellipsis/synthetic-usage-tracker)
-[![Open VSX Downloads](https://img.shields.io/open-vsx/dt/Ellipsis/synthetic-usage-tracker?logo=open-vsx&color=35b0ab)](https://open-vsx.org/extension/Ellipsis/synthetic-usage-tracker)
-[![Open VSX Rating](https://img.shields.io/open-vsx/rating/Ellipsis/synthetic-usage-tracker?logo=open-vsx&color=35b0ab)](https://open-vsx.org/extension/Ellipsis/synthetic-usage-tracker)
+[![Open VSX Version](https://img.shields.io/open-vsx/v/Ellipsis/synthetic-usage-tracker?logo=open-vsx&label=Open%20VSX&color=35b0ab&logoColor=white&style=flat-square)](https://open-vsx.org/extension/Ellipsis/synthetic-usage-tracker)
+[![Open VSX Downloads](https://img.shields.io/open-vsx/dt/Ellipsis/synthetic-usage-tracker?logo=open-vsx&color=35b0ab&logoColor=white&style=flat-square)](https://open-vsx.org/extension/Ellipsis/synthetic-usage-tracker)
+[![Open VSX Rating](https://img.shields.io/open-vsx/rating/Ellipsis/synthetic-usage-tracker?logo=open-vsx&color=35b0ab&logoColor=white&style=flat-square)](https://open-vsx.org/extension/Ellipsis/synthetic-usage-tracker)
 
 [View Changelog](CHANGELOG.md)
 
@@ -46,7 +46,7 @@ A VSCode extension that monitors your Synthetic.new API usage and quotas directl
 
 ### From Open VSX Registry
 
-[![Install from Open VSX](https://img.shields.io/badge/Open%20VSX-Install-success?logo=open-vsx&color=35b0ab)](https://open-vsx.org/extension/Ellipsis/synthetic-usage-tracker)
+[![Install](https://img.shields.io/badge/Open%20VSX-Install-35b0ab?logo=open-vsx&logoColor=white&style=flat-square)](https://open-vsx.org/extension/Ellipsis/synthetic-usage-tracker)
 
 1. Open VSCode
 2. Go to Extensions (Ctrl+Shift+X)
