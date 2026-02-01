@@ -860,17 +860,14 @@ Tasks:
 
 ## Current Focus
 
-### Last Query: Hide inactive functions in showCommands
-**Time**: 2026-02-01 04:05 UTC
-**Summary**: Updated showCommands to only display commands usable in current state; Clear All Keys always shown
-**Context**: Commands now conditionally appear based on key count and API key status; Clear All Keys is always visible
-**Planning**: Feature complete and tested (compiles and lints)
-
+### Last Query: Release v1.0.10023
+**Time**: 2026-02-01T09:31:09.620Z
+**Summary**: Version v1.0.10023 released with changes: Version bump only
+**Context**: Release completed via buildrelease workflow. Version bumped, compiled, packaged, and moved to releases/ directory.
+**Planning**: All tasks completed for v1.0.10023. Ready for next iteration.
 **Remaining Items**:
-- [ ] User testing of update notification system
-- [ ] Consider adding release notes for future versions
-
-### Sub-tasks Tracking
+- None for this release - all changes verified and documented
+# Sub-tasks Tracking
 
 | #   | Sub-task                                             | Status      | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | --- | ---------------------------------------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -905,6 +902,7 @@ Tasks:
 | 28   | Fix API key tooltip and enhance buildrelease          | Complete    | Fixed API key tooltip to show dots (•) and last 4 chars. Cached config for tooltip restoration. Created update-changelog-for-release.js script. Enhanced buildrelease to 10-step automated process. Fixed package.json script (removed manual git tag - npm version patch creates it). Updated agents.md and agents.min.md with build docs. Cleaned README.md (removed dev sections). Fixed MEMORY.md section header formatting. Tested and verified compilation. |
 | 29   | Release v1.0.10021                                   | Complete    | Release v1.0.10021 - Version bump only |
 | 30   | Release v1.0.10022                                   | Complete    | Release v1.0.10022 - Version bump only |
+| 31   | Release v1.0.10023                                   | Complete    | Release v1.0.10023 - Version bump only |
 ---
 
 ## Quick Reference
