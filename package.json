@@ -2,7 +2,7 @@
   "name": "synthetic-usage-tracker",
   "displayName": "Synthetic.new Usage Tracker",
   "description": "Monitor your Synthetic.new API usage and quotas directly from VSCode status bar",
-  "version": "1.0.10023",
+  "version": "1.0.10024",
   "publisher": "Ellipsis",
   "license": "GPL-3.0",
   "type": "commonjs",
@@ -95,7 +95,11 @@
         "syntheticUsageTracker.cyclingStrategy": {
           "type": "string",
           "default": "roundRobin",
-          "enum": ["roundRobin", "leastRecentlyUsed", "highestHealthScore"],
+          "enum": [
+            "roundRobin",
+            "leastRecentlyUsed",
+            "highestHealthScore"
+          ],
           "description": "Strategy for manual key cycling when enabled",
           "order": 11
         },
