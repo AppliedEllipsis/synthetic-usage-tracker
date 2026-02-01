@@ -15,6 +15,8 @@ Nothing yet
 
 ## [1.0.10024] - 2026-02-01
 
+## [1.0.10024] - 2026-02-01
+
 ### Added
 - Multi-key cycling functionality with manual key management
   - Add API Key command with icon $(plus)
