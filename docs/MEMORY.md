@@ -4,6 +4,77 @@ This file maintains context across AI agent sessions by tracking queries, curren
 
 ## Query History
 
+### [2026-01-31 21:30 UTC] - Query: Update from ai-project-scaffolding-1
+
+**Query**: "~update_from_project# D:\_projects\ai-project-scaffolding-1"
+
+**Context**: User requested to learn from ai-project-scaffolding-1 project and enhance synthetic-usage-tracker based on best practices, including PR and commit formats.
+
+**Outcome**: Completed - Enhanced project with prompt reference system, git workflow guides, and PR format documentation
+
+**Changes Made**:
+
+**Prompt Reference System** (`docs/common_prompts.md`):
+- Created comprehensive prompt reference system with #update_from_project# pattern
+- Implemented fuzzy matching logic with ~ prefix for prompt recognition
+- Documented integration with memory system and tool registry
+- Added examples and guidelines for adding new prompts
+
+**Enhanced Tool Registry** (`docs/memory/tool-registry.md`):
+- Added prompt matching section to Opencode entry
+- Documented fuzzy matching capabilities and context awareness
+- Updated integration notes to reference common_prompts.md
+
+**Enhanced Shared Memory** (`docs/memory/shared-memory.md`):
+- Added Prompt Reference System section
+- Updated mermaid diagram to include CP[common_prompts.md]
+- Enhanced tool registry entry with prompt matching awareness
+
+**Git Workflow Guides** (new files):
+- `docs/memory/git_workflow_guide.md` - Comprehensive git workflow guide
+  - Branching strategies (feature, bugfix, hotfix, release)
+  - Rebase vs merge guidance
+  - Interactive rebase for cleaning history
+  - GitHub CLI best practices
+- `docs/memory/pull_request_guidelines.md` - PR workflow guide
+  - PR creation process
+  - Review process for contributors and maintainers
+  - PR template with checklist
+  - Best practices for PRs
+
+**PR and Commit Format Documentation** (new file):
+- `docs/memory/pr_and_commit_format.md` - Enhanced format guide
+  - Enhanced commit format with ~ [summary] prefix and emojis
+  - PR body template with comprehensive checklist
+  - Merge vs rebase guidance
+  - Branching strategies for forks and direct commits
+  - Automated tools guidance for gh CLI
+  - Examples for all commit types
+
+**Files Created**:
+1. `docs/common_prompts.md` - Prompt reference system
+2. `docs/memory/git_workflow_guide.md` - Git workflow and branching strategies
+3. `docs/memory/pull_request_guidelines.md` - PR workflow guide
+4. `docs/memory/pr_and_commit_format.md` - PR and commit format guide
+
+**Key Learnings from ai-project-scaffolding-1**:
+- Prompt systems provide reusable patterns and enhance agent consistency
+- Fuzzy matching with ~ prefix helps distinguish prompts from code comments
+- Integration of prompt reference with shared memory makes patterns discoverable
+- Enhanced commit format with ~ [summary] prefix improves readability
+- PR and commit formats should be consistent across all projects
+
+**Code Quality**: 
+- TypeScript compilation: Success ✅
+- ESLint: Not applicable (documentation only)
+
+**Git Status**:
+- All changes committed on branch z_memory_update_1769915955
+- Branch pushed to remote (ready for PR creation)
+- PR should be manually created at: https://github.com/AppliedEllipsis/synthetic-usage-tracker/pull/new/z_memory_update_1769915955
+
+---
+
 ### [2026-01-31 13:30 UTC] - Query: Fix API key tooltip display and enhance buildrelease workflow
 
 **Query**: "the tooltip is missing the api key, only showing a few mask and not last chars" and later: "in your memory banks when I do a buildrelease request you should increment the version in the changelog to the expected version for unreleased and package and tag it and push it to the server with changlog, then build the vsix. add this to documentation , readme, agents, etc... also a lot of the readme has stuff only the agent cares about, remove those and just make sure they are in agents and agents.min"
@@ -647,11 +718,21 @@ Tasks:
 | [`agents.min.md`](agents.min.md)   | Optimized quick-start reference for AI agents (read first for fast onboarding)     |
 | [`agents.md`](agents.md)           | AI Agent Development Guide - comprehensive guide for agents working on this project |
 | [`docs/MEMORY.md`](docs/MEMORY.md) | Query Memory & Task Tracking - this file, maintains session context                 |
+| [`docs/common_prompts.md`](docs/common_prompts.md) | Prompt reference system for AI agents (reusable patterns)                          |
+| [`docs/memory/pr_and_commit_format.md`](docs/memory/pr_and_commit_format.md) | PR and commit format guide with enhanced conventional commits                    |
+| [`docs/memory/git_workflow_guide.md`](docs/memory/git_workflow_guide.md) | Git workflow and branching strategies                                            |
+| [`docs/memory/pull_request_guidelines.md`](docs/memory/pull_request_guidelines.md) | Pull request guidelines and review process                                      |
+| [`docs/memory/shared-memory.md`](docs/memory/shared-memory.md) | Shared memory pool - cross-tool context and prompt reference                      |
+| [`docs/memory/tool-registry.md`](docs/memory/tool-registry.md) | AI Tool Registry - tool capabilities and memory system mappings              |
 | [`package.json`](package.json)     | Extension manifest, dependencies, and scripts                                       |
 | [`tsconfig.json`](tsconfig.json)   | TypeScript compiler configuration                                                   |
 | [`CHANGELOG.md`](CHANGELOG.md)     | Version history and release notes                                                   |
 | [`README.md`](README.md)           | User-facing documentation                                                           |
 | [`.env.example`](.env.example)     | Environment variables template (git-tracked)                                        |
+| [`docs/common_prompts.md`](docs/common_prompts.md) | Prompt reference system for AI agents (reusable patterns)                          |
+| [`docs/memory/pr_and_commit_format.md`](docs/memory/pr_and_commit_format.md) | PR and commit format guide with enhanced conventional commits                    |
+| [`docs/memory/git_workflow_guide.md`](docs/memory/git_workflow_guide.md) | Git workflow and branching strategies                                            |
+| [`docs/memory/pull_request_guidelines.md`](docs/memory/pull_request_guidelines.md) | Pull request guidelines and review process                                      |
 
 **Source Files:**
 
