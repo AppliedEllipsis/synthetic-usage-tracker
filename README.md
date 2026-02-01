@@ -37,7 +37,7 @@ A VSCode extension that monitors your Synthetic.new API usage and quotas directl
 
 ### From VSCode Marketplace
 
-[![Install from VSCode Marketplace](https://img.shields.io/visual-studio-marketplace/v/Ellipsis.synthetic-usage-tracker?label=VSCode%20Marketplace&logo=visual-studio-code&logoColor=white&color=007acc)](https://marketplace.visualstudio.com/items?itemName=Ellipsis.synthetic-usage-tracker)
+[![Install](https://img.shields.io/badge/VSCode%20Marketplace-Install-007acc?logo=visual-studio-code&logoColor=white&style=flat-square)](https://marketplace.visualstudio.com/items?itemName=Ellipsis.synthetic-usage-tracker)
 
 1. Open VSCode
 2. Go to Extensions (Ctrl+Shift+X)
