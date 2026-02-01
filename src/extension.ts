@@ -316,13 +316,18 @@ export class SyntheticUsageTrackerExtension {
 
     const message = this.buildDetailedUsageMessage(usage, maskedKey);
 
+    // Check if there are multiple keys to show appropriate button
+    const allKeys = await this.keyManager.getAllKeys();
+    const hasMultipleKeys = allKeys.length > 1;
+    const cycleButton = hasMultipleKeys ? "Cycle Keys" : "Subscribe with Discount";
+
     // Show information message with action buttons
     const result = await vscode.window.showInformationMessage(
       message,
       { modal: true },
       "Refresh",
       "Open Dashboard",
-      "Subscribe with Discount",
+      cycleButton,
       "Show Commands"
     );
 
@@ -333,8 +338,14 @@ export class SyntheticUsageTrackerExtension {
       await this.showUsageDetailsInternal(true);
     } else if (result === "Open Dashboard") {
       this.openDashboard();
-    } else if (result === "Subscribe with Discount") {
-      this.subscribeWithDiscount();
+    } else if (result === cycleButton) {
+      if (hasMultipleKeys) {
+        await this.cycleKey();
+        await this.refreshUsage();
+        await this.showUsageDetailsInternal(true);
+      } else {
+        this.subscribeWithDiscount();
+      }
     } else if (result === "Show Commands") {
       await this.showCommands();
     }
@@ -449,11 +460,6 @@ API Key: ${maskedKey}`;
         label: "$(circle-slash) Clear All Keys",
         description: "Remove all API keys from your collection",
         command: "syntheticUsageTracker.clearAllKeys",
-      },
-      {
-        label: "$(key) Manage API Keys",
-        description: "Manage all API keys in one place",
-        command: "syntheticUsageTracker.manageKeys",
       },
       {
         label: "$(refresh) Refresh Usage",

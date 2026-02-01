@@ -4,6 +4,38 @@ This file maintains context across AI agent sessions by tracking queries, curren
 
 ## Query History
 
+### [2026-02-01 02:30 UTC] - Query: Update details popup to show Cycle Keys button
+
+**Query**: "if there are multiple keys, change the details popup subscribe with discount button to be a cycle keys button"
+
+**Context**: User wants the details popup to dynamically adjust its buttons based on the number of configured keys. When multiple keys exist, the "Subscribe with Discount" button should be replaced with a "Cycle Keys" button.
+
+**Outcome**: Completed - Details popup now shows "Cycle Keys" button when multiple keys are configured
+
+**Changes Made**:
+
+**Details Popup Adaptive Buttons** (`src/extension.ts`):
+- Added check for multiple keys using `keyManager.getAllKeys()`
+- If keys.length > 1, button shows "Cycle Keys" instead of "Subscribe with Discount"
+- Clicking "Cycle Keys" when multiple keys exist:
+  - Executes `cycleKey()` to switch to next key
+  - Executes `refreshUsage()` to fetch data for new key
+  - Shows popup again with updated data via `showUsageDetailsInternal(true)`
+- Single key behavior unchanged: "Subscribe with Discount" button still appears and functions normally
+
+**Fix Applied**:
+- Removed "Manage API Keys" menu item from showCommands() menu (command was not registered)
+- This fixed the "command 'syntheticUsageTracker.manageKeys' not found" error
+
+**Files Modified**:
+1. `src/extension.ts` - Updated showUsageDetailsInternal() to check key count and adapt button text
+
+**Code Quality**:
+- TypeScript compilation: Success ✅
+- ESLint: No errors ✅
+
+---
+
 ### [2026-02-01 00:00 UTC] - Query: Implement multi-key cycling functionality
 
 **Query**: "Create a new Branch with timestamp in name, that will be used for cycling through multiple API accounts it will need a command to add new key erase key or current key cycle key and clear all keys upon cycling all interfaces should update and query new key data. this should not Auto cycle"
@@ -719,15 +751,11 @@ Tasks:
 
 ## Current Focus
 
-### Last Query: Implement multi-key cycling functionality
-**Time**: 2026-02-01 00:00 UTC
-**Summary**: Implemented manual multi-key cycling functionality with KeyManager integration
-**Context**: Integration complete, tested successfully (compiles and lints)
-**Planning**: Ready for user testing. All features working:
-- Multi-key configuration settings added to package.json
-- Four new commands registered (addKey, removeKey, cycleKey, clearAllKeys)
-- KeyManager integrated with onKeysChanged() callback for automatic interface updates
-- Manual cycling only (no auto-cycling per user request)
+### Last Query: Update details popup to show Cycle Keys when multiple keys
+**Time**: 2026-02-01 02:30 UTC
+**Summary**: Updated details popup to show "Cycle Keys" button instead of "Subscribe with Discount" when multiple keys are configured
+**Context**: User requested the details popup to adapt based on number of keys - if multiple keys exist, replace subscribe button with cycle button
+**Planning**: Feature complete and tested (compiles and lints)
 
 **Remaining Items**:
 - [ ] User testing of multi-key commands
