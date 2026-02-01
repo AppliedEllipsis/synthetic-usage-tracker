@@ -46,6 +46,14 @@ if (!cleanedUnreleased) {
 
 console.log(`📋 Found changes in Unreleased section for predicted version ${version}`);
 
+// Check if this version header already exists (prevent duplicates)
+const versionHeaderRegex = new RegExp(`^## \\[${version}\\]`, 'm');
+if (versionHeaderRegex.test(changelogContent)) {
+  console.log(`✓ Version ${version} header already exists in CHANGELOG.md`);
+  console.log('   Skipping changelog update - no duplicate headers needed');
+  process.exit(0);
+}
+
 // Get current date in ISO 8601 format (YYYY-MM-DD)
 const today = new Date().toISOString().split('T')[0];
 

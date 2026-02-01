@@ -39,6 +39,7 @@ npm run buildrelease
 - However, the LLM agent is instructed to run it FIRST to verify/control the process
 - This gives the agent visibility into the version prediction before running buildrelease
 - If version mismatch occurs (e.g., due to errors), the agent can increment patch again and update changelog
+- **Script now prevents duplicates**: The update script checks if version header exists and skips if already created
 
 **Version Matching Strategy**:
 1. Script predicts: version = package.json version + 1 patch
@@ -50,5 +51,42 @@ npm run buildrelease
 - Increment patch again manually: `npm version patch`
 - Update CHANGELOG to show new version number
 - Continue with rest of workflow
+
+---
+
+## Memory Entries
+
+### [2026-02-01] - buildrelease duplicate version headers issue
+
+**Issue**: When running `buildrelease`, duplicate version headers appeared in CHANGELOG.md:
+```markdown
+## [1.0.10024] - 2026-02-01
+## [1.0.10024] - 2026-02-01
+```
+
+**Root Cause**: The `update-changelog-for-release.js` script ran twice:
+1. Agent manually ran it to verify version prediction (per workflow instructions)
+2. `npm run buildrelease` then ran it again (as part of its workflow)
+
+The original script didn't check if the version header already existed, so both runs moved content and created headers.
+
+**Resolution**: 
+1. Removed the duplicate header via manual edit and committed fix
+2. **Fixed the script**: Added check `if (versionHeaderRegex.test(changelogContent))` to skip if version header already exists
+3. Script now safely runs twice without creating duplicates
+
+**Learning**:
+- Manual script run BEFORE buildrelease is the intended workflow (for control/verification)
+- Script must handle being run multiple times safely (idempotent)
+- The fix ensures script exits gracefully if version header already exists
+
+**Files Affected**:
+- CHANGELOG.md - duplicate headers created, then fixed
+- scripts/update-changelog-for-release.js - added duplicate header prevention
+- docs/memory/shared-memory.md - updated workflow documentation
+
+**Commits**:
+- `fix(changelog): Remove duplicate version 1.0.10024 header` (0cd0d88)
+- `fix(script): Prevent duplicate version headers in changelog script` (future)
 
 ---
