@@ -123,22 +123,34 @@ edit(filePath, oldString, newString)
 edit(filePath, oldString, newString, replaceAll=true)
 ```
 
+**Prompt Matching**:
+- Checks `docs/common_prompts.md` for prompt references (prefixed with `~`)
+- Uses fuzzy matching for prompt recognition (intent-based, not exact string)
+- Distinguishes prompt references from inline code or comments
+- Examples:
+  - "~update_from_project#" triggers #update_from_project# prompt
+  - "update memory" triggers general memory update workflow
+  - Considers context and user's specific tool when matching
+
 **Integration with Shared Memory**:
 - Primary maintainer: Creates and updates `docs/memory/shared-memory.md`
 - Reads shared memory first on session start
 - Updates shared memory incrementally during work
 - Syncs to `docs/MEMORY.md` as needed
 - No internal memory system - relies entirely on shared memory
+- Maintains prompt reference system in `docs/common_prompts.md`
 
 **Quick Start**:
 - Read [`agents.min.md`](../../agents.min.md) first for optimized onboarding
 - Then read `docs/MEMORY.md` and `docs/memory/shared-memory.md` for detailed context
+- Check `docs/common_prompts.md` for relevant prompt patterns when user requests updates
 
 **Special Patterns**:
 - **Task Management**: Uses `todowrite` for complex tasks, `todoread` to check progress
 - **Parallel Tool Calls**: Batches independent file reads in single message for efficiency
 - **Context Budgeting**: Reads large files strategically (500 lines max), summarizes logic
 - **Decision Documentation**: Emphasizes "why" over "what" in code comments
+- **Prompt Recognition**: Checks `docs/common_prompts.md` for `~`-prefixed prompt references
 
 **Limitations**:
 - No persistent internal memory across sessions
@@ -151,6 +163,7 @@ edit(filePath, oldString, newString, replaceAll=true)
 - Maintains all shared memory documentation
 - Best for: File operations, code editing, project refactoring
 - Less suited for: Complex reasoning without external tools (use MCP servers)
+- Enhanced with prompt reference system awareness from ai-project-scaffolding-1
 
 ---
 
