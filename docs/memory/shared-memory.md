@@ -699,6 +699,69 @@ When multiple tools have conflicting information:
 
 ---
 
+### [2026-02-01 00:00 UTC] - Tool: Opencode - Implement Multi-Key Cycling
+
+**Tool**: Opencode
+**Session ID**: opencode-session-20260201-000000
+**Task Type**: Assigned Task
+**Status**: Completed
+
+**Summary**: Implemented manual multi-key cycling functionality with KeyManager integration
+
+**Context**: User requested multi-key cycling with commands: addKey, removeKey, cycleKey, clearAllKeys. All interfaces should update when keys change and new data should be queried after cycling. Manual cycling only (no auto-cycling).
+
+**Decisions Made**:
+- Decision: Integrate KeyManager into extension.ts
+  - Rationale: KeyManager already has comprehensive multi-key support with methods for add, remove, activate, and cycling. By integrating it, we enable users to manage multiple API keys.
+- Decision: Add multi-key configuration settings to package.json
+  - Rationale: Configuration interface already had multi-key properties (enableKeyCycling, cyclingStrategy, autoCycleThreshold) but they weren't in package.json. Added them to enable multi-key cycling configuration.
+  - Note: Auto-cycling is disabled by default per user request (manual cycling only).
+- Decision: Implement four new commands (addKey, removeKey, cycleKey, clearAllKeys)
+  - Rationale: Users need ways to manage their API key collection: add new keys, remove specific keys, cycle through keys, and clear all keys.
+- Decision: Use KeyManager's onKeysChanged() callback for automatic interface updates
+  - Rationale: When keys are modified (add, remove, cycle), the callback triggers handleKeysChanged() which refreshes usage data. This ensures status bar and all interfaces update automatically without manual refresh.
+- Decision: Manual cycling only (round-robin)
+  - Rationale: User explicitly requested no auto-cycling. The cycleKey() command implements manual round-robin cycling to the next key in the collection.
+- Decision: Add confirmation dialogs for destructive operations
+  - Rationale: removeKey() and clearAllKeys() require user confirmation to prevent accidental deletion of keys. This provides clear feedback and prevents data loss.
+
+**Files Changed**:
+- Modified: [`package.json`](../../package.json) - Added multi-key configuration properties and four new commands
+- Modified: [`src/extension.ts`](../../src/extension.ts) - Integrated KeyManager, added multi-key command handlers, updated disposal
+
+**Tools Used**:
+- Edit - Modified source code and configuration files
+
+**Outcome**: Completed
+- ✅ KeyManager integrated into extension.ts
+- ✅ Multi-key configuration settings added to package.json
+- ✅ Four new commands registered (addKey, removeKey, cycleKey, clearAllKeys)
+- ✅ onKeysChanged() callback ensures automatic interface updates
+- ✅ Manual cycling only (no auto-cycling per user request)
+- ✅ TypeScript compilation: Success ✅
+- ✅ ESLint: No errors ✅
+
+**Notes**:
+- KeyManager.onKeysChanged() automatically triggers handleKeysChanged() which calls refreshUsage()
+- This ensures status bar, tooltip, and all interfaces update immediately when keys change
+- New key data is automatically queried after cycling via the callback mechanism
+- Extension maintains backward compatibility with legacy single-key format
+
+**Branch**: feature_multi-key-cycling_1769923335971
+
+**Cross-Tool Context**:
+Future agents working on multi-key functionality should reference:
+- KeyManager methods in [`src/config/keyManager.ts`](../../src/config/keyManager.ts) - Full implementation of key storage and management
+- onKeysChanged() callback pattern - Used for automatic interface updates
+- Command handlers in [`src/extension.ts`](../../src/extension.ts) - addKey(), removeKey(), cycleKey(), clearAllKeys()
+- Multi-key configuration in [`package.json`](../../package.json) - enableKeyCycling, cyclingStrategy, autoCycleThreshold
+
+**Related Entries**:
+- `docs/MEMORY.md` task t31-t37
+- Previous KeyManager integration design in `src/config/keyManager.ts`
+
+---
+
 ### [2026-01-31 03:29 UTC] - Tool: Opencode - Document Logic in Code (t13)
 
 **Tool**: Opencode
