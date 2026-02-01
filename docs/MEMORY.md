@@ -4,6 +4,78 @@ This file maintains context across AI agent sessions by tracking queries, curren
 
 ## Query History
 
+### [2026-02-01 03:30 UTC] - Query: Allow removing all API keys
+
+**Query**: "they are allowed to remove or clear all api keys for the tool"
+
+**Context**: User wants to be able to remove all API keys including the last one. Previously, the system prevented removing the last API key with a warning message.
+
+**Outcome**: Completed - Users can now remove all API keys including the last one
+
+**Changes Made**:
+
+**Remove Key Function** (`src/extension.ts`):
+- Removed check that prevented removing the last API key
+- Users can now remove all keys by removing them individually or using "Clear All Keys"
+- Extension properly handles zero key state by showing idle status in status bar
+
+**Behavior Changes**:
+- Before: "Cannot remove the last API key. Add another key first." warning
+- After: User can remove the last key, then shows "No API keys configured."
+
+**Files Modified**:
+1. `src/extension.ts` - Removed last-key-removal prevention check in removeKey() method
+
+**Code Quality**:
+- TypeScript compilation: Success ✅
+- ESLint: No errors ✅
+
+---
+
+### [2026-02-01 03:00 UTC] - Query: Implement update notifications and version tracking
+
+**Query**: "Make a new Branch based off of this one. update notifications and last version hversion history. after the load if there is not a stored last version then assume this is either freshly installed or updated and should display a update message if saved in the release to have an update message displayed and dismissed where the user has to hit, accept or cancel and by dismiss I mean accept then it will store the current version as last version. if last version matches current version, do not display this message as it's assumed they've already dismissed it" and "I want the update message for this version to say this extension has been updated to handled keys in a different way, you may have to reassign your API keys."
+
+**Context**: User wants to implement an update notification system that: 1) Creates a new branch for this feature, 2) Stores last seen version in globalState, 3) Shows update modal when version changes or no version stored, 4) Stores current version after user accepts/dismisses, 5) Doesn't show notification if version matches (already dismissed)
+
+**Outcome**: Completed - Update notification system implemented
+
+**Changes Made**:
+
+**Version Tracking System** (`src/extension.ts`):
+- Added RELEASE_NOTES constant map with version → message mappings
+- Added getExtensionVersion() function to read version from package.json
+- Added global currentVersion variable (set during activation)
+- Added checkForUpdatesAndShowNotification() method: reads last seen version from globalState, compares to current version, shows modal if changed/missing
+- Added storeCurrentVersion() method: stores current version in globalState after user accepts
+- Modified activate(): set currentVersion, call checkForUpdatesAndShowNotification() before other initialization
+- Update message modal: "Synthetic.new Usage Tracker Updated to v{version}" with Accept button and detail message
+
+**Release Notes File** (`release-notes.md`):
+- Created release notes template file
+- Added version 1.0.10023 entry with update message
+- Message: "This extension has been updated to handle API keys in a different way. You may need to reassign your API keys."
+
+**Version Storage Logic**:
+- stored in globalState under "lastSeenVersion"
+- Checked at start of activation
+- If no version stored (fresh install) or version changed (update): show notification
+- If version matches (already dismissed): skip notification
+- User clicking "Accept" stores current version as lastSeenVersion
+
+**Files Created**:
+1. `release-notes.md` - Release notes file with version-specific update messages
+
+**Files Modified**:
+1. `src/extension.ts` - Added version tracking, update notification system
+2. Branch created: `feature_update_notifications_1769929885479`
+
+**Code Quality**:
+- TypeScript compilation: Success ✅
+- ESLint: No errors ✅
+
+---
+
 ### [2026-02-01 02:30 UTC] - Query: Update details popup to show Cycle Keys button
 
 **Query**: "if there are multiple keys, change the details popup subscribe with discount button to be a cycle keys button"
@@ -751,16 +823,15 @@ Tasks:
 
 ## Current Focus
 
-### Last Query: Update details popup to show Cycle Keys when multiple keys
-**Time**: 2026-02-01 02:30 UTC
-**Summary**: Updated details popup to show "Cycle Keys" button instead of "Subscribe with Discount" when multiple keys are configured
-**Context**: User requested the details popup to adapt based on number of keys - if multiple keys exist, replace subscribe button with cycle button
+### Last Query: Allow removing all API keys
+**Time**: 2026-02-01 03:30 UTC
+**Summary**: Removed restriction preventing removal of the last API key
+**Context**: Users can now remove all API keys including the last one; extension properly handles zero-key state with idle status
 **Planning**: Feature complete and tested (compiles and lints)
 
 **Remaining Items**:
-- [ ] User testing of multi-key commands
-- [ ] Verify cross-window synchronization works correctly
-- [ ] Consider adding statistics display for individual keys (future enhancement)
+- [ ] User testing of update notification system
+- [ ] Consider adding release notes for future versions
 
 ### Sub-tasks Tracking
 

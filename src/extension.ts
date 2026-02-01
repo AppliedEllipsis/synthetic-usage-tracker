@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import * as fs from "fs";
 import { ConfigurationManager } from "./config/configuration";
 import { KeyManager } from "./config/keyManager";
 import { UsageIndicator } from "./statusBar/usageIndicator";
@@ -6,6 +7,42 @@ import { SyntheticService } from "./api/syntheticService";
 import type { UsageInfo as APIUsageInfo } from "./api/syntheticService";
 import type { ApiKeyEntry } from "./types/keys";
 import { ActivationReason } from "./types/keys";
+
+/**
+ * Release notes for update notifications
+ *
+ * Design decision: Store release notes as a constant map for easy lookup by version.
+ * This allows the extension to show appropriate update messages when users upgrade.
+ */
+const RELEASE_NOTES: Record<string, string> = {
+  "1.0.10023": "This extension has been updated to handle API keys in a different way. You may need to reassign your API keys.",
+};
+
+/**
+ * Get extension version from package.json
+ *
+ * Design decision: Read package.json synchronously at module load time to avoid
+ * async complexity. Use fs.readFileSync with a fallback for extension context.
+ */
+const getExtensionVersion = (context?: vscode.ExtensionContext): string => {
+  try {
+    // Try to get version from extension context first (available during activation)
+    if (context) {
+      const packagePath = context.asAbsolutePath("package.json");
+      const packageContents = fs.readFileSync(packagePath, "utf-8");
+      const packageData = JSON.parse(packageContents) as { version: string };
+      return packageData.version;
+    }
+    // Fallback: return hard-coded version (matches package.json)
+    return "1.0.10023";
+  } catch (error) {
+    console.error("Failed to read package.json:", error);
+    return "1.0.10023";
+  }
+};
+
+// Store current version globally (will be set during activation)
+let currentVersion: string = "1.0.10023";
 
 /**
  * Main extension class for Synthetic Usage Tracker
@@ -45,6 +82,56 @@ export class SyntheticUsageTrackerExtension {
   }
 
   /**
+   * Check for extension updates and show notification if needed
+   *
+   * Design decision: Compare current version with last seen version stored in globalState.
+   * If version changed or no version stored, show update notification and store current
+   * version after user dismisses it. This prevents showing the same notification twice.
+   */
+  private async checkForUpdatesAndShowNotification(): Promise<void> {
+    const lastSeenVersion = this.context.globalState.get<string>("lastSeenVersion");
+
+    // If version hasn't changed, don't show notification
+    if (lastSeenVersion === currentVersion) {
+      return;
+    }
+
+    // Get update message for current version
+    const updateMessage = RELEASE_NOTES[currentVersion];
+
+    if (!updateMessage) {
+      // No update message for this version, just store it
+      await this.storeCurrentVersion();
+      return;
+    }
+
+    // Show update notification
+    const result = await vscode.window.showInformationMessage(
+      `Synthetic.new Usage Tracker Updated to v${currentVersion}`,
+      {
+        modal: true,
+        detail: updateMessage,
+      },
+      "Accept",
+    );
+
+    if (result === "Accept") {
+      await this.storeCurrentVersion();
+    }
+  }
+
+  /**
+   * Store current version as last seen version
+   *
+   * Design decision: Store version in globalState rather than secrets or local storage.
+   * GlobalState persists across VSCode restarts and syncs across workspaces when sync is enabled,
+   * ensuring users only see each update notification once.
+   */
+  private async storeCurrentVersion(): Promise<void> {
+    await this.context.globalState.update("lastSeenVersion", currentVersion);
+  }
+
+  /**
    * Activate the extension
    *
    * Design decision: We catch errors at this level to prevent extension failures from
@@ -53,6 +140,12 @@ export class SyntheticUsageTrackerExtension {
    */
   async activate(): Promise<void> {
     try {
+      // Get current version from package.json
+      currentVersion = getExtensionVersion(this.context);
+
+      // Check for extension updates first (before commands registration for UX)
+      await this.checkForUpdatesAndShowNotification();
+
       // Register commands before initialization so they're always available
       this.registerCommands();
 
@@ -778,11 +871,12 @@ API Key: ${maskedKey}`;
   }
 
   /**
-    * Remove a specific API key from the collection
-    *
-    * Design decision: Show key selection and confirm before removal.
-    * Prevents accidental deletion and provides clear feedback.
-    */
+   * Remove a specific API key from the collection
+   *
+   * Design decision: Show key selection and confirm before removal.
+   * Prevents accidental deletion and provides clear feedback.
+   * Users are allowed to remove all keys including the last one.
+   */
   private async removeKey(): Promise<void> {
     const allKeys = await this.keyManager.getAllKeys();
 
@@ -793,13 +887,6 @@ API Key: ${maskedKey}`;
 
     const activeIndex = await this.keyManager.getActiveIndex();
     const activeKey = allKeys[activeIndex];
-
-    if (allKeys.length === 1) {
-      vscode.window.showWarningMessage(
-        "Cannot remove the last API key. Add another key first.",
-      );
-      return;
-    }
 
     const keyOptions = allKeys.map((key: ApiKeyEntry, index: number) => ({
       label: `${key.label || `Key ${index + 1}`} (${this.maskKey(key.key)})`,

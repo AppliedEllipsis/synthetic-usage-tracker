@@ -478,6 +478,112 @@ Future agents working on the details popup should reference:
 
 ---
 
+### [2026-02-01 03:30 UTC] - Tool: Opencode - Allow Removing All API Keys
+
+**Tool**: Opencode
+**Session ID**: opencode-session-20260201-033000
+**Task Type**: Assigned Task
+**Status**: Completed
+
+**Summary**: Removed restriction preventing removal of the last API key
+
+**Context**: User requested ability to remove or clear all API keys. Previously, the system prevented removing the last API key with a warning message requiring users to add another key first.
+
+**Decisions Made**:
+- Decision: Allow removal of the last API key
+  - Rationale: Users should have full control over their API keys. If they want to remove all keys (e.g., to start fresh, switch projects, or temporarily disable the extension), they should be able to do so. The extension already handles the zero-key state by showing idle status.
+
+**Files Changed**:
+- Modified: [`src/extension.ts`](../../src/extension.ts) - Removed last-key-removal prevention check in removeKey() method
+
+**Tools Used**:
+- Edit - Modified source code
+- Bash - Ran compilation and linting verification
+
+**Outcome**: Completed
+- ✅ Users can now remove all API keys including the last one
+- ✅ After removing all keys, extension shows "No API keys configured."
+- ✅ Status bar displays idle state when no keys are configured
+- ✅ TypeScript compilation: Success ✅
+- ✅ ESLint: No errors ✅
+
+**Notes**:
+- Extension properly handles zero key state
+- initialize() method already checks for keys and sets idle if none exist
+- Users can add keys again at any time via "Add API Key" command
+
+**Cross-Tool Context**:
+Future agents working on key management should reference:
+- removeKey() method - Now allows removing last key (no restrictions)
+- Zero key handling - Extension sets idle status when no keys configured
+- clearAllKeys() method - Alternative way to remove all keys at once
+
+**Related Entries**:
+- Previous multi-key cycling implementation work
+- Update notification system work
+
+---
+
+### [2026-02-01 03:00 UTC] - Tool: Opencode - Implement Update Notifications and Version Tracking
+
+**Tool**: Opencode
+**Session ID**: opencode-session-20260201-030000
+**Task Type**: Assigned Task
+**Status**: Completed
+
+**Summary**: Implemented update notification system with version tracking stored in globalState
+
+**Context**: User requested update notification system that: 1) Stores last seen version, 2) Shows modal on version change or fresh install, 3) Stores current version after user accepts, 4) Skips if version already dismissed. User also specified update message for version 1.0.10023: "this extension has been updated to handled keys in a different way, you may have to reassign your API keys."
+
+**Decisions Made**:
+- Decision: Store last seen version in globalState
+  - Rationale: globalState persists across VSCode restarts and syncs across workspaces when sync is enabled. This ensures users only see each update notification once. Use "lastSeenVersion" as the key name for clarity.
+- Decision: Create RELEASE_NOTES map for version → message lookup
+  - Rationale: Storing release notes as a constant map makes it easy to add messages for new versions. Developers can simply add a new entry to the map rather than adding complex logic.
+- Decision: Read package.json version during activation
+  - Rationale: Reading package.json at runtime ensures we always get the correct version, even during development. Using context.asAbsolutePath("package.json") ensures the file is found correctly in different environments.
+- Decision: Show modal before command registration
+  - Rationale: Showing update notification before other initialization ensures users see it early in the load process. This provides immediate feedback about the update before other parts of the extension are active.
+- Decision: Only show notification if version changed or no version stored
+  - Rationale: If lastSeenVersion matches currentVersion, the user has already dismissed the notification and shouldn't see it again. This prevents spamming users with the same message on every startup.
+
+**Files Changed**:
+- Modified: [`src/extension.ts`](../../src/extension.ts) - Added version tracking, RELEASE_NOTES constant, getExtensionVersion(), checkForUpdatesAndShowNotification(), storeCurrentVersion(), updated activate()
+- Added: [`release-notes.md`](../../release-notes.md) - Release notes file with version-specific messages
+
+**Tools Used**:
+- Edit - Modified source code and added release notes file
+- Bash - Ran compilation and linting verification
+
+**Outcome**: Completed
+- ✅ Version 1.0.10023 update message: "This extension has been updated to handle API keys in a different way. You may need to reassign your API keys."
+- ✅ Version stored in globalState under "lastSeenVersion"
+- ✅ Modal shown on version change or fresh install
+- ✅ Modal not shown if version matches (already dismissed)
+- ✅ User clicking "Accept" stores current version
+- ✅ TypeScript compilation: Success ✅
+- ✅ ESLint: No errors ✅
+- ✅ Branch created: feature_update_notifications_1769929885479
+
+**Notes**:
+- Update message is shown in a modal with "Accept" button
+- Detail text provides the update message for the specific version
+- System handles fresh installs (no version stored) and updates (version changed) identically
+- Developers can add new version messages to RELEASE_NOTES constant map
+
+**Cross-Tool Context**:
+Future agents working on updates should reference:
+- `src/extension.ts` RELEASE_NOTES constant - Add new version messages here
+- src/extension.ts getExtensionVersion() - Reads package.json version
+- Context.globalState for "lastSeenVersion" storage - Uses VSCode's globalState API
+- checkForUpdatesAndShowNotification() logic - Version comparison and modal display
+
+**Related Entries**:
+- release-notes.md file - Store all version update messages
+- Previous multi-key cycling implementation work
+
+---
+
 ### Entry Template
 
 ```markdown
@@ -571,25 +677,25 @@ Kilocode agents continuing this work should note that the progress bar logic is 
 ### Last Session
 
 **Tool**: Opencode
-**Time**: 2026-02-01 02:30 UTC
-**Summary**: Updated details popup to show Cycle Keys button when multiple keys exist
+**Time**: 2026-02-01 03:30 UTC
+**Summary**: Removed restriction preventing removal of the last API key
 **Status**: Completed
 
 ### Context
 
-Enhancing multi-key cycling functionality. Details popup now adapts its buttons based on the number of configured keys.
+User requested ability to remove all API keys including the last one. System now allows full control over key management.
 
 ### Planning
 
-All multi-key features complete and tested. Ready for user testing or further enhancements.
+All key management features complete. Users can now: add keys, remove keys including the last one, cycle keys, and clear all keys.
 
 ### Pending Tasks
 
-None - all tasks completed in previous sessions. Multi-key cycling implementation is complete with:
-- KeyManager integration
-- Four key management commands (addKey, removeKey, cycleKey, clearAllKeys)
-- Adaptive details popup (Cycle Keys vs Subscribe with Discount)
-- Automatic interface updates via onKeysChanged() callback
+None - all features complete and tested. Key management allows full user control:
+- Add API keys
+- Remove any key including the last one
+- Cycle through keys (2+ keys required for cycling)
+- Clear all keys
 
 ## Quick Reference
 
