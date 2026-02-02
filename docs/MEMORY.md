@@ -1005,7 +1005,8 @@ Tasks:
 | 29   | Release v1.0.10021                                   | Complete    | Release v1.0.10021 - Version bump only |
 | 30   | Release v1.0.10022                                   | Complete    | Release v1.0.10022 - Version bump only |
 | 31   | Release v1.0.10023                                   | Complete    | Release v1.0.10023 - Version bump only |
-| 32   | Release v1.0.10025                                   | Complete    | Release v1.0.10025 - Version bump only |
+| 32   | Fix missing command registrations before release    | Complete    | Fixed configure, eraseKey, openDashboard commands not registered in registerCommands(). Version bumped to 1.0.10025 |
+| 33   | Release v1.0.10025                                   | Complete    | Release v1.0.10025 - Fixed missing command registrations |
 ---
 
 ## Quick Reference
