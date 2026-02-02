@@ -15,8 +15,10 @@ Nothing yet
 
 ## [1.0.10025] - 2026-02-02
 
-### Changed
-- Version bump only (no new features or fixes)
+### Fixed
+- Fixed missing command registrations (configure, eraseKey, openDashboard) before version bump
+- Commands were defined in package.json but not registered in registerCommands() method
+- Verified all 13 package.json commands are now properly registered
 
 ## [1.0.10024] - 2026-02-01
 
