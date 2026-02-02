@@ -2,7 +2,7 @@
   "name": "synthetic-usage-tracker",
   "displayName": "Synthetic.new Usage Tracker",
   "description": "Monitor your Synthetic.new API usage and quotas directly from VSCode status bar",
-  "version": "1.0.10025",
+  "version": "1.0.10026",
   "publisher": "Ellipsis",
   "license": "GPL-3.0",
   "type": "commonjs",
