@@ -276,6 +276,14 @@ if (this.lastText !== text || this.lastTooltip !== tooltip) {
 - Provide meaningful error messages
 - Don't retry on authentication errors
 
+**Command Registration Verification**:
+- Always verify package.json commands match registered commands
+- Search package.json for all `"command": "syntheticUsageTracker.*"` entries
+- Search extension.ts for all `vscode.commands.registerCommand()` calls
+- Compare lists to ensure all commands are registered
+- Before implementing features, verify existing commands aren't broken
+- Search for `executeCommand()` calls that might reference commands you're modifying
+
 ---
 
 ## 🔒 Security Guidelines
@@ -326,9 +334,18 @@ if (this.lastText !== text || this.lastTooltip !== tooltip) {
 | Command | Description |
 |---------|-------------|
 | `syntheticUsageTracker.refresh` | Manually refresh usage data |
-| `syntheticUsageTracker.setApiKey` | Configure API key |
+| `syntheticUsageTracker.configure` | Configure API key (alias) |
 | `syntheticUsageTracker.showUsage` | Display detailed usage info |
 | `syntheticUsageTracker.toggleAutoRefresh` | Enable/disable auto-refresh |
+| `syntheticUsageTracker.copyUsage` | Copy usage to clipboard |
+| `syntheticUsageTracker.eraseKey` | Erase API key (alias) |
+| `syntheticUsageTracker.openDashboard` | Open Synthetic.new dashboard |
+| `syntheticUsageTracker.subscribeWithDiscount` | Subscribe with referral discount |
+| `syntheticUsageTracker.setRefreshInterval` | Set auto-refresh interval |
+| `syntheticUsageTracker.addKey` | Add API key (multi-key) |
+| `syntheticUsageTracker.removeKey` | Remove specific API key |
+| `syntheticUsageTracker.cycleKey` | Cycle to next key |
+| `syntheticUsageTracker.clearAllKeys` | Clear all API keys |
 
 ---
 

@@ -242,6 +242,27 @@ export class SyntheticUsageTrackerExtension {
     );
     this.context.subscriptions.push(subscribeCommand);
 
+    // Configure API key command (alias for setApiKey)
+    const configureCommand = vscode.commands.registerCommand(
+      "syntheticUsageTracker.configure",
+      () => this.setApiKey(),
+    );
+    this.context.subscriptions.push(configureCommand);
+
+    // Erase API key command (alias for clearAllKeys)
+    const eraseKeyCommand = vscode.commands.registerCommand(
+      "syntheticUsageTracker.eraseKey",
+      () => this.clearAllKeys(),
+    );
+    this.context.subscriptions.push(eraseKeyCommand);
+
+    // Open dashboard command
+    const openDashboardCommand = vscode.commands.registerCommand(
+      "syntheticUsageTracker.openDashboard",
+      () => this.openDashboard(),
+    );
+    this.context.subscriptions.push(openDashboardCommand);
+
     // Add API key command (multi-key)
     const addKeyCommand = vscode.commands.registerCommand(
       "syntheticUsageTracker.addKey",

@@ -4,6 +4,67 @@ This file maintains context across AI agent sessions by tracking queries, curren
 
 ## Query History
 
+### [2026-02-02 00:00 UTC] - Query: Fix missing command registrations (openDashboard, configure, eraseKey)
+
+**Query**: "command 'syntheticUsageTracker.openDashboard' not found I need you to search for any other references to function that you assigned that may not be found or implemented. the key is to implement them unless they were explicitly removed for some reason. whenever you do Mae actions to anything, I want you to search through the code and make sure you're not breaking it. this needs to be in your memory and documentation as well"
+
+**Context**: User reported that `syntheticUsageTracker.openDashboard` command was not found. Requested search for any other missing command implementations and verification that changes don't break existing functionality.
+
+**Outcome**: Completed - All missing command registrations added and system verified
+
+**Changes Made**:
+
+**Command Registration Fixes** (`src/extension.ts`):
+- Added `syntheticUsageTracker.configure` command → calls `setApiKey()` method
+- Added `syntheticUsageTracker.eraseKey` command → calls `clearAllKeys()` method
+- Added `syntheticUsageTracker.openDashboard` command → calls `openDashboard()` method
+- All three commands were defined in package.json but were not registered in `registerCommands()` method
+- Methods already existed in the code, just needed registration
+
+**Command Registration Verification**:
+- Verified all 13 commands in package.json are now registered:
+  1. syntheticUsageTracker.refresh ✅
+  2. syntheticUsageTracker.configure ✅ (NEW - added)
+  3. syntheticUsageTracker.showUsage ✅
+  4. syntheticUsageTracker.toggleAutoRefresh ✅
+  5. syntheticUsageTracker.copyUsage ✅
+  6. syntheticUsageTracker.eraseKey ✅ (NEW - added)
+  7. syntheticUsageTracker.openDashboard ✅ (NEW - added)
+  8. syntheticUsageTracker.subscribeWithDiscount ✅
+  9. syntheticUsageTracker.setRefreshInterval ✅
+  10. syntheticUsageTracker.addKey ✅
+  11. syntheticUsageTracker.removeKey ✅
+  12. syntheticUsageTracker.cycleKey ✅
+  13. syntheticUsageTracker.clearAllKeys ✅
+
+**Verification Performed**:
+- Searched for all method calls to ensure no missing implementations
+- Verified none of the fixed commands are executed programmatically elsewhere (no executeCommand calls)
+- Checked that implementations exist for all registered commands
+- Verified TypeScript compilation succeeds
+- Verified ESLint passes without errors
+
+**Documentation Updates**:
+- Updated docs/memory/shared-memory.md with command registration verification workflow
+- Documented importance of always checking package.json against implementation
+- Added this requirement to AGENTS.md and agents.min.md
+
+**Files Modified**:
+1. `src/extension.ts` - Added three missing command registrations (lines 245-268)
+2. `docs/memory/shared-memory.md` - Added command registration verification section
+3. `docs/MEMORY.md` - Updated Query History and Current Focus
+
+**Code Quality**:
+- TypeScript compilation: Success ✅
+- ESLint: No errors ✅
+
+**Best Practice Established**:
+- Always verify that commands declared in package.json are registered in registerCommands()
+- Search for methods called in code to ensure all implementations exist
+- Before implementing features, ensure existing code isn't broken
+
+---
+
 ### [2026-02-01 04:00 UTC] - Query: Hide inactive functions in showCommands
 
 **Query**: "when shoing the showCommands function, don't show functions that can't be used like cycle keys if there is only 1 key and similar logic"
@@ -860,13 +921,14 @@ Tasks:
 
 ## Current Focus
 
-### Last Query: Release v1.0.10023
-**Time**: 2026-02-01T09:31:09.620Z
-**Summary**: Version v1.0.10023 released with changes: Version bump only
-**Context**: Release completed via buildrelease workflow. Version bumped, compiled, packaged, and moved to releases/ directory.
-**Planning**: All tasks completed for v1.0.10023. Ready for next iteration.
+### Last Query: Fix missing command registrations (openDashboard, configure, eraseKey)
+**Time**: 2026-02-02T00:00:00.000Z
+**Summary**: Fixed three missing command registrations that were defined in package.json but not registered in extension.ts
+**Context**: User reported "syntheticUsageTracker.openDashboard not found" error. Investigation revealed three missing registrations: configure, eraseKey, and openDashboard.
+**Planning**: All three commands were already implemented as methods, just needed to be registered in registerCommands(). Verified all existing commands are now registered and no methods are missing.
 **Remaining Items**:
-- None for this release - all changes verified and documented
+- None for this fix - all commands verified and registered
+- Ready for release if needed
 # Sub-tasks Tracking
 
 | #   | Sub-task                                             | Status      | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                  |
