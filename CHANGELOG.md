@@ -15,6 +15,9 @@ Nothing yet
 
 ## [1.0.10025] - 2026-02-02
 
+### Changed
+- Version bump only (no new features or fixes)
+
 ## [1.0.10024] - 2026-02-01
 
 ### Added
