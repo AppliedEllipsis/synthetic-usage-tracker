@@ -31,10 +31,11 @@ This file maintains context across AI agent sessions by tracking queries, curren
 - Release date: 2026-02-02
 
 **Notes**:
-- CHANGELOG update: "Nothing yet" in Unreleased, so version 1.0.10025 header is empty
+- CHANGELOG initially empty (Unreleased had "Nothing yet"), then updated with version bump note
 - Git rebase required due to remote changes being present before push
 - Memory update script had issues (couldn't find Sub-tasks Tracking section) - updated manually
 - All build tests passed: TypeScript compilation ✅, ESLint ✅ (implied)
+- Package rebuilt after CHANGELOG update to include changelog changes in .vsix
 
 **Files Modified**:
 1. CHANGELOG.md - Updated with version 1.0.10025 header
