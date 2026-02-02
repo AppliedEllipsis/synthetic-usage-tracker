@@ -1,6 +1,52 @@
 ---
 
-## Critical Workflow: LLM Agent buildrelease Command
+### [2026-02-02] - Command registration verification and fixes
+
+**Issue**: Three commands defined in package.json were not registered in extension.ts:
+- `syntheticUsageTracker.configure` - "Configure API Key"
+- `syntheticUsageTracker.eraseKey` - "Erase API Key"
+- `syntheticUsageTracker.openDashboard` - "Open Synthetic Dashboard"
+
+**Root Cause**: During multi-key implementation, commands were added to package.json but the registerCommands() method was not updated to register them. The methods existed in the code but were never registered with VSCode's command system.
+
+**Commands Fixed**:
+1. `configure` → calls `setApiKey()` (redirects to addKey() for multi-key support)
+2. `eraseKey` → calls `clearAllKeys()` (clears all API keys)
+3. `openDashboard` → calls `openDashboard()` (opens https://synthetic.new/billing)
+
+**Verification Workflow**:
+1. Extract all commands from package.json `contributes.commands` array
+2. Search for all `vscode.commands.registerCommand()` calls in extension.ts
+3. Compare package.json commands against registered commands
+4. Implement missing registrations or remove unused package.json entries
+5. Verify all registered methods exist and are called correctly
+6. Search for any `executeCommand()` calls to verify no broken references
+7. Run TypeScript compilation and ESLint to verify code integrity
+
+**Learning**:
+- Always verify package.json commands match registered commands in registerCommands()
+- Methods can exist but not be registered, causing "command not found" errors
+- Command registration is separate from method implementation
+- Verification should include checking for executeCommand() calls that might break
+
+**Best Practices**:
+- Before adding features, verify existing command registrations
+- After modifying commands, search for all references using grep
+- Run compile and lint after any command-related changes
+- Document any command aliases or redirects in code comments
+
+**Files Affected**:
+- package.json - commands defined (no changes needed)
+- src/extension.ts - added three command registrations (lines 245-268)
+- docs/memory/shared-memory.md - documented command verification workflow
+- docs/MEMORY.md - added query history entry, updated current focus
+
+**Code Quality**:
+- TypeScript compilation: Success ✅
+- ESLint: No errors ✅
+
+---
+
 
 **When user says "buildrelease", follow this exact sequence**:
 

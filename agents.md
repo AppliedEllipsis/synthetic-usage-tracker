@@ -1622,6 +1622,16 @@ async activate(): Promise<void> {
 }
 ```
 
+**Command registration verification**:
+- Always verify that commands declared in package.json are registered in `registerCommands()`
+- Search package.json for all `"command": "syntheticUsageTracker.*"` entries
+- Search extension.ts for all `vscode.commands.registerCommand()` calls
+- Compare lists to ensure all package.json commands are registered
+- Before implementing new commands, verify existing commands aren't broken
+- Search for any `executeCommand()` calls that might reference the commands you're modifying
+
+**Common pitfall**: Methods can exist but not be registered, causing "command not found" errors. Registration is separate from implementation.
+
 **Handle activation errors gracefully**:
 ```typescript
 try {
