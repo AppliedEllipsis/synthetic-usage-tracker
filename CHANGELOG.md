@@ -10,6 +10,11 @@ where patch versions start at 10000 instead of 0. This is compatible with SemVer
 
 ## Unreleased
 
+Nothing yet
+
+
+## [1.0.10027] - 2026-02-02
+
 ### Notes
 - No merges past version updates required
 - All previous version changes fully documented in changelog
