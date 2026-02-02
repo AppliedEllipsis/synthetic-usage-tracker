@@ -10,6 +10,11 @@ where patch versions start at 10000 instead of 0. This is compatible with SemVer
 
 ## Unreleased
 
+Nothing yet
+
+
+## [1.0.10026] - 2026-02-02
+
 ### Changed
 - Updated CHANGELOG v1.0.10025 entry to accurately reflect actual changes (fixed missing command registrations before version bump)
 - Added sub-task entries to docs/MEMORY.md for v1.0.10025 fixes
