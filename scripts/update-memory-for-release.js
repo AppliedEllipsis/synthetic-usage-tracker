@@ -94,7 +94,7 @@ try {
   let content = fs.readFileSync(memoryFile, 'utf8');
 
   // Find the sub-tasks table and get the last task number
-  const subTaskSectionMatch = content.match(/## Sub-tasks Tracking\s*\n([\s\S]*?)(?=\n##|$)/);
+  const subTaskSectionMatch = content.match(/# Sub-tasks Tracking\s*\n([\s\S]*?)(?=\n#|$)/);
   if (!subTaskSectionMatch) {
     console.error('❌ Could not find Sub-tasks Tracking section');
     process.exit(1);
@@ -117,14 +117,14 @@ try {
   const newTaskEntry = `| ${newTaskNumber}   | Release v${version}                                   | Complete    | ${notes} |`;
 
   // Insert the new task entry before the divider line
-  const tableEndIndex = content.indexOf('\n---', content.indexOf('## Sub-tasks Tracking'));
+  const tableEndIndex = content.indexOf('\n---', content.indexOf('# Sub-tasks Tracking'));
 
   if (tableEndIndex !== -1) {
     // Insert new task before the closing ---
     content = content.slice(0, tableEndIndex) + '\n' + newTaskEntry + content.slice(tableEndIndex);
 
     // Update Current Focus section with the new task
-    const currentFocusMatch = content.match(/(## Current Focus\s*\n)([\s\S]*?)(\n##|$)/);
+    const currentFocusMatch = content.match(/(## Current Focus\s*\n)([\s\S]*?)(\n#|$)/);
     if (currentFocusMatch) {
       const currentFocusSection = currentFocusMatch[0];
       const isoDate = new Date().toISOString();
