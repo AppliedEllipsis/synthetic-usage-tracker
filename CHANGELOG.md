@@ -10,6 +10,11 @@ where patch versions start at 10000 instead of 0. This is compatible with SemVer
 
 ## Unreleased
 
+Nothing yet
+
+
+## [1.0.10028] - 2026-02-18
+
 ### Changed
 
 - Updated API response parsing: `toolCallDiscounts` renamed to `freeToolCalls` to reflect new Synthetic.new pricing
