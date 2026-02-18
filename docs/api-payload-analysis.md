@@ -28,7 +28,7 @@ The API returns a JSON object with three top-level fields:
       "renewsAt": "2026-01-31T02:13:40.463Z"
     }
   },
-  "toolCallDiscounts": {
+  "freeToolCalls": {
     "limit": 1620,
     "requests": 382,
     "renewsAt": "2026-01-31T10:17:00.465Z"
@@ -44,7 +44,7 @@ The API returns a JSON object with three top-level fields:
 |-------|------|-------------|
 | `subscription` | object | Main subscription usage quota |
 | `search` | object | Search-related usage quota |
-| `toolCallDiscounts` | object | Tool call discounts quota |
+| `freeToolCalls` | object | Free tool calls/small requests daily quota |
 
 ### Subscription Object
 
@@ -77,17 +77,17 @@ The API returns a JSON object with three top-level fields:
 - This is currently at 0 requests used in the test account
 - The nested structure suggests future support for other time periods (daily, weekly, etc.)
 
-### Tool Call Discounts Object
+### Free Tool Calls Object
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `limit` | number | Total tool call discounts limit |
-| `requests` | number | Number of tool call discounts used |
+| `limit` | number | Total free tool calls/small requests daily allowance |
+| `requests` | number | Number of free tool calls/small requests used |
 | `renewsAt` | string (ISO 8601) | Timestamp when quota renews |
 
 **Notes**:
-- This appears to be a separate quota for tool call functionality
-- The name "discounts" suggests this may represent discounted request counts
+- This is a separate daily quota for tool calls and small requests
+- First 500 (standard) / 2500 (pro) tool calls per day are free; after that they count as normal requests
 - Currently showing 382 used out of 1620 (23.6%)
 
 ## New Usage Types Identified
@@ -105,9 +105,9 @@ The payload structure reveals three distinct usage types that were not fully doc
 - **Fields**: `limit`, `requests`, `renewsAt`
 - **Structure**: Nested under `search.hourly`
 
-### 3. Tool Call Discounts
-- **Purpose**: Tool call functionality quota
-- **Type**: Unknown (appears to be periodic)
+### 3. Free Tool Calls
+- **Purpose**: Free daily tool calls/small requests allowance
+- **Type**: Daily
 - **Fields**: `limit`, `requests`, `renewsAt`
 
 ## Renewal Timestamps
@@ -116,7 +116,7 @@ All three usage types have independent renewal schedules:
 
 - **Subscription renews at**: `2026-01-31T05:03:31.463Z`
 - **Search renews at**: `2026-01-31T02:13:40.463Z`
-- **Tool Call Discounts renews at**: `2026-01-31T10:17:00.465Z`
+- **Free Tool Calls renews at**: `2026-01-31T10:17:00.465Z`
 
 **Design Implication**: Each usage type can have different renewal periods and schedules. The extension should track each independently and calculate time-to-renewal for each.
 
@@ -146,7 +146,7 @@ percentageUsed = (requests / limit) * 100;
 - Remaining: 250
 - Percentage used: 0%
 
-### Tool Call Discounts
+### Free Tool Calls
 - Limit: 1620
 - Requests: 382
 - Remaining: 1238
@@ -173,7 +173,7 @@ interface QuotaResponse {
   search: {
     hourly: UsageType;
   };
-  toolCallDiscounts: UsageType;
+  freeToolCalls: UsageType;
 }
 ```
 
@@ -181,7 +181,7 @@ interface QuotaResponse {
 
 Given the three usage types, the extension should:
 1. **Primary display**: Subscription usage (main quota users care about)
-2. **Secondary display**: Tool call discounts (important for advanced features)
+2. **Secondary display**: Free tool calls (important for advanced features)
 3. **Tertiary display**: Search usage (currently appears to be separate feature)
 
 ### Time-to-Renewal Calculation

@@ -515,7 +515,7 @@ Renews At: ${search.renewAtString}
 Time Remaining: ${formatTimeRemaining(search.renewAt)}
 ${this.usageIndicator.buildAsciiProgressBar(search.percentageUsed)}
 
-## Tool Calls
+## Free Tool Calls (daily)
 Requests: ${toolCalls.requests.toLocaleString()} / ${toolCalls.limit.toLocaleString()} (${toolCalls.percentageUsed.toFixed(1)}%)
 Remaining: ${toolCalls.remaining.toLocaleString()} (${(100 - toolCalls.percentageUsed).toFixed(1)}%)
 Renews At: ${toolCalls.renewAtString}

@@ -50,7 +50,7 @@ async function testUsageEndpoint() {
       console.log(`  - ${key}: ${type}${isArray ? '[]' : ''}`);
     });
 
-    // Check for tools usage
+    // Check for tools usage (freeToolCalls - first 500/2500 tool calls per day are free)
     if (data.tools) {
       console.log('\nTools usage detected:');
       console.log(JSON.stringify(data.tools, null, 2));

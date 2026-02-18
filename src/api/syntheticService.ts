@@ -27,20 +27,20 @@ export interface SearchQuota {
  * Design decision: The API returns three distinct quota categories:
  * - subscription: Overall subscription usage
  * - search: Hourly search quota (wrapped in hourly object)
- * - toolCalls: Tool invocation usage
+ * - freeToolCalls: Free tool call usage (daily)
  *
  * Each category has limit, requests, and renewAt fields. The API uses "renewAt"
  * (not "renewsAt") as the field name. Calculated fields (remaining, percentageUsed)
  * must be computed client-side.
  *
- * Design rationale: subscription and toolCalls use QuotaCategory directly since they
+ * Design rationale: subscription and freeToolCalls use QuotaCategory directly since they
  * have the same structure. search uses SearchQuota wrapper because the API nests
  * the hourly quota in an "hourly" object.
  */
 export interface QuotaResponse {
   subscription: QuotaCategory;
   search: SearchQuota;
-  toolCallDiscounts: QuotaCategory;
+  freeToolCalls: QuotaCategory;
 }
 
 /**
@@ -262,7 +262,7 @@ export class SyntheticService {
     return {
       subscription: this.parseCategory(data.subscription),
       search: this.parseCategory(data.search.hourly),
-      toolCalls: this.parseCategory(data.toolCallDiscounts),
+      toolCalls: this.parseCategory(data.freeToolCalls),
     };
   }
 

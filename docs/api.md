@@ -124,18 +124,18 @@ The API returns a JSON object with three distinct quota categories:
       "renewAt": string          // ISO 8601 date string
     }
   },
-  "toolCallDiscounts": {
-    "limit": number,             // Tool call functionality quota
-    "requests": number,          // Tool calls used (counted at discounted rate)
+  "freeToolCalls": {
+    "limit": number,             // Free tool calls/small requests daily quota
+    "requests": number,          // Free tool calls/small requests used
     "renewAt": string            // ISO 8601 date string
   }
 }
 ```
 
 **Key observations:**
-1. Three distinct quota categories: `subscription`, `search`, and `toolCallDiscounts`
+1. Three distinct quota categories: `subscription`, `search`, and `freeToolCalls`
 2. `search` quota is uniquely wrapped in an `hourly` object
-3. `toolCallDiscounts` tracks tool invocation quotas at discounted rates
+3. `freeToolCalls` tracks free daily tool calls/small requests (first 500 standard / 2500 pro per day are free, then counted as normal requests)
 4. Each category has `limit`, `requests`, and `renewAt` fields (the API uses `renewAt` not `renewsAt`)
 5. No calculated fields - `remaining` and `percentageUsed` are computed client-side
 6. Different renewal cycles for each category
@@ -204,7 +204,7 @@ The API returns available models, all with `hf:` prefix indicating Hugging Face 
       "renewAt": "2026-01-30T20:25:50.409Z"
     }
   },
-  "toolCallDiscounts": {
+  "freeToolCalls": {
     "limit": 1620,
     "requests": 271,
     "renewAt": "2026-01-31T10:17:00.411Z"
@@ -288,13 +288,13 @@ interface SearchQuota {
 }
 ```
 
-#### `ToolCallDiscountsQuota`
+#### `FreeToolCallsQuota`
 
-Quota category for tool call discounts:
+Quota category for free tool calls:
 
 ```typescript
-interface ToolCallDiscountsQuota extends QuotaCategory {
-  // Tool call functionality quota - counts at discounted rate
+interface FreeToolCallsQuota extends QuotaCategory {
+  // Free tool calls/small requests daily quota
 }
 ```
 
@@ -306,7 +306,7 @@ Raw API response structure with three distinct quota categories:
 interface QuotaResponse {
   subscription: QuotaCategory;       // Subscription quota
   search: SearchQuota;               // Search quota (wrapped in hourly object)
-  toolCallDiscounts: QuotaCategory;  // Tool call functionality quota
+  freeToolCalls: QuotaCategory;      // Free tool calls/small requests daily quota
 }
 ```
 
@@ -342,11 +342,11 @@ Parsed usage information with all three quota categories:
 interface UsageInfo {
   subscription: CategoryUsageInfo;       // Subscription usage
   search: CategoryUsageInfo;             // Search usage (extracted from hourly wrapper)
-  toolCalls: CategoryUsageInfo;          // Tool call discounts usage (parsed from toolCallDiscounts)
+  toolCalls: CategoryUsageInfo;          // Free tool calls usage (parsed from freeToolCalls)
 }
 ```
 
-**Note:** The API returns `toolCallDiscounts` but the extension maps this to `toolCalls` internally for consistency.
+**Note:** The API returns `freeToolCalls` but the extension maps this to `toolCalls` internally for consistency.
 
 #### `ApiErrorType`
 

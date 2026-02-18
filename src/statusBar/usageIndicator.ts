@@ -189,7 +189,7 @@ export class UsageIndicator {
     tooltip += this.buildCategoryTooltip("Search (hourly)", search);
 
     // Tool Calls category
-    tooltip += this.buildCategoryTooltip("Tool Calls", toolCalls);
+    tooltip += this.buildCategoryTooltip("Free Tool Calls (daily)", toolCalls);
 
     // Add masked API key at the bottom for identification
     tooltip += `━━━━━━━━━━━━━━━━\nAPI Key: ${maskedKey}`;

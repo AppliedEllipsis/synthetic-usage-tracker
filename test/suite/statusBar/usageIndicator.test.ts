@@ -181,7 +181,7 @@ suite("UsageIndicator - buildTooltip", () => {
     // Verify all three categories are present
     assert.ok(tooltip.includes("Subscription"));
     assert.ok(tooltip.includes("Search"));
-    assert.ok(tooltip.includes("Tool Calls"));
+    assert.ok(tooltip.includes("Free Tool Calls"));
 
     // Verify usage data is present
     assert.ok(tooltip.includes("33"));

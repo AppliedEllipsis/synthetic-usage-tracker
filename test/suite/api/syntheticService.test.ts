@@ -5,7 +5,7 @@ import type { UsageInfo, CategoryUsageInfo } from "../../../src/api/syntheticSer
 
 /**
  * Unit tests for SyntheticService
- * Tests the three-category API response parsing (subscription, search, toolCalls)
+ * Tests the three-category API response parsing (subscription, search, freeToolCalls)
  */
 
 suite("SyntheticService - parseCategory", () => {
@@ -98,7 +98,7 @@ suite("SyntheticService - parseQuotaResponse", () => {
           renewAt: "2026-01-30T20:25:50.409Z",
         },
       },
-      toolCalls: {
+      freeToolCalls: {
         limit: 1620,
         requests: 271,
         renewAt: "2026-01-31T10:17:00.411Z",
@@ -142,7 +142,7 @@ suite("SyntheticService - parseQuotaResponse", () => {
         requests: 50,
         renewAt: "2026-01-30T20:20:59.408Z",
       },
-      toolCalls: {
+      freeToolCalls: {
         limit: 1000,
         requests: 200,
         renewAt: "2026-01-31T10:17:00.411Z",
@@ -175,7 +175,7 @@ suite("SyntheticService - parseQuotaResponse", () => {
           renewAt: "2026-01-30T20:25:50.409Z",
         },
       },
-      toolCalls: {
+      freeToolCalls: {
         limit: 1620,
         requests: 271,
         renewAt: "2026-01-31T10:17:00.411Z",
