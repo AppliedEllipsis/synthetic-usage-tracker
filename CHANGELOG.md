@@ -15,6 +15,7 @@ where patch versions start at 10000 instead of 0. This is compatible with SemVer
 - Updated quota parsing to accept `freeToolCalls` or `toolCallDiscounts` and handle missing categories safely
 - Updated API documentation and README to reflect `renewsAt` field naming and tool call terminology
 - Updated usage endpoint test script to detect tool call field variants
+- Added key action menu for red status bar states to add, cycle, or manage API keys
 
 
 ## [1.0.10028] - 2026-02-18

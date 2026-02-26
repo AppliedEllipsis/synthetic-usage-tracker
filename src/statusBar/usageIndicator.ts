@@ -360,7 +360,7 @@ export class UsageIndicator {
     this.statusBarItem.backgroundColor = new vscode.ThemeColor(
       "statusBarItem.errorBackground",
     );
-    this.statusBarItem.command = "syntheticUsageTracker.setApiKey";
+    this.statusBarItem.command = "syntheticUsageTracker.showKeyActions";
     this.clearCache();
   }
 
@@ -377,7 +377,7 @@ export class UsageIndicator {
     this.statusBarItem.backgroundColor = new vscode.ThemeColor(
       "statusBarItem.errorBackground",
     );
-    this.statusBarItem.command = "syntheticUsageTracker.setApiKey";
+    this.statusBarItem.command = "syntheticUsageTracker.showKeyActions";
     this.clearCache();
   }
 
