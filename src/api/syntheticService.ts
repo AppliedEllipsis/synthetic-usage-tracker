@@ -3,7 +3,7 @@
  * 
  * Design decision: Common structure for all quota categories with limit, requests,
  * and renewal timestamp. Each category has independent limits and renewal cycles.
- * The API returns "renew sAt" (with 's') as the field name.
+ * The API returns "renewsAt" (with 's') as the field name.
  */
 export interface QuotaCategory {
   limit: number;
@@ -27,20 +27,21 @@ export interface SearchQuota {
  * Design decision: The API returns three distinct quota categories:
  * - subscription: Overall subscription usage
  * - search: Hourly search quota (wrapped in hourly object)
- * - freeToolCalls: Free tool call usage (daily)
+ * - freeToolCalls/toolCallDiscounts: Free tool call usage (daily)
  *
- * Each category has limit, requests, and renewAt fields. The API uses "renewAt"
- * (not "renewsAt") as the field name. Calculated fields (remaining, percentageUsed)
+ * Each category has limit, requests, and renewsAt fields. Calculated fields
+ * (remaining, percentageUsed)
  * must be computed client-side.
  *
- * Design rationale: subscription and freeToolCalls use QuotaCategory directly since they
- * have the same structure. search uses SearchQuota wrapper because the API nests
- * the hourly quota in an "hourly" object.
+ * Design rationale: subscription and freeToolCalls/toolCallDiscounts use QuotaCategory
+ * directly since they have the same structure. search uses SearchQuota wrapper because
+ * the API nests the hourly quota in an "hourly" object.
  */
 export interface QuotaResponse {
-  subscription: QuotaCategory;
-  search: SearchQuota;
-  freeToolCalls: QuotaCategory;
+  subscription?: QuotaCategory;
+  search?: SearchQuota;
+  freeToolCalls?: QuotaCategory;
+  toolCallDiscounts?: QuotaCategory;
 }
 
 /**
@@ -259,10 +260,27 @@ export class SyntheticService {
    * about API usage. The multi-category structure provides valuable insights.
    */
   private parseQuotaResponse(data: QuotaResponse): UsageInfo {
+    if (!data.subscription) {
+      throw new ApiError(
+        ApiErrorType.NoSubscription,
+        "No subscription quota data returned from Synthetic.new API.",
+      );
+    }
+
+    const toolCallsCategory = data.freeToolCalls ?? data.toolCallDiscounts;
+
     return {
       subscription: this.parseCategory(data.subscription),
-      search: this.parseCategory(data.search.hourly),
-      toolCalls: this.parseCategory(data.freeToolCalls),
+      search: this.parseCategory(data.search?.hourly ?? this.buildEmptyCategory()),
+      toolCalls: this.parseCategory(toolCallsCategory ?? this.buildEmptyCategory()),
+    };
+  }
+
+  private buildEmptyCategory(): QuotaCategory {
+    return {
+      limit: 0,
+      requests: 0,
+      renewsAt: "",
     };
   }
 
@@ -273,7 +291,7 @@ export class SyntheticService {
    * the API only provides limit and requests. This ensures consistent calculations
    * across all categories regardless of API changes.
    *
-   * The API uses "renew sAt" (with 's') as the field name - we use the exact
+   * The API uses "renewsAt" (with 's') as the field name - we use the exact
    * field name from the API to maintain consistency.
    */
   private parseCategory(category: QuotaCategory): CategoryUsageInfo {
@@ -283,7 +301,7 @@ export class SyntheticService {
     const renewAt = new Date(category.renewsAt);
 
     // Validate date is not invalid - show "Unknown" instead of "Invalid Date"
-    if (isNaN(renewAt.getTime())) {
+    if (category.renewsAt && isNaN(renewAt.getTime())) {
       console.error(`Invalid renewal timestamp: ${category.renewsAt}`);
     }
 

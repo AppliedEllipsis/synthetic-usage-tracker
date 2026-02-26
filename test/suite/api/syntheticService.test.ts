@@ -16,7 +16,7 @@ suite("SyntheticService - parseCategory", () => {
     const category = {
       limit: 1000,
       requests: 500,
-      renewAt: "2026-01-30T20:20:59.408Z",
+      renewsAt: "2026-01-30T20:20:59.408Z",
     };
 
     // Access private method via TypeScript type assertion for testing
@@ -35,7 +35,7 @@ suite("SyntheticService - parseCategory", () => {
     const category = {
       limit: 0,
       requests: 0,
-      renewAt: "2026-01-30T20:20:59.408Z",
+      renewsAt: "2026-01-30T20:20:59.408Z",
     };
 
     const parseCategory = (service as any).parseCategory.bind(service);
@@ -53,7 +53,7 @@ suite("SyntheticService - parseCategory", () => {
     const category = {
       limit: 100,
       requests: 150,
-      renewAt: "2026-01-30T20:20:59.408Z",
+      renewsAt: "2026-01-30T20:20:59.408Z",
     };
 
     const parseCategory = (service as any).parseCategory.bind(service);
@@ -71,7 +71,7 @@ suite("SyntheticService - parseCategory", () => {
     const category = {
       limit: 3,
       requests: 1, // 33.333...%
-      renewAt: "2026-01-30T20:20:59.408Z",
+      renewsAt: "2026-01-30T20:20:59.408Z",
     };
 
     const parseCategory = (service as any).parseCategory.bind(service);
@@ -89,19 +89,19 @@ suite("SyntheticService - parseQuotaResponse", () => {
       subscription: {
         limit: 135,
         requests: 33,
-        renewAt: "2026-01-30T20:20:59.408Z",
+        renewsAt: "2026-01-30T20:20:59.408Z",
       },
       search: {
         hourly: {
           limit: 250,
           requests: 0,
-          renewAt: "2026-01-30T20:25:50.409Z",
+          renewsAt: "2026-01-30T20:25:50.409Z",
         },
       },
       freeToolCalls: {
         limit: 1620,
         requests: 271,
-        renewAt: "2026-01-31T10:17:00.411Z",
+        renewsAt: "2026-01-31T10:17:00.411Z",
       },
     });
 
@@ -140,12 +140,12 @@ suite("SyntheticService - parseQuotaResponse", () => {
       subscription: {
         limit: 100,
         requests: 50,
-        renewAt: "2026-01-30T20:20:59.408Z",
+        renewsAt: "2026-01-30T20:20:59.408Z",
       },
       freeToolCalls: {
         limit: 1000,
         requests: 200,
-        renewAt: "2026-01-31T10:17:00.411Z",
+        renewsAt: "2026-01-31T10:17:00.411Z",
       },
     });
 
@@ -162,23 +162,29 @@ suite("SyntheticService - parseQuotaResponse", () => {
 
     assert.strictEqual(result.subscription.limit, 100);
     assert.strictEqual(result.toolCalls.limit, 1000);
-    // Search should not be present if missing from response
-    assert.strictEqual(result.search, undefined);
+    assert.strictEqual(result.search.limit, 0);
+    assert.strictEqual(result.search.requests, 0);
+    assert.strictEqual(result.search.remaining, 0);
   });
 
-  test("should handle missing subscription category", async () => {
+  test("should prefer toolCallDiscounts when freeToolCalls missing", async () => {
     const mockJson = Promise.resolve({
+      subscription: {
+        limit: 100,
+        requests: 50,
+        renewsAt: "2026-01-30T20:20:59.408Z",
+      },
       search: {
         hourly: {
           limit: 250,
           requests: 0,
-          renewAt: "2026-01-30T20:25:50.409Z",
+          renewsAt: "2026-01-30T20:25:50.409Z",
         },
       },
-      freeToolCalls: {
+      toolCallDiscounts: {
         limit: 1620,
         requests: 271,
-        renewAt: "2026-01-31T10:17:00.411Z",
+        renewsAt: "2026-01-31T10:17:00.411Z",
       },
     });
 
@@ -193,10 +199,40 @@ suite("SyntheticService - parseQuotaResponse", () => {
     const service = new SyntheticService("syn_test123");
     const result = await service.fetchQuota();
 
-    assert.strictEqual(result.search.limit, 250);
     assert.strictEqual(result.toolCalls.limit, 1620);
-    // Subscription should not be present if missing from response
-    assert.strictEqual(result.subscription, undefined);
+    assert.strictEqual(result.toolCalls.requests, 271);
+  });
+
+  test("should throw when subscription category is missing", async () => {
+    const mockJson = Promise.resolve({
+      search: {
+        hourly: {
+          limit: 250,
+          requests: 0,
+          renewsAt: "2026-01-30T20:25:50.409Z",
+        },
+      },
+      freeToolCalls: {
+        limit: 1620,
+        requests: 271,
+        renewsAt: "2026-01-31T10:17:00.411Z",
+      },
+    });
+
+    const mockFetch = Promise.resolve({
+      ok: true,
+      json: () => mockJson,
+    } as Response);
+
+    // @ts-expect-error - Mocking global fetch
+    global.fetch = () => mockFetch;
+
+    const service = new SyntheticService("syn_test123");
+
+    await assert.rejects(async () => service.fetchQuota(), (error: ApiError) => {
+      assert.strictEqual(error.type, ApiErrorType.NoSubscription);
+      return true;
+    });
   });
 });
 

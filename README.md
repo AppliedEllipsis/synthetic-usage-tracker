@@ -17,7 +17,7 @@ A VSCode extension that monitors your Synthetic.new API usage and quotas directl
 ## Features
 
 - **Real-time Usage Tracking**: Monitor your Synthetic.new API quota usage directly from the VSCode status bar
-- **Three-Quota Tracking**: Track usage across three distinct quota types - subscription (monthly), search.hourly (hourly search limit), and toolCallDiscounts (tool call functionality)
+- **Three-Quota Tracking**: Track usage across three distinct quota types - subscription (monthly), search.hourly (hourly search limit), and freeToolCalls (daily free tool call quota)
 - **Multi-Key Management**: Support for multiple API keys with easy cycling and secure storage
 - **Manual Key Cycling**: Quickly switch between multiple API keys using round-robin rotation
 - **Secure Storage**: API keys are stored securely using VSCode SecretStorage with encryption
@@ -204,7 +204,7 @@ Tool Calls:      ████████████░░░░░░░ 120/2
 - `█` (filled block): Represents used quota
 - `░` (empty block): Represents remaining quota
 - `🔍` (search emoji): Appears when search.hourly quota exceeds 80%
-- `🔧` (wrench emoji): Appears when toolCallDiscounts quota exceeds 80%
+- `🔧` (wrench emoji): Appears when free tool calls quota exceeds 80%
 
 ### Quota Warning Symbols
 

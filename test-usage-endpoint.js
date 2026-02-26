@@ -50,10 +50,10 @@ async function testUsageEndpoint() {
       console.log(`  - ${key}: ${type}${isArray ? '[]' : ''}`);
     });
 
-    // Check for tools usage (freeToolCalls - first 500/2500 tool calls per day are free)
-    if (data.tools) {
-      console.log('\nTools usage detected:');
-      console.log(JSON.stringify(data.tools, null, 2));
+    // Check for tools usage (freeToolCalls/toolCallDiscounts - daily quota)
+    if (data.freeToolCalls || data.toolCallDiscounts) {
+      console.log('\nTool calls usage detected:');
+      console.log(JSON.stringify(data.freeToolCalls ?? data.toolCallDiscounts, null, 2));
     }
 
     // Check for search usage
@@ -63,7 +63,17 @@ async function testUsageEndpoint() {
     }
 
     // Check for other usage types
-    const knownFields = ['limit', 'requests', 'remaining', 'percentage_used', 'renews_at', 'tools', 'search'];
+    const knownFields = [
+      'limit',
+      'requests',
+      'remaining',
+      'percentage_used',
+      'renews_at',
+      'freeToolCalls',
+      'toolCallDiscounts',
+      'search',
+      'subscription',
+    ];
     const otherFields = Object.keys(data).filter(key => !knownFields.includes(key));
     if (otherFields.length > 0) {
       console.log('\nOther usage fields:');

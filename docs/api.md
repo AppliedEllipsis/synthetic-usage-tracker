@@ -115,28 +115,28 @@ The API returns a JSON object with three distinct quota categories:
   "subscription": {
     "limit": number,              // Total request limit
     "requests": number,           // Number of requests used
-    "renewAt": string             // ISO 8601 date string
+    "renewsAt": string            // ISO 8601 date string
   },
   "search": {
     "hourly": {
       "limit": number,           // Hourly search limit
       "requests": number,        // Search requests used
-      "renewAt": string          // ISO 8601 date string
+      "renewsAt": string         // ISO 8601 date string
     }
   },
   "freeToolCalls": {
     "limit": number,             // Free tool calls/small requests daily quota
     "requests": number,          // Free tool calls/small requests used
-    "renewAt": string            // ISO 8601 date string
+    "renewsAt": string           // ISO 8601 date string
   }
 }
 ```
 
 **Key observations:**
-1. Three distinct quota categories: `subscription`, `search`, and `freeToolCalls`
+1. Three distinct quota categories: `subscription`, `search`, and `freeToolCalls` (sometimes `toolCallDiscounts`)
 2. `search` quota is uniquely wrapped in an `hourly` object
 3. `freeToolCalls` tracks free daily tool calls/small requests (first 500 standard / 2500 pro per day are free, then counted as normal requests)
-4. Each category has `limit`, `requests`, and `renewAt` fields (the API uses `renewAt` not `renewsAt`)
+4. Each category has `limit`, `requests`, and `renewsAt` fields
 5. No calculated fields - `remaining` and `percentageUsed` are computed client-side
 6. Different renewal cycles for each category
 
@@ -195,19 +195,19 @@ The API returns available models, all with `hf:` prefix indicating Hugging Face 
   "subscription": {
     "limit": 135,
     "requests": 33,
-    "renewAt": "2026-01-30T20:20:59.408Z"
+    "renewsAt": "2026-01-30T20:20:59.408Z"
   },
   "search": {
     "hourly": {
       "limit": 250,
       "requests": 0,
-      "renewAt": "2026-01-30T20:25:50.409Z"
+      "renewsAt": "2026-01-30T20:25:50.409Z"
     }
   },
   "freeToolCalls": {
     "limit": 1620,
     "requests": 271,
-    "renewAt": "2026-01-31T10:17:00.411Z"
+    "renewsAt": "2026-01-31T10:17:00.411Z"
   }
 }
 ```
@@ -264,7 +264,7 @@ Base interface for a quota category:
 interface QuotaCategory {
   limit: number;              // Total request limit for the category
   requests: number;           // Number of requests used
-  renewAt: string;            // ISO 8601 date string (note: "renewAt" not "renewsAt")
+  renewsAt: string;           // ISO 8601 date string
 }
 ```
 
@@ -306,7 +306,8 @@ Raw API response structure with three distinct quota categories:
 interface QuotaResponse {
   subscription: QuotaCategory;       // Subscription quota
   search: SearchQuota;               // Search quota (wrapped in hourly object)
-  freeToolCalls: QuotaCategory;      // Free tool calls/small requests daily quota
+  freeToolCalls?: QuotaCategory;     // Free tool calls/small requests daily quota
+  toolCallDiscounts?: QuotaCategory; // Alternate tool calls field
 }
 ```
 
@@ -318,7 +319,7 @@ Raw API response structure with three distinct quota categories:
 interface QuotaResponse {
   subscription: QuotaCategory;  // Subscription quota
   search: SearchQuota;          // Search quota (wrapped in hourly object)
-  toolCalls: QuotaCategory;     // Tool calls quota
+  toolCalls: QuotaCategory;     // Tool calls quota (mapped from freeToolCalls/toolCallDiscounts)
 }
 ```
 
@@ -346,7 +347,7 @@ interface UsageInfo {
 }
 ```
 
-**Note:** The API returns `freeToolCalls` but the extension maps this to `toolCalls` internally for consistency.
+**Note:** The API returns `freeToolCalls` (or `toolCallDiscounts`) but the extension maps this to `toolCalls` internally for consistency.
 
 #### `ApiErrorType`
 
