@@ -178,6 +178,11 @@
         "command": "syntheticUsageTracker.clearAllKeys",
         "title": "Clear All Keys",
         "category": "Synthetic Usage Tracker"
+      },
+      {
+        "command": "syntheticUsageTracker.showKeyActions",
+        "title": "Manage API Keys",
+        "category": "Synthetic Usage Tracker"
       }
     ],
     "icons": {

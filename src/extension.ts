@@ -293,6 +293,13 @@ export class SyntheticUsageTrackerExtension {
       () => this.clearAllKeys(),
     );
     this.context.subscriptions.push(clearAllKeysCommand);
+
+    // Key action menu command (used by red status bar states)
+    const keyActionsCommand = vscode.commands.registerCommand(
+      "syntheticUsageTracker.showKeyActions",
+      () => this.showKeyActions(),
+    );
+    this.context.subscriptions.push(keyActionsCommand);
   }
 
   /**
@@ -676,6 +683,73 @@ API Key: ${maskedKey}`;
 
     if (selected) {
       await vscode.commands.executeCommand(selected.command);
+    }
+  }
+
+  /**
+   * Show key recovery actions for error/idle states
+   *
+   * Design decision: Keep this menu focused on key management so users can quickly
+   * recover from invalid keys, missing subscriptions, or missing configuration.
+   */
+  private async showKeyActions(): Promise<void> {
+    this.usageIndicator.clearTooltip(5000, true);
+
+    const allKeys = await this.keyManager.getAllKeys();
+    const keyCount = allKeys.length;
+
+    const actions = [
+      {
+        label: "$(plus) Add API Key",
+        description: "Add a new API key",
+        action: "add",
+      },
+    ];
+
+    if (keyCount >= 2) {
+      actions.push({
+        label: "$(arrow-right) Cycle to Next Key",
+        description: "Switch to the next API key",
+        action: "cycle",
+      });
+    }
+
+    if (keyCount >= 1) {
+      actions.push({
+        label: "$(trash) Remove API Key",
+        description: "Remove a specific API key",
+        action: "remove",
+      });
+      actions.push({
+        label: "$(circle-slash) Clear All Keys",
+        description: "Remove all API keys",
+        action: "clear",
+      });
+    }
+
+    const selected = await vscode.window.showQuickPick(actions, {
+      placeHolder: "Manage Synthetic API keys",
+    });
+
+    if (!selected) {
+      return;
+    }
+
+    switch (selected.action) {
+      case "add":
+        await this.addKey();
+        break;
+      case "cycle":
+        await this.cycleKey();
+        break;
+      case "remove":
+        await this.removeKey();
+        break;
+      case "clear":
+        await this.clearAllKeys();
+        break;
+      default:
+        break;
     }
   }
 
