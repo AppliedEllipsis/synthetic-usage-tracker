@@ -1160,16 +1160,14 @@ Tasks:
 
 ## Current Focus
 
-### Last Query: Release v1.0.10027
-
-**Time**: 2026-02-18T05:28:42.073Z
-**Summary**: Version v1.0.10027 released with changes: Version bump only
+### Last Query: Release v1.0.10028
+**Time**: 2026-02-26T04:31:35.394Z
+**Summary**: Version v1.0.10028 released with changes: Version bump only
 **Context**: Release completed via buildrelease workflow. Version bumped, compiled, packaged, and moved to releases/ directory.
-**Planning**: All tasks completed for v1.0.10027. Ready for next iteration.
+**Planning**: All tasks completed for v1.0.10028. Ready for next iteration.
 **Remaining Items**:
-
 - None for this release - all changes verified and documented
-  Sub-tasks Tracking
+# Sub-tasks Tracking
 
 | #   | Sub-task                                             | Status   | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | --- | ---------------------------------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -1211,7 +1209,9 @@ Tasks:
 | 35 | Release v1.0.10026 | Complete | Release v1.0.10026 - Documentation updates (CHANGELOG and memory fixes) |
 | 36 | Release v1.0.10027 | Complete | Release v1.0.10027 - Version bump with notes about merge status (no merges required) |
 | 37 | Release v1.0.10027 | Complete | Release v1.0.10027 - Version bump only |
+| 38 | Release v1.0.10029 | Complete | Release v1.0.10029 - Updated quota parsing, API docs, and key action menu |
 
+| 39   | Release v1.0.10028                                   | Complete    | Release v1.0.10028 - Version bump only |
 ---
 
 ## Quick Reference
