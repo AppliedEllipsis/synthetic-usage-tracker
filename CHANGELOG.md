@@ -10,6 +10,11 @@ where patch versions start at 10000 instead of 0. This is compatible with SemVer
 
 ## Unreleased
 
+Nothing yet
+
+
+## [1.0.10029] - 2026-02-26
+
 ### Changed
 
 - Updated quota parsing to accept `freeToolCalls` or `toolCallDiscounts` and handle missing categories safely
