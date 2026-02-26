@@ -7,6 +7,7 @@ This plan implements a Kilocode Memory System for the Synthetic.ai Usage Tracker
 ## Confirmed Requirements
 
 ### Memory System Requirements
+
 1. **Patch Version Logging**: Bump patch version in [`package.json`](package.json) on every build
 2. **Memory Storage**: Use `memory-bank/` directory, tracked in git
 3. **Documentation Updates**: Semi-automated (script generates report/checklist for humans to apply)
@@ -14,6 +15,7 @@ This plan implements a Kilocode Memory System for the Synthetic.ai Usage Tracker
 5. **Integration**: CI bot commits changes automatically
 
 ### Project Cleanup & Enhancements
+
 1. **VSIX Files**: Move existing VSIX files to `release/` folder
 2. **Code Cleanup**: Remove unused/legacy code and unnecessary comments
 3. **Documentation**: Update to remove references to unimplemented features
@@ -21,11 +23,13 @@ This plan implements a Kilocode Memory System for the Synthetic.ai Usage Tracker
 5. **[`.gitignore`](.gitignore)**: Update with relevant entries
 
 ### UI Improvements
+
 1. **Status Bar**: Minimize blinking/redraw on refresh
 2. **Tooltip**: Add line breaks separating time remaining, quota, and reset time
 
 ### Referral System
-1. **Referral Link**: https://synthetic.new/?referral=4JZcLOKgRmZ4o6k
+
+1. **Referral Link**: https://synthetic.new/?referral=MCeSGSAHOlQ0mci
 2. **Documentation**: Add referral explanation and signup link
 3. **Extension UI**: Add a clean button/command for referral signup
 
@@ -96,6 +100,7 @@ synthetic-usage-tracker/
 ### Phase 1: Project Cleanup & Preparation
 
 **Tasks:**
+
 1. Create `release/` directory and move existing `.vsix` files
 2. Update [`.gitignore`](.gitignore) to include appropriate patterns
 3. Update [`.vscodeignore`](.vscodeignore) to exclude `release/`
@@ -105,6 +110,7 @@ synthetic-usage-tracker/
 7. Review and clean up documentation files
 
 **Files to Modify:**
+
 - Create: `release/.gitkeep`
 - Modify: [`.gitignore`](.gitignore)
 - Modify: [`.vscodeignore`](.vscodeignore)
@@ -124,6 +130,7 @@ synthetic-usage-tracker/
 ### Phase 2: Memory System Core Infrastructure
 
 **Tasks:**
+
 1. Create memory system directory structure
 2. Define TypeScript interfaces for memory entries
 3. Implement commit parser utility
@@ -131,6 +138,7 @@ synthetic-usage-tracker/
 5. Create memory initialization script
 
 **Files to Create:**
+
 - Create: `memory-bank/.gitkeep`
 - Create: `memory-bank/entries/.gitkeep`
 - Create: `memory-bank/indices/.gitkeep`
@@ -142,6 +150,7 @@ synthetic-usage-tracker/
 - Create: `scripts/memory/init-memory.ts`
 
 **Files to Modify:**
+
 - Modify: [`package.json`](package.json) - Add memory scripts
 
 ---
@@ -149,12 +158,14 @@ synthetic-usage-tracker/
 ### Phase 3: Memory Entry Generation
 
 **Tasks:**
+
 1. Implement commit analyzer script
 2. Implement memory entry generator script
 3. Create memory entry validation
 4. Implement memory database indexing
 
 **Files to Create:**
+
 - Create: `scripts/memory/analyze-commits.ts`
 - Create: `scripts/memory/generate-entry.ts`
 - Create: `scripts/memory/bump-patch.ts`
@@ -165,41 +176,50 @@ synthetic-usage-tracker/
 ### Phase 4: Documentation Update Reports
 
 **Tasks:**
+
 1. Define documentation update rules
 2. Implement documentation analyzer
 3. Create doc update report generator
 4. Generate checklist format for manual updates
 
 **Files to Create:**
+
 - Create: `scripts/memory/generate-doc-report.ts`
 
 **Sample Report Format:**
+
 ```markdown
 # Documentation Update Report
+
 Generated: 2025-01-25T14:30:00Z
 
 ## Changes Detected
 
 ### Feature Added: Toggle Auto-Refresh
+
 - **Files Changed**: src/extension.ts, src/statusBar/usageIndicator.ts
 - **Commit**: feat(statusBar): add toggle auto-refresh command
 
 ## Recommended Documentation Updates
 
 ### README.md
+
 - [ ] Add new command to Commands table
 - [ ] Update Features section if applicable
 - [ ] Add to Getting Started section
 
 ### docs/README.md
+
 - [ ] Document new command in Commands section
 - [ ] Update API references if needed
 
 ### docs/architecture.md
+
 - [ ] Update architecture diagram if structure changed
 - [ ] Document new component if added
 
 ## Manual Review Required
+
 - [ ] Verify all references are accurate
 - [ ] Check for obsolete documentation
 - [ ] Update screenshots if applicable
@@ -210,16 +230,19 @@ Generated: 2025-01-25T14:30:00Z
 ### Phase 5: Git Hooks Integration
 
 **Tasks:**
+
 1. Create pre-commit hook
 2. Create post-build hook
 3. Configure Husky to use custom hooks
 4. Test hook execution
 
 **Files to Create:**
+
 - Create: `scripts/hooks/pre-commit`
 - Create: `scripts/hooks/post-build`
 
 **Files to Modify:**
+
 - Modify: [`package.json`](package.json) - Add hook scripts
 
 ---
@@ -227,15 +250,18 @@ Generated: 2025-01-25T14:30:00Z
 ### Phase 6: Build Integration
 
 **Tasks:**
+
 1. Update NPM scripts for memory system
 2. Integrate patch version bumping in build
 3. Configure CI to run memory scripts
 4. Set up CI bot for automatic commits
 
 **Files to Modify:**
+
 - Modify: [`package.json`](package.json) - Add build scripts
 
 **New NPM Scripts:**
+
 ```json
 {
   "scripts": {
@@ -258,14 +284,17 @@ Generated: 2025-01-25T14:30:00Z
 ### Phase 7: UI Improvements
 
 **Tasks:**
+
 1. Minimize status bar redraw on refresh
 2. Add line breaks to tooltip for better formatting
 3. Implement smooth status bar updates
 
 **Files to Modify:**
+
 - Modify: [`src/statusBar/usageIndicator.ts`](src/statusBar/usageIndicator.ts)
 
 **Tooltip Format:**
+
 ```
 Usage: 75% (750/1000 requests)
 
@@ -279,6 +308,7 @@ Reset: 2025-01-26 at 00:00 UTC
 ### Phase 8: Referral System
 
 **Tasks:**
+
 1. Create referral module
 2. Add referral command to extension
 3. Add referral configuration option
@@ -286,9 +316,11 @@ Reset: 2025-01-26 at 00:00 UTC
 5. Update documentation with referral info
 
 **Files to Create:**
+
 - Create: `src/referral/referral.ts`
 
 **Files to Modify:**
+
 - Modify: [`src/extension.ts`](src/extension.ts)
 - Modify: [`package.json`](package.json) - Add referral command
 - Modify: [`docs/README.md`](docs/README.md)
@@ -303,12 +335,14 @@ Reset: 2025-01-26 at 00:00 UTC
 ### Phase 9: Documentation Updates (Manual)
 
 **Tasks:**
+
 1. Update [`README.md`](README.md) with referral section
 2. Update all docs to reflect GPL-3.0 license
 3. Remove references to unimplemented features
 4. Ensure all docs are current and relevant
 
 **Files to Modify:**
+
 - Modify: [`README.md`](README.md)
 - Modify: [`docs/api.md`](docs/api.md)
 - Modify: [`docs/architecture.md`](docs/architecture.md)
@@ -322,15 +356,18 @@ Reset: 2025-01-26 at 00:00 UTC
 ### Phase 10: CI Configuration
 
 **Tasks:**
+
 1. Configure CI workflow to run memory scripts
 2. Set up CI bot credentials for automatic commits
 3. Configure CI to commit memory updates
 4. Test CI pipeline end-to-end
 
 **Files to Create:**
+
 - Create: `.github/workflows/memory-update.yml`
 
 **CI Workflow:**
+
 ```yaml
 name: Memory Update
 
@@ -349,7 +386,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
       - run: npm ci
       - run: npm run memory:update
       - name: Commit changes
@@ -368,64 +405,84 @@ jobs:
 ```typescript
 interface MemoryEntry {
   // Metadata
-  id: string;                    // Unique ID (timestamp + hash)
-  timestamp: ISO8601String;      // Entry timestamp
-  entryType: EntryType;         // Type of entry
-  
+  id: string; // Unique ID (timestamp + hash)
+  timestamp: ISO8601String; // Entry timestamp
+  entryType: EntryType; // Type of entry
+
   // Version information
   version?: {
-    previous: string;            // Previous version (e.g., "1.0.0")
-    current: string;             // Current version (e.g., "1.0.1")
-    incrementType: 'major' | 'minor' | 'patch';
-    reason: string;             // Reason for version change
+    previous: string; // Previous version (e.g., "1.0.0")
+    current: string; // Current version (e.g., "1.0.1")
+    incrementType: "major" | "minor" | "patch";
+    reason: string; // Reason for version change
   };
-  
+
   // Change information
   change: {
-    type: ChangeType;           // feat, fix, docs, etc.
-    scope?: string;             // Component/module affected
-    subject: string;            // Brief description
-    description?: string;      // Detailed description
-    breakingChange?: boolean;   // Whether this is a breaking change
+    type: ChangeType; // feat, fix, docs, etc.
+    scope?: string; // Component/module affected
+    subject: string; // Brief description
+    description?: string; // Detailed description
+    breakingChange?: boolean; // Whether this is a breaking change
   };
-  
+
   // Code changes
   files: {
-    added: string[];            // Added files
-    modified: string[];        // Modified files
-    deleted: string[];         // Deleted files
+    added: string[]; // Added files
+    modified: string[]; // Modified files
+    deleted: string[]; // Deleted files
   };
-  
+
   // Documentation impact
   docsImpact: {
-    requiresUpdate: boolean;    // Whether docs need updating
-    affectedDocs: string[];     // Which docs to update
-    updateType: UpdateType;     // Type of doc update needed
+    requiresUpdate: boolean; // Whether docs need updating
+    affectedDocs: string[]; // Which docs to update
+    updateType: UpdateType; // Type of doc update needed
   };
-  
+
   // Commit information
   commit: {
-    hash: string;               // Git commit hash
-    author: string;             // Commit author
-    message: string;            // Full commit message
-    branch: string;             // Branch name
+    hash: string; // Git commit hash
+    author: string; // Commit author
+    message: string; // Full commit message
+    branch: string; // Branch name
   };
-  
+
   // Related entries
-  related?: string[];           // IDs of related entries
-  
+  related?: string[]; // IDs of related entries
+
   // Tags for categorization
-  tags: string[];               // Custom tags (e.g., [security, performance])
-  
+  tags: string[]; // Custom tags (e.g., [security, performance])
+
   // Notes
-  notes?: string;               // Additional context or notes
+  notes?: string; // Additional context or notes
 }
 
-type EntryType = 'feature' | 'fix' | 'refactor' | 'docs' | 'test' | 'build' | 'chore' | 'version' | 'decision';
+type EntryType =
+  | "feature"
+  | "fix"
+  | "refactor"
+  | "docs"
+  | "test"
+  | "build"
+  | "chore"
+  | "version"
+  | "decision";
 
-type ChangeType = 'feat' | 'fix' | 'docs' | 'style' | 'refactor' | 'perf' | 'test' | 'build' | 'ci' | 'chore' | 'revert';
+type ChangeType =
+  | "feat"
+  | "fix"
+  | "docs"
+  | "style"
+  | "refactor"
+  | "perf"
+  | "test"
+  | "build"
+  | "ci"
+  | "chore"
+  | "revert";
 
-type UpdateType = 'none' | 'minor' | 'major' | 'new-section' | 'full-rewrite';
+type UpdateType = "none" | "minor" | "major" | "new-section" | "full-rewrite";
 ```
 
 ---
@@ -440,7 +497,7 @@ graph LR
     D --> E[Generate doc report]
     E --> F[Commit changes locally]
     F --> G[Build complete]
-    
+
     subgraph CI Pipeline
         H[Push to main] --> I[Run memory scripts]
         I --> J[CI bot commits changes]
@@ -482,20 +539,20 @@ graph TB
 // In extension.ts
 context.subscriptions.push(
   vscode.commands.registerCommand(
-    'syntheticUsageTracker.getFreeCredits',
+    "syntheticUsageTracker.getFreeCredits",
     async () => {
-      const referralUrl = 'https://synthetic.new/?referral=4JZcLOKgRmZ4o6k';
+      const referralUrl = "https://synthetic.new/?referral=MCeSGSAHOlQ0mci";
       const result = await vscode.window.showInformationMessage(
-        'Get Free Credits for Synthetic.ai',
-        'Open Signup Page',
-        'Learn More'
+        "Get Free Credits for Synthetic.ai",
+        "Open Signup Page",
+        "Learn More",
       );
-      
-      if (result === 'Open Signup Page') {
+
+      if (result === "Open Signup Page") {
         vscode.env.openExternal(vscode.Uri.parse(referralUrl));
       }
-    }
-  )
+    },
+  ),
 );
 ```
 
@@ -509,7 +566,7 @@ Share Synthetic.ai with your friends and both of you will receive subscription c
 - **$10.00** for standard signups
 - **$20.00** for pro signups
 
-[Get your referral link](https://synthetic.new/?referral=4JZcLOKgRmZ4o6k)
+[Get your referral link](https://synthetic.new/?referral=MCeSGSAHOlQ0mci)
 ```
 
 ---
@@ -541,6 +598,7 @@ Share Synthetic.ai with your friends and both of you will receive subscription c
 ## Testing Checklist
 
 ### Phase 1: Cleanup
+
 - [ ] VSIX files moved to `release/`
 - [ ] [`.gitignore`](.gitignore) updated correctly
 - [ ] License changed to GPL-3.0
@@ -548,6 +606,7 @@ Share Synthetic.ai with your friends and both of you will receive subscription c
 - [ ] Documentation cleaned up
 
 ### Phase 2-6: Memory System
+
 - [ ] Memory directories created and tracked
 - [ ] Init script runs successfully
 - [ ] Commit analyzer works correctly
@@ -560,17 +619,20 @@ Share Synthetic.ai with your friends and both of you will receive subscription c
 - [ ] CI pipeline runs successfully
 
 ### Phase 7: UI Improvements
+
 - [ ] Status bar redraw minimized
 - [ ] Tooltip formatted with line breaks
 - [ ] Smooth updates on refresh
 
 ### Phase 8: Referral System
+
 - [ ] Referral command registered
 - [ ] "Get Free Credits" button works
 - [ ] Referral link opens in browser
 - [ ] Documentation updated
 
 ### Phase 9-10: Documentation & CI
+
 - [ ] All docs updated with GPL-3.0
 - [ ] Unimplemented features removed from docs
 - [ ] CI workflow configured

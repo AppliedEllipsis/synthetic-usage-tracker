@@ -73,7 +73,7 @@ A VSCode extension that monitors your Synthetic.new API usage and quotas directl
    - Press `Ctrl+Shift+P` (or `Cmd+Shift+P` on Mac)
    - Type `Synthetic Usage Tracker: Configure API Key`
    - Enter your Synthetic.new API key (starts with `syn_`)
-   
+
    **Quick Alternative: Click the Status Bar**
    - When no key is configured, the status bar shows in red with `Synthetic.new - No API key`
    - Simply click on the red status bar item
@@ -149,6 +149,7 @@ API Key: syn_••••••••••••x789
 ```
 
 The masked display reveals:
+
 - Key prefix (`syn_`)
 - Last 4 characters for identification
 - Middle characters masked with dots (•) for security
@@ -370,7 +371,7 @@ When you subscribe to Synthetic.new using our referral link, you'll receive bonu
 
 This also helps support the extension at no extra cost to you!
 
-[Sign up with referral link](https://synthetic.new/?referral=4JZcLOKgRmZ4o6k)
+[Sign up with referral link](https://synthetic.new/?referral=MCeSGSAHOlQ0mci)
 
 **Option 2: Crypto Donation**
 
