@@ -1191,13 +1191,13 @@ Tasks:
 
 ## Current Focus
 
-### Last Query: Release v1.0.10028
-**Time**: 2026-02-26T04:31:35.394Z
-**Summary**: Version v1.0.10028 released with changes: Version bump only
-**Context**: Release completed via buildrelease workflow. Version bumped, compiled, packaged, and moved to releases/ directory.
-**Planning**: All tasks completed for v1.0.10028. Ready for next iteration.
+### Last Query: Hide Free Tool Calls block when 0/0
+**Time**: 2026-03-18T09:47:13.370Z
+**Summary**: Completed implementation to hide the "Free Tool Calls (daily)" tooltip section when both requests and limit are 0. Modified buildTooltip() in usageIndicator.ts to conditionally render the section, and added comprehensive tests covering all edge cases.
+**Context**: Task completed - code changes made, tests updated and passing. Documentation updated to reflect completion.
+**Planning**: Task fully complete. Ready for next task or release.
 **Remaining Items**:
-- None for this release - all changes verified and documented
+- None - task completed successfully
 # Sub-tasks Tracking
 
 | #   | Sub-task                                             | Status   | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                  |
@@ -1243,6 +1243,7 @@ Tasks:
 | 38 | Release v1.0.10029 | Complete | Release v1.0.10029 - Updated quota parsing, API docs, and key action menu |
 
 | 39   | Release v1.0.10028                                   | Complete    | Release v1.0.10028 - Version bump only |
+| 40   | Hide Free Tool Calls block when 0/0                  | Complete    | Modified buildTooltip() to conditionally render Free Tool Calls section only when NOT (requests === 0 && limit === 0). Added decision-logic comment and comprehensive tests |
 ---
 
 ## Quick Reference
