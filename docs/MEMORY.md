@@ -4,6 +4,37 @@ This file maintains context across AI agent sessions by tracking queries, curren
 
 ## Query History
 
+### [2026-03-18 09:47 UTC] - Query: Hide Free Tool Calls block when 0/0
+
+**Query**: "Update the project's memory documentation files to record the completion of the 'Hide Free Tool Calls block when 0/0' task."
+
+**Context**: The task to hide the "Free Tool Calls (daily)" tooltip section when both requests and limit are 0 has been completed. Implementation was done in `src/statusBar/usageIndicator.ts` and tests were updated in `test/suite/statusBar/usageIndicator.test.ts`.
+
+**Outcome**: Completed - Documentation updated to reflect task completion
+
+**Changes Made**:
+
+1. Modified `buildTooltip()` in `src/statusBar/usageIndicator.ts` to conditionally render the Free Tool Calls section only when NOT (requests === 0 && limit === 0)
+2. Added decision-logic comment explaining why only the 0/0 case is hidden (when user has no free tier allocation and hasn't used any, the section provides no useful information)
+3. Updated tests in `test/suite/statusBar/usageIndicator.test.ts` with three specific test cases:
+   - Hidden when requests=0 and limit=0
+   - Visible when requests>0 and limit=0 (shows overage)
+   - Visible when requests=0 and limit>0 (shows unused quota)
+
+**Design Decision**:
+- Only hide the Free Tool Calls section when both requests AND limit are exactly 0
+- This avoids showing meaningless "0/0" data while preserving visibility for:
+  - Overage scenarios (requests > 0, limit = 0) - shows user they've exceeded free tier
+  - Unused quota (requests = 0, limit > 0) - shows user their available free tier
+
+**Files Modified**:
+1. `src/statusBar/usageIndicator.ts` - Added conditional rendering logic with decision-logic comment
+2. `test/suite/statusBar/usageIndicator.test.ts` - Added three test cases for 0/0 edge case
+3. `docs/MEMORY.md` - Updated Query History and Current Focus
+4. `docs/memory/shared-memory.md` - Added task completion entry
+
+---
+
 ### [2026-02-02 00:50 UTC] - Query: Release v1.0.10027
 
 **Query**: "buildrelease, notes merging past version updates"
