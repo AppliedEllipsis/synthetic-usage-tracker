@@ -169,3 +169,4 @@ release/
 *.seed
 *.pid.lock
 .refact/
+/$null
