@@ -1,0 +1,60 @@
+{
+  "subscription": {
+    "limit": 600,
+    "requests": 214,
+    "renewsAt": "2026-03-18T12:17:41.569Z"
+  },
+  "search": {
+    "hourly": {
+      "limit": 250,
+      "requests": 0,
+      "renewsAt": "2026-03-18T09:19:38.569Z"
+    }
+  },
+  "freeToolCalls": {
+    "limit": 0,
+    "requests": 0,
+    "renewsAt": "2026-03-18T14:04:16.632Z"
+  },
+  "weeklyTokenLimit": {
+    "renewsAt": "2026-03-25T03:19:15.637Z",
+    "input": {
+      "current": 47204587,
+      "limit": 150000000
+    },
+    "output": {
+      "current": 498908,
+      "limit": 750000
+    }
+  }
+}
+  "subscription": {
+    "limit": 600,
+    "requests": 214,
+    "renewsAt": "2026-03-18T12:17:41.569Z"
+  },
+  "search": {
+    "hourly": {
+      "limit": 250,
+      "requests": 0,
+      "renewsAt": "2026-03-18T09:19:38.569Z"
+    }
+  },
+  "freeToolCalls": {
+    "limit": 0,
+    "requests": 0,
+    "renewsAt": "2026-03-18T14:04:16.632Z"
+  },
+  "weeklyTokenLimit": {
+    "renewsAt": "2026-03-25T03:19:15.637Z",
+    "input": {
+      "current": 47204587,
+      "limit": 150000000
+    },
+    "output": {
+      "current": 498908,
+      "limit": 750000
+    }
+  }
+}
+

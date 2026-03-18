@@ -365,12 +365,15 @@ export class UsageIndicator {
     const searchHigh = usage.search.percentageUsed > config.warningThreshold;
     const toolCallsHigh = usage.toolCalls.percentageUsed > config.warningThreshold;
 
-    // Check token usage if available (beta API format)
+    // Check token usage if available and limits are > 0 (beta API format)
     let tokensHigh = false;
     if (usage.weeklyTokens) {
-      tokensHigh =
-        usage.weeklyTokens.input.percentageUsed > config.warningThreshold ||
-        usage.weeklyTokens.output.percentageUsed > config.warningThreshold;
+      if (usage.weeklyTokens.input.limit > 0 && usage.weeklyTokens.input.percentageUsed > config.warningThreshold) {
+        tokensHigh = true;
+      }
+      if (usage.weeklyTokens.output.limit > 0 && usage.weeklyTokens.output.percentageUsed > config.warningThreshold) {
+        tokensHigh = true;
+      }
     }
 
     // Return single '!' if search OR tool_calls OR token usage is high
@@ -612,3 +615,6 @@ export class UsageIndicator {
     this.statusBarItem.dispose();
   }
 }
+  }
+}
+
