@@ -252,7 +252,7 @@ suite("UsageIndicator - buildTooltip", () => {
     assert.ok(tooltip.includes("🔴") || tooltip.includes("🟡"));
   });
 
-  test("should handle missing categories gracefully", () => {
+  test("should hide Free Tool Calls section when toolCalls is 0 out of 0", () => {
     const context = {
       subscriptions: [],
       secrets: {
@@ -274,13 +274,26 @@ suite("UsageIndicator - buildTooltip", () => {
 
     const mockUsage: UsageInfo = {
       subscription: {
-        limit: 100,
-        requests: 50,
-        remaining: 50,
-        percentageUsed: 50,
+        limit: 135,
+        requests: 33,
+        remaining: 102,
+        percentageUsed: 24.44,
         renewAt: new Date("2026-01-30T20:20:59.408Z"),
       },
-      // search and toolCalls are missing
+      search: {
+        limit: 250,
+        requests: 0,
+        remaining: 250,
+        percentageUsed: 0,
+        renewAt: new Date("2026-01-30T20:25:50.409Z"),
+      },
+      toolCalls: {
+        limit: 0,
+        requests: 0,
+        remaining: 0,
+        percentageUsed: 0,
+        renewAt: new Date("2026-01-31T10:17:00.411Z"),
+      },
     };
 
     indicator.updateUsage(mockUsage, {
@@ -296,10 +309,129 @@ suite("UsageIndicator - buildTooltip", () => {
     const buildTooltip = (indicator as any).buildTooltip.bind(indicator);
     const tooltip = buildTooltip();
 
-    // Should still build a valid tooltip with available data
-    assert.ok(tooltip.includes("Subscription"));
-    assert.ok(tooltip.length > 0);
+    assert.ok(!tooltip.includes("Free Tool Calls"));
   });
+
+  test("should show Free Tool Calls section when requests > 0 and limit is 0", () => {
+    const context = {
+      subscriptions: [],
+      secrets: {
+        get: () => Promise.resolve(undefined),
+        store: () => Promise.resolve(),
+        delete: () => Promise.resolve(),
+      },
+      globalState: {
+        get: () => undefined,
+        update: () => Promise.resolve(),
+      },
+      workspaceState: {
+        get: () => undefined,
+        update: () => Promise.resolve(),
+      },
+    } as unknown as vscode.ExtensionContext;
+
+    const indicator = new UsageIndicator(context);
+
+    const mockUsage: UsageInfo = {
+      subscription: {
+        limit: 135,
+        requests: 33,
+        remaining: 102,
+        percentageUsed: 24.44,
+        renewAt: new Date("2026-01-30T20:20:59.408Z"),
+      },
+      search: {
+        limit: 250,
+        requests: 0,
+        remaining: 250,
+        percentageUsed: 0,
+        renewAt: new Date("2026-01-30T20:25:50.409Z"),
+      },
+      toolCalls: {
+        limit: 0,
+        requests: 3,
+        remaining: 0,
+        percentageUsed: 100,
+        renewAt: new Date("2026-01-31T10:17:00.411Z"),
+      },
+    };
+
+    indicator.updateUsage(mockUsage, {
+      apiEndpoint: "https://api.synthetic.new/v2",
+      refreshInterval: 60,
+      showPercentage: true,
+      showRawNumbers: false,
+      enableNotifications: true,
+      warningThreshold: 80,
+      criticalThreshold: 90,
+    });
+
+    const buildTooltip = (indicator as any).buildTooltip.bind(indicator);
+    const tooltip = buildTooltip();
+
+    assert.ok(tooltip.includes("Free Tool Calls"));
+  });
+
+  test("should show Free Tool Calls section when limit > 0 and requests is 0", () => {
+    const context = {
+      subscriptions: [],
+      secrets: {
+        get: () => Promise.resolve(undefined),
+        store: () => Promise.resolve(),
+        delete: () => Promise.resolve(),
+      },
+      globalState: {
+        get: () => undefined,
+        update: () => Promise.resolve(),
+      },
+      workspaceState: {
+        get: () => undefined,
+        update: () => Promise.resolve(),
+      },
+    } as unknown as vscode.ExtensionContext;
+
+    const indicator = new UsageIndicator(context);
+
+    const mockUsage: UsageInfo = {
+      subscription: {
+        limit: 135,
+        requests: 33,
+        remaining: 102,
+        percentageUsed: 24.44,
+        renewAt: new Date("2026-01-30T20:20:59.408Z"),
+      },
+      search: {
+        limit: 250,
+        requests: 0,
+        remaining: 250,
+        percentageUsed: 0,
+        renewAt: new Date("2026-01-30T20:25:50.409Z"),
+      },
+      toolCalls: {
+        limit: 10,
+        requests: 0,
+        remaining: 10,
+        percentageUsed: 0,
+        renewAt: new Date("2026-01-31T10:17:00.411Z"),
+      },
+    };
+
+    indicator.updateUsage(mockUsage, {
+      apiEndpoint: "https://api.synthetic.new/v2",
+      refreshInterval: 60,
+      showPercentage: true,
+      showRawNumbers: false,
+      enableNotifications: true,
+      warningThreshold: 80,
+      criticalThreshold: 90,
+    });
+
+    const buildTooltip = (indicator as any).buildTooltip.bind(indicator);
+    const tooltip = buildTooltip();
+
+    assert.ok(tooltip.includes("Free Tool Calls"));
+  });
+
 });
 
 suite("UsageIndicator - display state management", () => {

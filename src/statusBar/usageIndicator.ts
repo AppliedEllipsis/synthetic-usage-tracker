@@ -225,7 +225,12 @@ export class UsageIndicator {
     tooltip += this.buildCategoryTooltip("Search (hourly)", search);
 
     // Tool Calls category
-    tooltip += this.buildCategoryTooltip("Free Tool Calls (daily)", toolCalls);
+    // Design decision: Hide tool-calls section only when both values are zero (0/0).
+    // This avoids showing a misleading empty quota block while still surfacing atypical
+    // states such as requests > 0 with limit 0 or limit > 0 with requests 0.
+    if (!(toolCalls.requests === 0 && toolCalls.limit === 0)) {
+      tooltip += this.buildCategoryTooltip("Free Tool Calls (daily)", toolCalls);
+    }
 
     // Weekly Token Limits (beta API format) - only show if limits are > 0
     if (weeklyTokens && (weeklyTokens.input.limit > 0 || weeklyTokens.output.limit > 0)) {
