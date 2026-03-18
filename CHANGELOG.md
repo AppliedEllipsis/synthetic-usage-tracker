@@ -13,6 +13,18 @@ where patch versions start at 10000 instead of 0. This is compatible with SemVer
 Nothing yet
 
 
+## [1.0.10031] - 2026-03-18
+
+### Added
+- Dual percentage display in status bar showing both quota usage and token usage percentages
+
+### Changed
+- Updated status bar percentage separator formatting for better readability
+
+### Fixed
+- Fixed missing percentage symbol in token display
+
+
 ## [1.0.10030] - 2026-03-18
 
 ### Added
