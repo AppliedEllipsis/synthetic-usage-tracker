@@ -1191,15 +1191,14 @@ Tasks:
 
 ## Current Focus
 
-### Last Query: Release v1.0.10029
-**Time**: 2026-03-18T19:35:17.900Z
-**Summary**: Version v1.0.10029 released with changes: Version bump only
+### Last Query: Release v1.0.10031
+**Time**: 2026-03-18T21:22:50.303Z
+**Summary**: Version v1.0.10031 released with changes: Version bump only
 **Context**: Release completed via buildrelease workflow. Version bumped, compiled, packaged, and moved to releases/ directory.
-**Planning**: All tasks completed for v1.0.10029. Ready for next iteration.
+**Planning**: All tasks completed for v1.0.10031. Ready for next iteration.
 **Remaining Items**:
 - None for this release - all changes verified and documented
-
-## Sub-tasks Tracking
+# Sub-tasks Tracking
 
 | #   | Sub-task                                             | Status   | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | --- | ---------------------------------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -1246,6 +1245,7 @@ Tasks:
 | 39   | Release v1.0.10028                                   | Complete    | Release v1.0.10028 - Version bump only |
 | 40   | Hide Free Tool Calls block when 0/0                  | Complete    | Modified buildTooltip() to conditionally render Free Tool Calls section only when NOT (requests === 0 && limit === 0). Added decision-logic comment and comprehensive tests |
 | 41   | Release v1.0.10029                                   | Complete    | Release v1.0.10029 - Version bump only |
+| 42   | Release v1.0.10031                                   | Complete    | Release v1.0.10031 - Version bump only |
 ---
 
 ## Quick Reference
