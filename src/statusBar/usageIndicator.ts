@@ -86,10 +86,14 @@ export class UsageIndicator {
       usage.toolCalls.percentageUsed,
     ];
 
-    // Include token usage percentages if available (beta API format)
+    // Include token usage percentages if available and limits are > 0 (beta API format)
     if (usage.weeklyTokens) {
-      percentages.push(usage.weeklyTokens.input.percentageUsed);
-      percentages.push(usage.weeklyTokens.output.percentageUsed);
+      if (usage.weeklyTokens.input.limit > 0) {
+        percentages.push(usage.weeklyTokens.input.percentageUsed);
+      }
+      if (usage.weeklyTokens.output.limit > 0) {
+        percentages.push(usage.weeklyTokens.output.percentageUsed);
+      }
     }
 
     const maxPercentage = Math.max(...percentages);
@@ -164,10 +168,14 @@ export class UsageIndicator {
       usage.toolCalls.percentageUsed,
     ];
 
-    // Include token usage percentages if available (beta API format)
+    // Include token usage percentages if available and limits are > 0 (beta API format)
     if (usage.weeklyTokens) {
-      percentages.push(usage.weeklyTokens.input.percentageUsed);
-      percentages.push(usage.weeklyTokens.output.percentageUsed);
+      if (usage.weeklyTokens.input.limit > 0) {
+        percentages.push(usage.weeklyTokens.input.percentageUsed);
+      }
+      if (usage.weeklyTokens.output.limit > 0) {
+        percentages.push(usage.weeklyTokens.output.percentageUsed);
+      }
     }
 
     const maxPercentage = Math.max(...percentages);
@@ -219,11 +227,15 @@ export class UsageIndicator {
     // Tool Calls category
     tooltip += this.buildCategoryTooltip("Free Tool Calls (daily)", toolCalls);
 
-    // Weekly Token Limits (beta API format)
-    if (weeklyTokens) {
+    // Weekly Token Limits (beta API format) - only show if limits are > 0
+    if (weeklyTokens && (weeklyTokens.input.limit > 0 || weeklyTokens.output.limit > 0)) {
       tooltip += "## Weekly Token Limits\n";
-      tooltip += this.buildTokenTooltip("Input Tokens", weeklyTokens.input);
-      tooltip += this.buildTokenTooltip("Output Tokens", weeklyTokens.output);
+      if (weeklyTokens.input.limit > 0) {
+        tooltip += this.buildTokenTooltip("Input Tokens", weeklyTokens.input);
+      }
+      if (weeklyTokens.output.limit > 0) {
+        tooltip += this.buildTokenTooltip("Output Tokens", weeklyTokens.output);
+      }
       tooltip += `Renews At: ${weeklyTokens.renewAtString}\n`;
       tooltip += `Time Remaining: ${this.calculateTimeRemaining(weeklyTokens.renewAt)}\n\n`;
     }
