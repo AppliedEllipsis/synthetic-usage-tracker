@@ -149,38 +149,47 @@ export class UsageIndicator {
   }
 
   /**
-   * Build status bar text showing overall usage
+   * Build status bar text showing dual percentage display
    *
-   * Design decision: Display the highest usage percentage across all categories
-   * (subscription, search, toolCalls, and tokens) to give users immediate
-   * awareness of their most critical usage. Token usage is now included
-   * for the new beta API format. Add warning symbol (!) for categories
-   * exceeding thresholds to provide quick visual feedback.
+   * Design decision: Display both subscription requests percentage and token usage
+   * percentage together in the format "subscription%|token%". This provides users
+   * with immediate visibility into both their request-based quota (subscription) and
+   * their token-based consumption (input/output tokens) from the beta API format.
+   *
+   * Rationale:
+   * - Subscription percentage represents request-based quota limits
+   * - Token percentage represents the highest of input/output token usage
+   * - The pipe separator (|) clearly distinguishes the two different quota types
+   * - Users can quickly identify which quota type is more constrained
+   * - Raw numbers (requests/limit) are still shown when showRawNumbers is enabled
+   *
+   * When weeklyTokens is not available or has no limits, token% shows as "-".
    */
   private buildText(usage: UsageInfo, config: Config): string {
     // Build warning symbol for categories
     const warningSymbol = this.buildCategoryWarningSymbols(usage, config);
 
-    // Collect all percentages including token usage if available
-    const percentages = [
-      usage.subscription.percentageUsed,
-      usage.search.percentageUsed,
-      usage.toolCalls.percentageUsed,
-    ];
+    // Subscription percentage (request-based quota)
+    const subscriptionPercentage = usage.subscription.percentageUsed;
 
-    // Include token usage percentages if available and limits are > 0 (beta API format)
+    // Calculate token percentage - use the highest of input/output if available
+    let tokenPercentage: number | null = null;
     if (usage.weeklyTokens) {
+      const tokenPercentages: number[] = [];
       if (usage.weeklyTokens.input.limit > 0) {
-        percentages.push(usage.weeklyTokens.input.percentageUsed);
+        tokenPercentages.push(usage.weeklyTokens.input.percentageUsed);
       }
       if (usage.weeklyTokens.output.limit > 0) {
-        percentages.push(usage.weeklyTokens.output.percentageUsed);
+        tokenPercentages.push(usage.weeklyTokens.output.percentageUsed);
+      }
+      if (tokenPercentages.length > 0) {
+        tokenPercentage = Math.max(...tokenPercentages);
       }
     }
 
-    const maxPercentage = Math.max(...percentages);
-
-    let text = `$(synthetic-status-icon) ${maxPercentage.toFixed(0)}%`;
+    // Build dual percentage display: subscription%|token%
+    const tokenDisplay = tokenPercentage !== null ? tokenPercentage.toFixed(0) : "-";
+    let text = `$(synthetic-status-icon) ${subscriptionPercentage.toFixed(0)}%|${tokenDisplay}`;
 
     if (config.showRawNumbers) {
       const subscription = usage.subscription;
