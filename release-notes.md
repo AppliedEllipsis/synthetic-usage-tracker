@@ -20,6 +20,15 @@ This version introduces multi-key cycling functionality with the ability to:
 - Remove individual keys
 - Clear all keys
 
+### 1.0.10030 - 2026-03-18
+Update: Added support for new v3 token limits and tool usage changes.
+
+This version includes:
+- Support for new v3 token limits in API response parsing
+- Enhanced tool usage tracking and display in status bar
+- Updated API endpoint handling for v3 quota format with extended token limits
+- Improved tool call metrics display with detailed breakdown in tooltip
+
 ### Future Versions
 Add new versions above this line with the format:
 ```markdown

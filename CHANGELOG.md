@@ -15,6 +15,16 @@ Nothing yet
 
 ## [1.0.10030] - 2026-03-18
 
+### Added
+
+- Added support for new v3 token limits in API response parsing
+- Added tool usage tracking and display in status bar
+
+### Changed
+
+- Updated API endpoint to handle new v3 quota format with extended token limits
+- Improved tool call metrics display with detailed breakdown in tooltip
+
 ## [1.0.10029] - 2026-02-26
 
 ### Changed
