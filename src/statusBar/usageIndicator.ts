@@ -189,7 +189,7 @@ export class UsageIndicator {
 
     // Build dual percentage display: subscription% ~ token%
     const tokenDisplay = tokenPercentage !== null ? `${tokenPercentage.toFixed(0)}%` : "-";
-    let text = `$(synthetic-status-icon) ${subscriptionPercentage.toFixed(0)}% ~ ${tokenDisplay}`;
+    let text = `$(synthetic-status-icon) ${subscriptionPercentage.toFixed(0)}%  ${tokenDisplay}`;
 
     if (config.showRawNumbers) {
       const subscription = usage.subscription;
