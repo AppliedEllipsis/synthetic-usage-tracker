@@ -21,4 +21,10 @@ test/**
 .env
 .env.local
 .env.*.local
+.mcp/**
+.mcp.json
+*.mcp.json
 *.log
+*.db
+*vectordb*
+.refact/
