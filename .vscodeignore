@@ -28,3 +28,20 @@ test/**
 *.db
 *vectordb*
 .refact/
+
+# Bloat reduction patterns
+scripts/**
+docs/**
+!docs/README.md
+image/screens/**
+test-all-endpoints.js
+test-api-endpoints.js
+test-models-endpoint.js
+test-usage-endpoint.js
+sample-api-response.json
+.env.example
+.eslintrc*
+.prettier*
+commitlint*
+CONTRIBUTING.md
+release-notes.md
