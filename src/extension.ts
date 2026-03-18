@@ -511,6 +511,7 @@ export class SyntheticUsageTrackerExtension {
     const sub = usage.subscription;
     const search = usage.search;
     const toolCalls = usage.toolCalls;
+    const weeklyTokens = usage.weeklyTokens;
 
     // Helper function to calculate time remaining
     const formatTimeRemaining = (renewAt: Date): string => {
@@ -534,7 +535,19 @@ export class SyntheticUsageTrackerExtension {
       }
     };
 
-    return `### Synthetic.new Usage Details
+    // Helper function to format large token numbers
+    const formatTokenNumber = (num: number): string => {
+      if (num >= 1000000) {
+        return (num / 1000000).toFixed(1) + "M";
+      } else if (num >= 1000) {
+        return Math.round(num / 1000) + "K";
+      } else {
+        return num.toLocaleString();
+      }
+    };
+
+    // Build the base message
+    let message = `### Synthetic.new Usage Details
 
 ## Subscription
 Requests: ${sub.requests.toLocaleString()} / ${sub.limit.toLocaleString()} (${sub.percentageUsed.toFixed(1)}%)
@@ -555,10 +568,37 @@ Requests: ${toolCalls.requests.toLocaleString()} / ${toolCalls.limit.toLocaleStr
 Remaining: ${toolCalls.remaining.toLocaleString()} (${(100 - toolCalls.percentageUsed).toFixed(1)}%)
 Renews At: ${toolCalls.renewAtString}
 Time Remaining: ${formatTimeRemaining(toolCalls.renewAt)}
-${this.usageIndicator.buildAsciiProgressBar(toolCalls.percentageUsed)}
+${this.usageIndicator.buildAsciiProgressBar(toolCalls.percentageUsed)}`;
 
-━━━━━━━━━━━━━━━━
-API Key: ${maskedKey}`;
+    // Only show token section if at least one limit is > 0
+    const hasTokenLimits = weeklyTokens &&
+      (weeklyTokens.input.limit > 0 || weeklyTokens.output.limit > 0);
+
+    if (hasTokenLimits) {
+      message += "\n\n## Weekly Token Limits";
+
+      // Input Tokens section (only if limit > 0)
+      if (weeklyTokens.input.limit > 0) {
+        message += `\nInput Tokens: ${formatTokenNumber(weeklyTokens.input.current)} / ${formatTokenNumber(weeklyTokens.input.limit)} (${weeklyTokens.input.percentageUsed.toFixed(1)}%)`;
+        message += `\nRemaining: ${formatTokenNumber(weeklyTokens.input.remaining)} (${(100 - weeklyTokens.input.percentageUsed).toFixed(1)}%)`;
+        message += `\n${this.usageIndicator.buildAsciiProgressBar(weeklyTokens.input.percentageUsed)}`;
+      }
+
+      // Output Tokens section (only if limit > 0)
+      if (weeklyTokens.output.limit > 0) {
+        message += `\nOutput Tokens: ${formatTokenNumber(weeklyTokens.output.current)} / ${formatTokenNumber(weeklyTokens.output.limit)} (${weeklyTokens.output.percentageUsed.toFixed(1)}%)`;
+        message += `\nRemaining: ${formatTokenNumber(weeklyTokens.output.remaining)} (${(100 - weeklyTokens.output.percentageUsed).toFixed(1)}%)`;
+        message += `\n${this.usageIndicator.buildAsciiProgressBar(weeklyTokens.output.percentageUsed)}`;
+      }
+
+      // Add renewal time information for tokens
+      message += `\nRenews At: ${weeklyTokens.renewAtString}`;
+      message += `\nTime Remaining: ${formatTimeRemaining(weeklyTokens.renewAt)}`;
+    }
+
+    message += `\n\n━━━━━━━━━━━━━━━━\nAPI Key: ${maskedKey}`;
+
+    return message;
   }
 
   /**

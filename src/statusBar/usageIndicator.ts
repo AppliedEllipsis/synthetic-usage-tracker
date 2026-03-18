@@ -615,6 +615,4 @@ export class UsageIndicator {
     this.statusBarItem.dispose();
   }
 }
-  }
-}
 
