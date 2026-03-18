@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { UsageInfo, CategoryUsageInfo } from "../api/syntheticService";
+import { UsageInfo, CategoryUsageInfo, TokenUsageInfo } from "../api/syntheticService";
 
 /**
  * Configuration interface for the usage indicator
@@ -74,16 +74,25 @@ export class UsageIndicator {
   /**
    * Determine display state based on usage across all categories
    *
-   * Design decision: Check all three categories (subscription, search, toolCalls)
+   * Design decision: Check all categories (subscription, search, toolCalls, and tokens)
    * and set the display state to the most severe condition. Critical takes
    * precedence over warning, which takes precedence over success.
+   * Token usage is now included in the calculation for the new beta API format.
    */
   private updateDisplayState(usage: UsageInfo, config: Config): void {
-    const maxPercentage = Math.max(
+    const percentages = [
       usage.subscription.percentageUsed,
       usage.search.percentageUsed,
       usage.toolCalls.percentageUsed,
-    );
+    ];
+
+    // Include token usage percentages if available (beta API format)
+    if (usage.weeklyTokens) {
+      percentages.push(usage.weeklyTokens.input.percentageUsed);
+      percentages.push(usage.weeklyTokens.output.percentageUsed);
+    }
+
+    const maxPercentage = Math.max(...percentages);
 
     if (maxPercentage >= config.criticalThreshold) {
       this.displayState = DisplayState.Critical;
@@ -138,18 +147,35 @@ export class UsageIndicator {
   /**
    * Build status bar text showing overall usage
    *
-   * Design decision: Display subscription usage as the primary indicator since
-   * it represents the overall subscription quota. Add warning symbol (!) for
-   * categories exceeding thresholds to provide quick visual feedback.
+   * Design decision: Display the highest usage percentage across all categories
+   * (subscription, search, toolCalls, and tokens) to give users immediate
+   * awareness of their most critical usage. Token usage is now included
+   * for the new beta API format. Add warning symbol (!) for categories
+   * exceeding thresholds to provide quick visual feedback.
    */
   private buildText(usage: UsageInfo, config: Config): string {
-    const subscription = usage.subscription;
     // Build warning symbol for categories
     const warningSymbol = this.buildCategoryWarningSymbols(usage, config);
 
-    let text = `$(synthetic-status-icon) ${subscription.percentageUsed.toFixed(0)}%`;
+    // Collect all percentages including token usage if available
+    const percentages = [
+      usage.subscription.percentageUsed,
+      usage.search.percentageUsed,
+      usage.toolCalls.percentageUsed,
+    ];
+
+    // Include token usage percentages if available (beta API format)
+    if (usage.weeklyTokens) {
+      percentages.push(usage.weeklyTokens.input.percentageUsed);
+      percentages.push(usage.weeklyTokens.output.percentageUsed);
+    }
+
+    const maxPercentage = Math.max(...percentages);
+
+    let text = `$(synthetic-status-icon) ${maxPercentage.toFixed(0)}%`;
 
     if (config.showRawNumbers) {
+      const subscription = usage.subscription;
       text += ` (${subscription.requests}/${subscription.limit})`;
     }
 
@@ -164,9 +190,10 @@ export class UsageIndicator {
   /**
    * Build tooltip with detailed usage information for all categories
    *
-   * Design decision: Display all three quota categories (Subscription, Search, Tool Calls)
-   * with individual progress bars and detailed metrics. This provides users with
-   * comprehensive visibility into their API usage across all quota types.
+   * Design decision: Display all quota categories (Subscription, Search, Tool Calls,
+   * and Weekly Token Limits) with individual progress bars and detailed metrics.
+   * This provides users with comprehensive visibility into their API usage across
+   * all quota types including the new beta API token limits.
    *
    * Security consideration: Only show the last 4 characters of the API key for
    * identification purposes. The rest is masked with asterisks to prevent accidental
@@ -176,6 +203,7 @@ export class UsageIndicator {
     const subscription = usage.subscription;
     const search = usage.search;
     const toolCalls = usage.toolCalls;
+    const weeklyTokens = usage.weeklyTokens;
 
     // Mask API key: show only the prefix (syn_) and last 4 characters
     const maskedKey = this.maskApiKey(config.apiKey);
@@ -191,10 +219,58 @@ export class UsageIndicator {
     // Tool Calls category
     tooltip += this.buildCategoryTooltip("Free Tool Calls (daily)", toolCalls);
 
+    // Weekly Token Limits (beta API format)
+    if (weeklyTokens) {
+      tooltip += "## Weekly Token Limits\n";
+      tooltip += this.buildTokenTooltip("Input Tokens", weeklyTokens.input);
+      tooltip += this.buildTokenTooltip("Output Tokens", weeklyTokens.output);
+      tooltip += `Renews At: ${weeklyTokens.renewAtString}\n`;
+      tooltip += `Time Remaining: ${this.calculateTimeRemaining(weeklyTokens.renewAt)}\n\n`;
+    }
+
     // Add masked API key at the bottom for identification
     tooltip += `━━━━━━━━━━━━━━━━\nAPI Key: ${maskedKey}`;
 
     return tooltip;
+  }
+
+  /**
+   * Build tooltip section for token usage
+   *
+   * Design decision: Format large token numbers (millions) as "14.6M / 150M" for
+   * readability. This provides consistent formatting with request-based quotas
+   * while making large token numbers more comprehensible.
+   */
+  private buildTokenTooltip(name: string, tokenInfo: TokenUsageInfo): string {
+    const percentageUsed = tokenInfo.percentageUsed.toFixed(1);
+    const percentageRemaining = (100 - tokenInfo.percentageUsed).toFixed(1);
+
+    const formattedCurrent = this.formatTokenNumber(tokenInfo.current);
+    const formattedLimit = this.formatTokenNumber(tokenInfo.limit);
+    const formattedRemaining = this.formatTokenNumber(tokenInfo.remaining);
+
+    let section = `### ${name}\n`;
+    section += `Tokens: ${formattedCurrent} / ${formattedLimit} (${percentageUsed}%)\n`;
+    section += `Remaining: ${formattedRemaining} (${percentageRemaining}%)\n`;
+    section += `${this.buildAsciiProgressBar(tokenInfo.percentageUsed)}\n`;
+
+    return section;
+  }
+
+  /**
+   * Format large token numbers for readability
+   *
+   * Design decision: Convert large numbers to "M" (millions) or "K" (thousands)
+   * format for better readability. Examples: 14621030 -> "14.6M", 293309 -> "293K".
+   * This makes the tooltip more compact and easier to scan at a glance.
+   */
+  private formatTokenNumber(num: number): string {
+    if (num >= 1000000) {
+      return `${(num / 1000000).toFixed(1)}M`;
+    } else if (num >= 1000) {
+      return `${Math.round(num / 1000)}K`;
+    }
+    return num.toLocaleString();
   }
 
   private maskApiKey(apiKey: string): string {
@@ -263,12 +339,13 @@ export class UsageIndicator {
   /**
    * Build warning symbols for categories exceeding thresholds
    *
-   * Design decision: Return a single '!' symbol when either search or tool_calls
-   * quota exceeds the warning threshold. This provides immediate visual feedback
-   * about potential resource constraints without cluttering the UI with multiple icons.
+   * Design decision: Return a single '!' symbol when either search, tool_calls,
+   * or token usage quota exceeds the warning threshold. This provides immediate
+   * visual feedback about potential resource constraints without cluttering the UI
+   * with multiple icons. Token usage is now included for the beta API format.
    *
    * Symbol selection rationale:
-   * - Single '!' appears when search OR tool_calls exceeds threshold (80%)
+   * - Single '!' appears when any non-subscription quota exceeds threshold (80%)
    * - Subscription quota is reflected in the main percentage display, so no symbol needed
    * - Simplified display reduces visual clutter while still alerting users
    */
@@ -276,8 +353,16 @@ export class UsageIndicator {
     const searchHigh = usage.search.percentageUsed > config.warningThreshold;
     const toolCallsHigh = usage.toolCalls.percentageUsed > config.warningThreshold;
 
-    // Return single '!' if search OR tool_calls is high
-    if (searchHigh || toolCallsHigh) {
+    // Check token usage if available (beta API format)
+    let tokensHigh = false;
+    if (usage.weeklyTokens) {
+      tokensHigh =
+        usage.weeklyTokens.input.percentageUsed > config.warningThreshold ||
+        usage.weeklyTokens.output.percentageUsed > config.warningThreshold;
+    }
+
+    // Return single '!' if search OR tool_calls OR token usage is high
+    if (searchHigh || toolCallsHigh || tokensHigh) {
       return "!";
     }
 

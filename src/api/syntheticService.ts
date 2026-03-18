@@ -22,6 +22,30 @@ export interface SearchQuota {
 }
 
 /**
+ * Token quota for input/output tracking
+ *
+ * Design decision: Token quotas track current usage vs limit separately from
+ * request-based quotas. Used for weekly token limits in the new beta API format.
+ */
+export interface TokenQuota {
+  current: number;
+  limit: number;
+}
+
+/**
+ * Weekly token limit structure
+ *
+ * Design decision: The beta API returns weekly token limits with separate
+ * input and output token tracking, each with current usage and limit.
+ * This allows users to monitor their token consumption independently of request counts.
+ */
+export interface WeeklyTokenLimit {
+  renewsAt: string;
+  input: TokenQuota;
+  output: TokenQuota;
+}
+
+/**
  * Synthetic.new API quota response structure
  *
  * Design decision: The API returns three distinct quota categories:
@@ -36,12 +60,16 @@ export interface SearchQuota {
  * Design rationale: subscription and freeToolCalls/toolCallDiscounts use QuotaCategory
  * directly since they have the same structure. search uses SearchQuota wrapper because
  * the API nests the hourly quota in an "hourly" object.
+ *
+ * Beta API addition: weeklyTokenLimit tracks input/output token usage separately
+ * from request counts, allowing users to monitor their token consumption.
  */
 export interface QuotaResponse {
   subscription?: QuotaCategory;
   search?: SearchQuota;
   freeToolCalls?: QuotaCategory;
   toolCallDiscounts?: QuotaCategory;
+  weeklyTokenLimit?: WeeklyTokenLimit;
 }
 
 /**
@@ -60,16 +88,47 @@ export interface CategoryUsageInfo {
 }
 
 /**
+ * Token usage information with calculated fields
+ *
+ * Design decision: Similar to CategoryUsageInfo but for token-based quotas.
+ * Tracks current usage vs limit with calculated percentage and remaining tokens.
+ */
+export interface TokenUsageInfo {
+  current: number;
+  limit: number;
+  remaining: number;
+  percentageUsed: number;
+}
+
+/**
+ * Weekly token usage information
+ *
+ * Design decision: Aggregate token usage for both input and output tokens
+ * with renewal timestamp. Optional to maintain backward compatibility with
+ * older API versions that don't include token limits.
+ */
+export interface WeeklyTokenUsage {
+  input: TokenUsageInfo;
+  output: TokenUsageInfo;
+  renewAt: Date;
+  renewAtString: string;
+}
+
+/**
  * Usage information for all quota categories
- * 
+ *
  * Design decision: Aggregate all three quota categories into a single type
  * for easy consumption by the UI. Each category is optional to handle cases
  * where the API might not return all categories.
+ *
+ * Beta API addition: weeklyTokens tracks input/output token usage separately
+ * from request counts. Optional for backward compatibility.
  */
 export interface UsageInfo {
   subscription: CategoryUsageInfo;
   search: CategoryUsageInfo;
   toolCalls: CategoryUsageInfo;
+  weeklyTokens?: WeeklyTokenUsage;
 }
 
 /**
@@ -255,6 +314,9 @@ export class SyntheticService {
    * and calculate remaining and percentageUsed for each. The search category is uniquely
    * wrapped in an hourly object, which we extract and convert to the common format.
    * 
+   * Beta API addition: Parse weeklyTokenLimit if present to track input/output token usage
+   * separately from request counts. Optional for backward compatibility with older API versions.
+   * 
    * Alternative considered: Only parse subscription and ignore other categories
    * Rejected: Users need visibility into all quota types to make informed decisions
    * about API usage. The multi-category structure provides valuable insights.
@@ -269,10 +331,58 @@ export class SyntheticService {
 
     const toolCallsCategory = data.freeToolCalls ?? data.toolCallDiscounts;
 
-    return {
+    const usageInfo: UsageInfo = {
       subscription: this.parseCategory(data.subscription),
       search: this.parseCategory(data.search?.hourly ?? this.buildEmptyCategory()),
       toolCalls: this.parseCategory(toolCallsCategory ?? this.buildEmptyCategory()),
+    };
+
+    // Parse weekly token limits if present (beta API feature)
+    if (data.weeklyTokenLimit) {
+      usageInfo.weeklyTokens = this.parseWeeklyTokenLimit(data.weeklyTokenLimit);
+    }
+
+    return usageInfo;
+  }
+
+  /**
+   * Parse weekly token limit into token usage information
+   *
+   * Design decision: Calculate remaining and percentageUsed for both input and output
+   * tokens separately. The API provides current usage and limit for each token type.
+   * 
+   * Design rationale: Tokens are tracked separately from requests because users may
+   * have different usage patterns for input vs output tokens. This allows monitoring
+   * of both independently.
+   */
+  private parseWeeklyTokenLimit(weeklyTokenLimit: WeeklyTokenLimit): WeeklyTokenUsage {
+    const inputRemaining = Math.max(0, weeklyTokenLimit.input.limit - weeklyTokenLimit.input.current);
+    const inputPercentageUsed =
+      weeklyTokenLimit.input.limit > 0
+        ? (weeklyTokenLimit.input.current / weeklyTokenLimit.input.limit) * 100
+        : 0;
+
+    const outputRemaining = Math.max(0, weeklyTokenLimit.output.limit - weeklyTokenLimit.output.current);
+    const outputPercentageUsed =
+      weeklyTokenLimit.output.limit > 0
+        ? (weeklyTokenLimit.output.current / weeklyTokenLimit.output.limit) * 100
+        : 0;
+
+    return {
+      input: {
+        current: weeklyTokenLimit.input.current,
+        limit: weeklyTokenLimit.input.limit,
+        remaining: inputRemaining,
+        percentageUsed: inputPercentageUsed,
+      },
+      output: {
+        current: weeklyTokenLimit.output.current,
+        limit: weeklyTokenLimit.output.limit,
+        remaining: outputRemaining,
+        percentageUsed: outputPercentageUsed,
+      },
+      renewAt: new Date(weeklyTokenLimit.renewsAt),
+      renewAtString: weeklyTokenLimit.renewsAt,
     };
   }
 
