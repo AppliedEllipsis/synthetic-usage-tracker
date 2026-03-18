@@ -13,6 +13,8 @@ where patch versions start at 10000 instead of 0. This is compatible with SemVer
 Nothing yet
 
 
+## [1.0.10030] - 2026-03-18
+
 ## [1.0.10029] - 2026-02-26
 
 ### Changed
