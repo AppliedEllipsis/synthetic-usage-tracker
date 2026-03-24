@@ -95,9 +95,13 @@ export interface QuotaResponse {
 
 /**
  * Category usage information with calculated fields
- * 
+ *
  * Design decision: Extend the base QuotaCategory with calculated fields
  * (remaining, percentageUsed) that are computed client-side from the API response.
+ *
+ * Mana-based addition: Include regenRate and nextRegen for mana-based quotas
+ * to display regeneration information in tooltips. These fields are optional
+ * for backward compatibility with legacy quota-based responses.
  */
 export interface CategoryUsageInfo {
   limit: number;
@@ -106,6 +110,10 @@ export interface CategoryUsageInfo {
   percentageUsed: number;
   renewAt: Date;
   renewAtString: string;
+  /** Mana regeneration rate per minute (optional for mana-based quotas) */
+  regenRate?: number;
+  /** Seconds until next regeneration tick (optional for mana-based quotas) */
+  nextRegen?: number;
 }
 
 /**
@@ -471,7 +479,8 @@ export class SyntheticService {
       ? "Unknown"
       : renewAt.toLocaleString();
 
-    return {
+    // Include mana regeneration fields if available
+    const result: CategoryUsageInfo = {
       limit,
       requests,
       remaining,
@@ -479,6 +488,16 @@ export class SyntheticService {
       renewAt,
       renewAtString,
     };
+
+    // Add mana fields if present in the original category
+    if (category.regenRate !== undefined) {
+      result.regenRate = category.regenRate;
+    }
+    if (category.nextRegen !== undefined) {
+      result.nextRegen = category.nextRegen;
+    }
+
+    return result;
   }
 
   /**

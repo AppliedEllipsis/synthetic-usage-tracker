@@ -320,18 +320,52 @@ export class UsageIndicator {
   /**
    * Build tooltip section for a single category
    *
-   * Design decision: Use ASCII progress bar for visual representation of quota usage.
-   * This provides immediate visual feedback about how much of the quota has been used.
-   * Progress bars are left-aligned with each category section for better readability.
+   * Design decision: Display mana-specific terminology when mana regeneration
+   * fields are present. This provides clearer information for mana-based quotas
+   * while maintaining backward compatibility with legacy quota-based responses.
+   *
+   * Mana-based display shows:
+   * - Mana: X / Y (current / max)
+   * - Remaining: X
+   * - Regeneration Rate: +X mana/min (if available)
+   * - Next Tick: Xs (if available)
+   * - Renews At: timestamp
+   *
+   * Legacy display shows:
+   * - Requests: X / Y
+   * - Remaining: X
+   * - Renews At: timestamp
+   * - Time Remaining: duration
    */
   private buildCategoryTooltip(name: string, category: CategoryUsageInfo): string {
     const percentageUsed = category.percentageUsed.toFixed(1);
     const percentageRemaining = (100 - category.percentageUsed).toFixed(1);
     const timeRemaining = this.calculateTimeRemaining(category.renewAt);
 
+    // Check if this is a mana-based quota (has regenRate field)
+    const isManaBased = category.regenRate !== undefined;
+
     let section = `## ${name}\n`;
-    section += `Requests: ${category.requests.toLocaleString()} / ${category.limit.toLocaleString()} (${percentageUsed}%)\n`;
-    section += `Remaining: ${category.remaining.toLocaleString()} (${percentageRemaining}%)\n`;
+
+    if (isManaBased) {
+      // Mana-based display: show mana terminology
+      // remaining = balance, limit = maxBalance
+      const currentMana = category.remaining;
+      const maxMana = category.limit;
+      section += `Mana: ${currentMana.toLocaleString()} / ${maxMana.toLocaleString()} (${percentageUsed}%)\n`;
+      section += `Remaining: ${category.remaining.toLocaleString()} (${percentageRemaining}%)\n`;
+      section += `Regeneration Rate: +${category.regenRate} mana/min\n`;
+
+      // Show next regeneration tick if available
+      if (category.nextRegen !== undefined && category.nextRegen > 0) {
+        section += `Next Tick: ${category.nextRegen}s\n`;
+      }
+    } else {
+      // Legacy display: show request terminology
+      section += `Requests: ${category.requests.toLocaleString()} / ${category.limit.toLocaleString()} (${percentageUsed}%)\n`;
+      section += `Remaining: ${category.remaining.toLocaleString()} (${percentageRemaining}%)\n`;
+    }
+
     section += `Renews At: ${category.renewAtString}\n`;
     section += `Time Remaining: ${timeRemaining}\n`;
     section += `${this.buildAsciiProgressBar(category.percentageUsed)}\n\n`;
