@@ -139,6 +139,11 @@
         "category": "Synthetic Usage Tracker"
       },
       {
+        "command": "syntheticUsageTracker.copyLastApiResponse",
+        "title": "Copy Last API Response to Clipboard",
+        "category": "Synthetic Usage Tracker"
+      },
+      {
         "command": "syntheticUsageTracker.eraseKey",
         "title": "Erase API Key",
         "category": "Synthetic Usage Tracker"

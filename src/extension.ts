@@ -234,6 +234,13 @@ export class SyntheticUsageTrackerExtension {
     );
     this.context.subscriptions.push(copyUsageCommand);
 
+    // Copy last API response to clipboard command
+    const copyLastApiResponseCommand = vscode.commands.registerCommand(
+      "syntheticUsageTracker.copyLastApiResponse",
+      () => this.copyLastApiResponseToClipboard(),
+    );
+    this.context.subscriptions.push(copyLastApiResponseCommand);
+
     // Set refresh interval command
     const setRefreshIntervalCommand = vscode.commands.registerCommand(
       "syntheticUsageTracker.setRefreshInterval",
@@ -348,6 +355,15 @@ export class SyntheticUsageTrackerExtension {
 
       // Store the usage info for later comparison
       this.lastUsageInfo = usage;
+
+      // Store the raw API response for debugging/copying
+      // Design decision: Capture raw response at extension level since SyntheticService
+      // is recreated for each request. This allows users to copy the last API response
+      // even if the service instance has been garbage collected.
+      const rawResponse = service.getLastRawResponse();
+      if (rawResponse) {
+        this.lastRawApiResponse = rawResponse;
+      }
 
       // Update the status bar with the new usage data
       // Design decision: Create a Config object that includes the API key for tooltip masking
@@ -830,6 +846,42 @@ ${this.usageIndicator.buildAsciiProgressBar(toolCalls.percentageUsed)}`;
       vscode.window.showInformationMessage(
         "✓ Usage information copied to clipboard!",
       );
+    } catch (error) {
+      vscode.window.showErrorMessage(
+        "Failed to copy to clipboard: " +
+          (error instanceof Error ? error.message : "Unknown error"),
+      );
+    }
+  }
+
+  /**
+   * Copy the last raw API response to clipboard in formatted JSON
+   *
+   * Design decision: Store raw response text to allow users to copy the complete
+   * unmodified API payload. This is useful for debugging, documentation, and
+   * reporting issues. We attempt to format as JSON for readability but fall back
+   * to raw text if parsing fails.
+   */
+  private async copyLastApiResponseToClipboard(): Promise<void> {
+    if (!this.lastRawApiResponse) {
+      vscode.window.showInformationMessage("No API response available yet");
+      return;
+    }
+
+    let formattedText: string;
+
+    // Try to parse and format as JSON for readability
+    try {
+      const parsedJson = JSON.parse(this.lastRawApiResponse);
+      formattedText = JSON.stringify(parsedJson, null, 2);
+    } catch {
+      // Fall back to raw response if JSON parsing fails
+      formattedText = this.lastRawApiResponse;
+    }
+
+    try {
+      await vscode.env.clipboard.writeText(formattedText);
+      vscode.window.showInformationMessage("Last API response copied to clipboard");
     } catch (error) {
       vscode.window.showErrorMessage(
         "Failed to copy to clipboard: " +
