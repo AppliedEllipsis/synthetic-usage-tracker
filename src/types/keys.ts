@@ -94,30 +94,67 @@ export interface KeyStatistics {
 
 /**
  * Quota information from the Synthetic.new API
+ *
+ * Design decision: This interface now supports both legacy quota-based fields
+ * and the new mana-based resource pool system for backward compatibility.
+ * The API transitioned from { limit, requests, remaining, percentageUsed, renewsAt }
+ * to { balance, maxBalance, regenRate, nextRegen }.
+ *
+ * Migration path: When mana fields are present, legacy fields are calculated from them.
+ * This allows existing UI components to continue working without modification.
  */
 export interface QuotaInfo {
   /**
-   * Total quota limit for the billing period
+   * Current mana balance (new mana-based system)
+   * Represents the available resource pool at this moment
+   */
+  balance?: number;
+
+  /**
+   * Maximum mana balance (new mana-based system)
+   * Represents the total capacity of the resource pool
+   */
+  maxBalance?: number;
+
+  /**
+   * Mana regeneration rate in mana per minute (new mana-based system)
+   * Rate at which the resource pool replenishes
+   */
+  regenRate?: number;
+
+  /**
+   * Seconds until next mana regeneration (new mana-based system)
+   * Time remaining before the next regen tick
+   */
+  nextRegen?: number;
+
+  /**
+   * Total quota limit for the billing period (legacy quota system)
+   * @deprecated Use maxBalance instead. Kept for backward compatibility.
    */
   limit: number;
 
   /**
-   * Number of requests used in the current period
+   * Number of requests used in the current period (legacy quota system)
+   * @deprecated Calculated from (maxBalance - balance). Kept for backward compatibility.
    */
   requests: number;
 
   /**
-   * Number of requests remaining in the current period
+   * Number of requests remaining in the current period (legacy quota system)
+   * @deprecated Use balance instead. Kept for backward compatibility.
    */
   remaining: number;
 
   /**
-   * Percentage of quota used (0-100)
+   * Percentage of quota used (0-100) (legacy quota system)
+   * @deprecated Calculate from ((maxBalance - balance) / maxBalance) * 100. Kept for backward compatibility.
    */
   percentageUsed: number;
 
   /**
-   * Timestamp when the quota renews
+   * Timestamp when the quota renews (legacy quota system)
+   * @deprecated Calculate from new Date(Date.now() + nextRegen * 1000). Kept for backward compatibility.
    */
   renewsAt: Date;
 }

@@ -149,19 +149,23 @@ export class UsageIndicator {
   }
 
   /**
-   * Build status bar text showing dual percentage display
+   * Build status bar text showing mana pool information
    *
-   * Design decision: Display both subscription requests percentage and token usage
-   * percentage together in the format "subscription%|token%". This provides users
-   * with immediate visibility into both their request-based quota (subscription) and
-   * their token-based consumption (input/output tokens) from the beta API format.
+   * Design decision: Display mana pool information using the ⧗ symbol (U+29D7).
+   * The API now returns mana-based data where:
+   * - limit = maxBalance (mana capacity)
+   * - remaining = current balance (available mana)
+   * - requests = maxBalance - balance (mana used)
+   *
+   * This provides a more intuitive representation of the resource system
+   * while maintaining backward compatibility with existing field names.
    *
    * Rationale:
-   * - Subscription percentage represents request-based quota limits
-   * - Token percentage represents the highest of input/output token usage
-   * - The pipe separator (|) clearly distinguishes the two different quota types
-   * - Users can quickly identify which quota type is more constrained
-   * - Raw numbers (requests/limit) are still shown when showRawNumbers is enabled
+   * - The ⧗ symbol visually represents the mana/energy concept
+   * - Showing current/max (e.g., "⧗ 450/500") gives immediate resource awareness
+   * - Mana percentage is calculated as (remaining/limit) * 100 for color thresholds
+   * - Raw numbers provide precise values when showRawNumbers is enabled
+   * - Token percentage from weekly tokens is still displayed when available
    *
    * When weeklyTokens is not available or has no limits, token% shows as "-".
    */
@@ -169,8 +173,13 @@ export class UsageIndicator {
     // Build warning symbol for categories
     const warningSymbol = this.buildCategoryWarningSymbols(usage, config);
 
-    // Subscription percentage (request-based quota)
-    const subscriptionPercentage = usage.subscription.percentageUsed;
+    // Calculate mana values from subscription quota
+    // Design decision: Use remaining/limit for mana display since the API
+    // maps mana data to these legacy fields (balance -> remaining, maxBalance -> limit)
+    const subscription = usage.subscription;
+    const currentMana = subscription.remaining;
+    const maxMana = subscription.limit;
+    const manaPercentage = maxMana > 0 ? (currentMana / maxMana) * 100 : 0;
 
     // Calculate token percentage - use the highest of input/output if available
     let tokenPercentage: number | null = null;
@@ -187,13 +196,12 @@ export class UsageIndicator {
       }
     }
 
-    // Build dual percentage display: subscription% ~ token%
+    // Build mana display with ⧗ symbol: ⧗ percentage%  token%
     const tokenDisplay = tokenPercentage !== null ? `${tokenPercentage.toFixed(0)}%` : "-";
-    let text = `$(synthetic-status-icon) ${subscriptionPercentage.toFixed(0)}%  ${tokenDisplay}`;
+    let text = `$(synthetic-status-icon) ⧗ ${manaPercentage.toFixed(0)}%  ${tokenDisplay}`;
 
     if (config.showRawNumbers) {
-      const subscription = usage.subscription;
-      text += ` (${subscription.requests}/${subscription.limit})`;
+      text += ` (${currentMana}/${maxMana})`;
     }
 
     // Add warning symbol if any category exceeds threshold

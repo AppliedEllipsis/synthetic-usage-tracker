@@ -1,0 +1,23 @@
+{
+  "subscription": {
+    "limit": 600,
+    "requests": 0.16666666666666666,
+    "renewsAt": "2026-03-24T05:52:12.131Z"
+  },
+  "search": {
+    "hourly": {
+      "limit": 250,
+      "requests": 0,
+      "renewsAt": "2026-03-24T03:21:16.131Z"
+    }
+  },
+  "freeToolCalls": {
+    "limit": 0,
+    "requests": 0,
+    "renewsAt": "2026-03-25T02:21:16.303Z"
+  },
+  "weeklyTokenLimit": {
+    "nextRegenAt": "2026-03-24T04:07:35.000Z",
+    "percentRemaining": 99.99401333333333
+  }
+}

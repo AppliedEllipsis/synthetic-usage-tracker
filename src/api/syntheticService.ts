@@ -1,14 +1,35 @@
 /**
  * Base quota category interface
- * 
+ *
  * Design decision: Common structure for all quota categories with limit, requests,
  * and renewal timestamp. Each category has independent limits and renewal cycles.
  * The API returns "renewsAt" (with 's') as the field name.
+ *
+ * Mana-based API addition: The API now supports a mana-based resource pool system
+ * with balance, maxBalance, regenRate, and nextRegen fields. Legacy fields are
+ * calculated from mana fields when present to maintain backward compatibility.
+ *
+ * Design rationale: The mana system represents usage as a depleting balance that
+ * regenerates over time, which is more accurate for modern API usage patterns.
+ * By keeping legacy fields required and calculating them from mana fields,
+ * existing code continues to work without modification.
  */
 export interface QuotaCategory {
+  /** @deprecated Use maxBalance instead. Total capacity (limit = maxBalance) */
   limit: number;
+  /** @deprecated Use balance instead. Used amount (requests = maxBalance - balance) */
   requests: number;
+  /** @deprecated Use nextRegen instead. Renewal timestamp (renewsAt = now + nextRegen) */
   renewsAt: string;
+  // Mana-based fields (optional for backward compatibility)
+  /** Current mana balance available for use */
+  balance?: number;
+  /** Maximum mana capacity */
+  maxBalance?: number;
+  /** Mana regeneration rate per minute */
+  regenRate?: number;
+  /** Seconds until next regeneration */
+  nextRegen?: number;
 }
 
 /**
@@ -397,22 +418,53 @@ export class SyntheticService {
   /**
    * Parse a single quota category and calculate derived fields
    *
-   * Design decision: Calculate remaining and percentageUsed client-side since
-   * the API only provides limit and requests. This ensures consistent calculations
-   * across all categories regardless of API changes.
+   * Design decision: Support both legacy quota-based and new mana-based API responses
+   * for backward compatibility. When mana fields are present, calculate legacy fields
+   * from them to ensure existing UI components continue working without modification.
    *
-   * The API uses "renewsAt" (with 's') as the field name - we use the exact
-   * field name from the API to maintain consistency.
+   * Mana-to-legacy field mapping:
+   * - limit = maxBalance (total capacity)
+   * - requests = maxBalance - balance (used amount)
+   * - remaining = balance (available amount)
+   * - percentageUsed = ((maxBalance - balance) / maxBalance) * 100
+   * - renewsAt = now + nextRegen seconds (converted to timestamp)
+   *
+   * Alternative considered: Create separate parsing methods for each format
+   * Rejected: Would require changes throughout the codebase. Unified parsing
+   * keeps the change localized to this single method.
    */
   private parseCategory(category: QuotaCategory): CategoryUsageInfo {
-    const remaining = Math.max(0, category.limit - category.requests);
-    const percentageUsed =
-      category.limit > 0 ? (category.requests / category.limit) * 100 : 0;
-    const renewAt = new Date(category.renewsAt);
+    let limit: number;
+    let requests: number;
+    let renewsAt: string;
+
+    // Check if this is a mana-based response (new format)
+    if (category.balance !== undefined && category.maxBalance !== undefined) {
+      // Mana-based: calculate legacy fields from mana values
+      limit = category.maxBalance;
+      requests = category.maxBalance - category.balance;
+
+      // Calculate renewsAt from nextRegen (seconds until next regeneration)
+      if (category.nextRegen !== undefined && category.nextRegen > 0) {
+        const renewTimestamp = Date.now() + category.nextRegen * 1000;
+        renewsAt = new Date(renewTimestamp).toISOString();
+      } else {
+        renewsAt = category.renewsAt || "";
+      }
+    } else {
+      // Legacy format: use fields directly
+      limit = category.limit;
+      requests = category.requests;
+      renewsAt = category.renewsAt;
+    }
+
+    const remaining = Math.max(0, limit - requests);
+    const percentageUsed = limit > 0 ? (requests / limit) * 100 : 0;
+    const renewAt = new Date(renewsAt);
 
     // Validate date is not invalid - show "Unknown" instead of "Invalid Date"
-    if (category.renewsAt && isNaN(renewAt.getTime())) {
-      console.error(`Invalid renewal timestamp: ${category.renewsAt}`);
+    if (renewsAt && isNaN(renewAt.getTime())) {
+      console.error(`Invalid renewal timestamp: ${renewsAt}`);
     }
 
     const renewAtString = isNaN(renewAt.getTime())
@@ -420,8 +472,8 @@ export class SyntheticService {
       : renewAt.toLocaleString();
 
     return {
-      limit: category.limit,
-      requests: category.requests,
+      limit,
+      requests,
       remaining,
       percentageUsed: Math.round(percentageUsed * 100) / 100,
       renewAt,
