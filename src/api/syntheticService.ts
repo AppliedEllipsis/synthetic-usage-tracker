@@ -56,14 +56,19 @@ export interface TokenQuota {
 /**
  * Weekly token limit structure
  *
- * Design decision: The beta API returns weekly token limits with separate
- * input and output token tracking, each with current usage and limit.
- * This allows users to monitor their token consumption independently of request counts.
+ * Design decision: The API returns weekly token limits with simplified
+ * fields: nextRegenAt (when tokens regenerate) and percentRemaining.
+ * This is a transitional format that replaced the old input/output token tracking.
  */
 export interface WeeklyTokenLimit {
-  renewsAt: string;
-  input: TokenQuota;
-  output: TokenQuota;
+  /** ISO timestamp when the token limit will regenerate */
+  nextRegenAt?: string;
+  /** Percentage of tokens remaining (0-100) */
+  percentRemaining?: number;
+  /** Legacy fields for backward compatibility with older API responses */
+  renewsAt?: string;
+  input?: TokenQuota;
+  output?: TokenQuota;
 }
 
 /**
@@ -377,41 +382,78 @@ export class SyntheticService {
   /**
    * Parse weekly token limit into token usage information
    *
-   * Design decision: Calculate remaining and percentageUsed for both input and output
-   * tokens separately. The API provides current usage and limit for each token type.
-   * 
-   * Design rationale: Tokens are tracked separately from requests because users may
-   * have different usage patterns for input vs output tokens. This allows monitoring
-   * of both independently.
+   * Design decision: Handle both new simplified format (nextRegenAt, percentRemaining)
+   * and legacy format (renewsAt, input/output with current/limit). The API may return
+   * either format, so we check for percentRemaining to determine which format to parse.
+   *
+   * Design rationale: The simplified format provides percentage-based tracking instead
+   * of absolute token counts. We normalize both formats to the same WeeklyTokenUsage
+   * structure for consistent UI rendering.
    */
   private parseWeeklyTokenLimit(weeklyTokenLimit: WeeklyTokenLimit): WeeklyTokenUsage {
-    const inputRemaining = Math.max(0, weeklyTokenLimit.input.limit - weeklyTokenLimit.input.current);
-    const inputPercentageUsed =
-      weeklyTokenLimit.input.limit > 0
-        ? (weeklyTokenLimit.input.current / weeklyTokenLimit.input.limit) * 100
-        : 0;
+    // Check for new simplified format with percentRemaining
+    if (weeklyTokenLimit.percentRemaining !== undefined) {
+      const percentageUsed = 100 - weeklyTokenLimit.percentRemaining;
+      const renewsAt = weeklyTokenLimit.nextRegenAt || weeklyTokenLimit.renewsAt;
 
-    const outputRemaining = Math.max(0, weeklyTokenLimit.output.limit - weeklyTokenLimit.output.current);
-    const outputPercentageUsed =
-      weeklyTokenLimit.output.limit > 0
-        ? (weeklyTokenLimit.output.current / weeklyTokenLimit.output.limit) * 100
-        : 0;
+      return {
+        input: {
+          current: percentageUsed,
+          limit: 100,
+          remaining: weeklyTokenLimit.percentRemaining,
+          percentageUsed,
+        },
+        output: {
+          current: percentageUsed,
+          limit: 100,
+          remaining: weeklyTokenLimit.percentRemaining,
+          percentageUsed,
+        },
+        renewAt: renewsAt ? new Date(renewsAt) : new Date(),
+        renewAtString: renewsAt || new Date().toISOString(),
+      };
+    }
 
+    // Fall back to legacy format with input/output token counts
+    if (weeklyTokenLimit.input && weeklyTokenLimit.output) {
+      const inputRemaining = Math.max(0, weeklyTokenLimit.input.limit - weeklyTokenLimit.input.current);
+      const inputPercentageUsed =
+        weeklyTokenLimit.input.limit > 0
+          ? (weeklyTokenLimit.input.current / weeklyTokenLimit.input.limit) * 100
+          : 0;
+
+      const outputRemaining = Math.max(0, weeklyTokenLimit.output.limit - weeklyTokenLimit.output.current);
+      const outputPercentageUsed =
+        weeklyTokenLimit.output.limit > 0
+          ? (weeklyTokenLimit.output.current / weeklyTokenLimit.output.limit) * 100
+          : 0;
+
+      const renewsAt = weeklyTokenLimit.renewsAt || new Date().toISOString();
+
+      return {
+        input: {
+          current: weeklyTokenLimit.input.current,
+          limit: weeklyTokenLimit.input.limit,
+          remaining: inputRemaining,
+          percentageUsed: inputPercentageUsed,
+        },
+        output: {
+          current: weeklyTokenLimit.output.current,
+          limit: weeklyTokenLimit.output.limit,
+          remaining: outputRemaining,
+          percentageUsed: outputPercentageUsed,
+        },
+        renewAt: new Date(renewsAt),
+        renewAtString: renewsAt,
+      };
+    }
+
+    // Fallback for unknown format
     return {
-      input: {
-        current: weeklyTokenLimit.input.current,
-        limit: weeklyTokenLimit.input.limit,
-        remaining: inputRemaining,
-        percentageUsed: inputPercentageUsed,
-      },
-      output: {
-        current: weeklyTokenLimit.output.current,
-        limit: weeklyTokenLimit.output.limit,
-        remaining: outputRemaining,
-        percentageUsed: outputPercentageUsed,
-      },
-      renewAt: new Date(weeklyTokenLimit.renewsAt),
-      renewAtString: weeklyTokenLimit.renewsAt,
+      input: { current: 0, limit: 100, remaining: 100, percentageUsed: 0 },
+      output: { current: 0, limit: 100, remaining: 100, percentageUsed: 0 },
+      renewAt: new Date(),
+      renewAtString: new Date().toISOString(),
     };
   }
 
