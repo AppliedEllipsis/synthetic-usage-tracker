@@ -63,6 +63,9 @@ export class SyntheticUsageTrackerExtension {
   // Track the last usage info for comparisons
   private lastUsageInfo: APIUsageInfo | null = null;
 
+  // Track the last raw API response for debugging/copying
+  private lastRawApiResponse: string | null = null;
+
   // Track auto-refresh state (separate from config to allow toggle functionality)
   private isAutoRefreshEnabled: boolean = true;
 
