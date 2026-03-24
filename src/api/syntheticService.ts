@@ -255,11 +255,20 @@ export class SyntheticService {
   private apiKey: string;
   private apiEndpoint: string;
   private retryConfig: RetryConfig;
+  private lastRawResponse: string | null = null;
 
   constructor(apiKey: string, apiEndpoint: string = "https://api.synthetic.new/v2") {
     this.apiKey = apiKey;
     this.apiEndpoint = apiEndpoint;
     this.retryConfig = DEFAULT_RETRY_CONFIG;
+  }
+
+  /**
+   * Get the last raw API response
+   * @returns The last raw response text, or null if no response yet
+   */
+  getLastRawResponse(): string | null {
+    return this.lastRawResponse;
   }
 
   /**
@@ -288,7 +297,10 @@ export class SyntheticService {
         await this.handleErrorResponse(response);
       }
 
-      const data = (await response.json()) as QuotaResponse;
+      // Store raw response text before parsing
+      const responseText = await response.text();
+      this.lastRawResponse = responseText;
+      const data = JSON.parse(responseText) as QuotaResponse;
       return this.parseQuotaResponse(data);
     } catch (error) {
       if (error instanceof ApiError) {
