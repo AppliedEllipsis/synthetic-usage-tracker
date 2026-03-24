@@ -223,3 +223,179 @@ function getTimeToRenewal(renewsAt: string): string {
 ## Test API Key Note
 
 This analysis was performed using a test API key ([API_KEY]). The actual values (limits, requests, renewal times) will vary for different accounts and subscription levels.
+
+---
+
+# API Update: Mana-Based Model (2026-03-24)
+
+## Overview
+
+**Verification Date**: 2026-03-24
+
+The Synthetic.new API has transitioned to a **hybrid mana-based model**. This update documents the new API response structure discovered during verification testing. The API now returns both legacy quota-based fields and new mana-like fields simultaneously, representing a transitional state between the old and new systems.
+
+## Hybrid API Structure Discovered
+
+The current API returns a JSON object with **two** top-level fields:
+
+```json
+{
+  "subscription": {
+    "limit": 600,
+    "requests": 0.16666666666666666,
+    "renewsAt": "2026-03-24T05:52:12.131Z"
+  },
+  "weeklyTokenLimit": {
+    "nextRegenAt": "2026-03-24T04:07:35.000Z",
+    "percentRemaining": 99.99401333333333
+  }
+}
+```
+
+### Key Finding: Hybrid Model
+
+**Important**: The API currently uses a **hybrid structure** rather than a pure mana-based model:
+
+1. **`subscription` object**: Contains **legacy quota-based fields** (`limit`, `requests`, `renewsAt`)
+2. **`weeklyTokenLimit` object**: Contains **mana-like fields** (`percentRemaining`, `nextRegenAt`)
+
+This indicates the API is in a transitional state, supporting both legacy quota tracking and new mana-based token regeneration simultaneously.
+
+## New Field Descriptions
+
+### weeklyTokenLimit Object
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `percentRemaining` | number | Percentage of weekly token limit remaining (e.g., 99.994%) |
+| `nextRegenAt` | string (ISO 8601) | Timestamp when the next token regeneration will occur |
+
+**Notes**:
+- `percentRemaining` represents the current available capacity as a percentage
+- `nextRegenAt` indicates when tokens will be replenished (regeneration mechanics)
+- This replaces the granular `limit`/`requests`/`renewsAt` tracking with a percentage-based approach
+
+## Comparison: Old vs New Models
+
+### Legacy Quota-Based Model (Still Present)
+
+```json
+{
+  "subscription": {
+    "limit": 600,
+    "requests": 0.16666666666666666,
+    "renewsAt": "2026-03-24T05:52:12.131Z"
+  }
+}
+```
+
+**Characteristics**:
+- Fixed monthly request limits
+- Tracks exact request counts (can be fractional)
+- Single renewal timestamp for the entire period
+- Simple subtraction: `remaining = limit - requests`
+
+### New Mana-Based Model (Weekly Token Limit)
+
+```json
+{
+  "weeklyTokenLimit": {
+    "nextRegenAt": "2026-03-24T04:07:35.000Z",
+    "percentRemaining": 99.99401333333333
+  }
+}
+```
+
+**Characteristics**:
+- Weekly token-based limits instead of monthly request counts
+- Percentage-based tracking (0-100%)
+- Continuous regeneration mechanics (next regeneration timestamp)
+- More granular time-based replenishment
+
+## Regeneration Mechanics
+
+The mana-based model introduces **regeneration** concepts:
+
+1. **Token Regeneration**: Tokens are replenished continuously rather than at fixed renewal periods
+2. **Next Regen Timestamp**: `nextRegenAt` indicates when the next batch of tokens will be available
+3. **Percentage Tracking**: Usage is tracked as a percentage of total capacity rather than absolute counts
+4. **Weekly Cycle**: The `weeklyTokenLimit` suggests a 7-day cycle for token replenishment
+
+### Example Calculations
+
+**Current State**:
+- Percent Remaining: 99.994%
+- Percentage Used: 0.006%
+- Next Regen At: ~45 minutes from query time
+
+**Interpretation**:
+- User has consumed minimal capacity (0.006%)
+- Tokens will regenerate in ~45 minutes
+- System uses a continuous regeneration model rather than fixed monthly resets
+
+## Implementation Considerations
+
+### Backward Compatibility
+
+The extension must handle **both** response formats:
+
+1. **Legacy format**: `subscription.limit`, `subscription.requests`, `subscription.renewsAt`
+2. **New format**: `weeklyTokenLimit.percentRemaining`, `weeklyTokenLimit.nextRegenAt`
+
+**Detection Strategy**:
+- Check for presence of `weeklyTokenLimit` object
+- If present, use percentage-based calculations
+- Fall back to legacy `subscription` fields if `weeklyTokenLimit` is absent
+
+### Code Implementation
+
+The extension now uses conditional field detection:
+
+```typescript
+// Check for mana-based fields
+if (category.balance !== undefined && category.maxBalance !== undefined) {
+  // Use mana-based calculation
+  limit = category.maxBalance;
+  requests = category.maxBalance - category.balance;
+  if (category.nextRegen !== undefined && category.nextRegen > 0) {
+    const renewTimestamp = Date.now() + category.nextRegen * 1000;
+    renewsAt = new Date(renewTimestamp).toISOString();
+  }
+} else {
+  // Fall back to legacy quota fields
+  limit = category.limit;
+  requests = category.requests;
+  renewsAt = category.renewsAt;
+}
+```
+
+### Display Updates
+
+The status bar and tooltips have been updated to:
+- Display percentage-based usage when `weeklyTokenLimit` is present
+- Show regeneration countdown (time until `nextRegenAt`)
+- Maintain backward compatibility with legacy quota displays
+
+## Verification Results
+
+**TypeScript Compilation**: ✅ Passed (exit code 0)
+**Linting**: ✅ Passed (exit code 0)
+**API Response Processing**: ✅ Verified
+
+### Files Updated
+
+- [`src/api/syntheticService.ts`](../src/api/syntheticService.ts) - Added mana detection and parsing
+- [`src/types/keys.ts`](../src/types/keys.ts) - Added mana field types
+- [`src/statusBar/usageIndicator.ts`](../src/statusBar/usageIndicator.ts) - Updated display logic
+
+## Migration Path
+
+**Current State**: Hybrid model (both legacy and new fields present)
+**Future State**: Likely full transition to mana-based model
+
+**Recommendation**: Continue supporting both formats indefinitely for backward compatibility, as different user accounts may be on different API versions.
+
+## Related Files
+
+- [`scripts/update-synthetic-api.js`](../scripts/update-synthetic-api.js) - Diagnostic script for API testing
+- [`api-response-actual-2026-03-24T02-21-15.json`](../api-response-actual-2026-03-24T02-21-15.json) - Actual API response sample
