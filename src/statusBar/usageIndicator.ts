@@ -286,10 +286,12 @@ export class UsageIndicator {
     const formattedLimit = this.formatTokenNumber(tokenInfo.limit);
     const formattedRemaining = this.formatTokenNumber(tokenInfo.remaining);
 
+    const remainingPercentage = 100 - tokenInfo.percentageUsed;
+
     let section = `### ${name}\n`;
-    section += `Tokens: ${formattedCurrent} / ${formattedLimit} (${percentageUsed}%)\n`;
-    section += `Remaining: ${formattedRemaining} (${percentageRemaining}%)\n`;
-    section += `${this.buildAsciiProgressBar(tokenInfo.percentageUsed)}\n`;
+    section += `Remaining: ${formattedRemaining} / ${formattedLimit} (${percentageRemaining}%)\n`;
+    section += `Used: ${formattedCurrent} (${percentageUsed}%)\n`;
+    section += `${this.buildAsciiProgressBar(remainingPercentage)}\n`;
 
     return section;
   }
@@ -398,21 +400,21 @@ export class UsageIndicator {
     if (isManaBased) {
       const currentMana = category.remaining;
       const maxMana = category.limit;
-      section += `${resourceLabel}: ${currentMana.toLocaleString()} / ${maxMana.toLocaleString()} (${percentageUsed}%)\n`;
-      section += `Available: ${category.remaining.toLocaleString()} (${percentageRemaining}%)\n`;
+      section += `${resourceLabel}: ${category.remaining.toLocaleString()} / ${maxMana.toLocaleString()} (${percentageRemaining}% remaining)\n`;
+      section += `Available: ${currentMana.toLocaleString()}\n`;
       section += `Regen: +${category.regenRate} per min\n`;
 
       if (category.nextRegen !== undefined && category.nextRegen > 0) {
         section += `Next: ${category.nextRegen}s\n`;
       }
     } else {
-      section += `${resourceLabel}: ${category.requests.toLocaleString()} / ${category.limit.toLocaleString()} (${percentageUsed}%)\n`;
-      section += `Remaining: ${category.remaining.toLocaleString()} (${percentageRemaining}%)\n`;
+      section += `${resourceLabel}: ${category.remaining.toLocaleString()} / ${category.limit.toLocaleString()} (${percentageRemaining}% remaining)\n`;
+      section += `Used: ${category.requests.toLocaleString()} (${percentageUsed}%)\n`;
     }
 
     section += `Renews: ${category.renewAtString}\n`;
     section += `Time: ${timeRemaining}\n`;
-    section += `${this.buildAsciiProgressBar(category.percentageUsed)}\n\n`;
+    section += `${this.buildAsciiProgressBar(100 - category.percentageUsed)}\n\n`;
 
     return section;
   }
