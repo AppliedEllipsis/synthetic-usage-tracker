@@ -234,7 +234,7 @@ export class UsageIndicator {
     const weeklyTokens = usage.weeklyTokens;
 
     const maskedKey = this.maskApiKey(config.apiKey);
-    const style = (config.enableRpgTheme ?? false) ? (config.rpgThemeStyle ?? "mana") : "off";
+    const style = config.rpgThemeStyle ?? "mana";
 
     let tooltip = "### Synthetic.new Usage\n\n";
 
@@ -255,11 +255,11 @@ export class UsageIndicator {
       const tokensLabel = this.getRpgLabel("weeklyTokens", style);
       tooltip += `## ${tokensLabel}\n`;
       if (weeklyTokens.input.limit > 0) {
-        const inputLabel = style === "off" ? "Input Tokens" : this.getRpgLabel("weeklyTokens", style);
+        const inputLabel = this.getRpgLabel("weeklyTokens", style);
         tooltip += this.buildTokenTooltip(`${inputLabel} (Input)`, weeklyTokens.input);
       }
       if (weeklyTokens.output.limit > 0) {
-        const outputLabel = style === "off" ? "Output Tokens" : this.getRpgLabel("weeklyTokens", style);
+        const outputLabel = this.getRpgLabel("weeklyTokens", style);
         tooltip += this.buildTokenTooltip(`${outputLabel} (Output)`, weeklyTokens.output);
       }
       tooltip += `Renews At: ${weeklyTokens.renewAtString}\n`;
