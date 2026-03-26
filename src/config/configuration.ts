@@ -1,5 +1,7 @@
 import * as vscode from "vscode";
 
+export type RpgThemeStyle = "off" | "health" | "mana" | "stamina" | "spirit";
+
 /**
  * Configuration keys for the Synthetic Usage Tracker extension
  */
@@ -15,6 +17,9 @@ export interface Configuration {
   enableKeyCycling: boolean;
   cyclingStrategy: string;
   autoCycleThreshold: number;
+  // RPG theme configuration
+  enableRpgTheme: boolean;
+  rpgThemeStyle: RpgThemeStyle;
 }
 
 /**
@@ -69,6 +74,8 @@ export class ConfigurationManager {
       cyclingStrategy: config.get<string>("cyclingStrategy", "roundRobin"),
       // Auto-cycle at 95% to use remaining keys before hitting quota limits
       autoCycleThreshold: config.get<number>("autoCycleThreshold", 95),
+      enableRpgTheme: config.get<boolean>("enableRpgTheme", false),
+      rpgThemeStyle: config.get<RpgThemeStyle>("rpgThemeStyle", "health"),
     };
   }
 

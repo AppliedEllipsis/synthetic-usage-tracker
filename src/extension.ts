@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import * as fs from "fs";
-import { ConfigurationManager } from "./config/configuration";
+import { ConfigurationManager, RpgThemeStyle } from "./config/configuration";
 import { KeyManager } from "./config/keyManager";
 import { UsageIndicator } from "./statusBar/usageIndicator";
 import { SyntheticService } from "./api/syntheticService";
@@ -373,12 +373,22 @@ export class SyntheticUsageTrackerExtension {
         showRawNumbers: boolean;
         warningThreshold: number;
         criticalThreshold: number;
+        enableKeyCycling?: boolean;
+        cyclingStrategy?: string;
+        autoCycleThreshold?: number;
+        enableRpgTheme?: boolean;
+        rpgThemeStyle?: RpgThemeStyle;
       } = {
         apiKey,
         showPercentage: config.showPercentage,
         showRawNumbers: config.showRawNumbers,
         warningThreshold: config.warningThreshold,
         criticalThreshold: config.criticalThreshold,
+        enableKeyCycling: config.enableKeyCycling,
+        cyclingStrategy: config.cyclingStrategy,
+        autoCycleThreshold: config.autoCycleThreshold,
+        enableRpgTheme: config.enableRpgTheme,
+        rpgThemeStyle: config.rpgThemeStyle as RpgThemeStyle,
       };
       this.usageIndicator.updateUsage(usage, indicatorConfig);
 

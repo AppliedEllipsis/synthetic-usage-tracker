@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { UsageInfo, CategoryUsageInfo, TokenUsageInfo } from "../api/syntheticService";
+import { RpgThemeStyle } from "../config/configuration";
 
 /**
  * Configuration interface for the usage indicator
@@ -10,6 +11,8 @@ export interface Config {
   showRawNumbers: boolean;
   warningThreshold: number;
   criticalThreshold: number;
+  enableRpgTheme?: boolean;
+  rpgThemeStyle?: RpgThemeStyle;
 }
 
 /**
@@ -230,39 +233,39 @@ export class UsageIndicator {
     const toolCalls = usage.toolCalls;
     const weeklyTokens = usage.weeklyTokens;
 
-    // Mask API key: show only the prefix (syn_) and last 4 characters
     const maskedKey = this.maskApiKey(config.apiKey);
+    const style = (config.enableRpgTheme ?? false) ? (config.rpgThemeStyle ?? "mana") : "off";
 
     let tooltip = "### Synthetic.new Usage\n\n";
 
-    // Subscription category
-    tooltip += this.buildCategoryTooltip("Subscription", subscription);
+    const subLabel = this.getRpgLabel("subscription", style);
+    tooltip += this.buildCategoryTooltip(subLabel, subscription, style);
 
-    // Search category (hourly)
-    tooltip += this.buildCategoryTooltip("Search (hourly)", search);
-
-    // Tool Calls category
-    // Design decision: Hide tool-calls section only when both values are zero (0/0).
-    // This avoids showing a misleading empty quota block while still surfacing atypical
-    // states such as requests > 0 with limit 0 or limit > 0 with requests 0.
-    if (!(toolCalls.requests === 0 && toolCalls.limit === 0)) {
-      tooltip += this.buildCategoryTooltip("Free Tool Calls (daily)", toolCalls);
+    if (!(search.requests === 0 && search.limit === 0)) {
+      const searchLabel = this.getRpgLabel("search", style);
+      tooltip += this.buildCategoryTooltip(`${searchLabel} (hourly)`, search, style);
     }
 
-    // Weekly Token Limits (beta API format) - only show if limits are > 0
+    if (!(toolCalls.requests === 0 && toolCalls.limit === 0)) {
+      const toolLabel = this.getRpgLabel("toolCalls", style);
+      tooltip += this.buildCategoryTooltip(`${toolLabel} (daily)`, toolCalls, style);
+    }
+
     if (weeklyTokens && (weeklyTokens.input.limit > 0 || weeklyTokens.output.limit > 0)) {
-      tooltip += "## Weekly Token Limits\n";
+      const tokensLabel = this.getRpgLabel("weeklyTokens", style);
+      tooltip += `## ${tokensLabel}\n`;
       if (weeklyTokens.input.limit > 0) {
-        tooltip += this.buildTokenTooltip("Input Tokens", weeklyTokens.input);
+        const inputLabel = style === "off" ? "Input Tokens" : this.getRpgLabel("weeklyTokens", style);
+        tooltip += this.buildTokenTooltip(`${inputLabel} (Input)`, weeklyTokens.input);
       }
       if (weeklyTokens.output.limit > 0) {
-        tooltip += this.buildTokenTooltip("Output Tokens", weeklyTokens.output);
+        const outputLabel = style === "off" ? "Output Tokens" : this.getRpgLabel("weeklyTokens", style);
+        tooltip += this.buildTokenTooltip(`${outputLabel} (Output)`, weeklyTokens.output);
       }
       tooltip += `Renews At: ${weeklyTokens.renewAtString}\n`;
       tooltip += `Time Remaining: ${this.calculateTimeRemaining(weeklyTokens.renewAt)}\n\n`;
     }
 
-    // Add masked API key at the bottom for identification
     tooltip += `━━━━━━━━━━━━━━━━\nAPI Key: ${maskedKey}`;
 
     return tooltip;
@@ -313,8 +316,53 @@ export class UsageIndicator {
     }
     const prefix = apiKey.substring(0, 4);
     const lastFour = apiKey.slice(-4);
-    const maskedMiddle = "•".repeat(Math.max(1, apiKey.length - 8));
+    const maskedMiddle = " ".repeat(Math.max(1, apiKey.length - 8));
     return `${prefix}${maskedMiddle}${lastFour}`;
+  }
+
+  private getRpgLabel(category: string, style: RpgThemeStyle): string {
+    const labels: Record<string, Record<RpgThemeStyle, string>> = {
+      subscription: {
+        health: "Energy",
+        mana: "Energy",
+        stamina: "Energy",
+        spirit: "Energy",
+        off: "Subscription",
+      },
+      weeklyTokens: {
+        health: "Mana",
+        mana: "Mana",
+        stamina: "Mana",
+        spirit: "Mana",
+        off: "Weekly Tokens",
+      },
+      search: {
+        health: "Guidance",
+        mana: "Guidance",
+        stamina: "Guidance",
+        spirit: "Guidance",
+        off: "Search",
+      },
+      toolCalls: {
+        health: "Spells",
+        mana: "Spells",
+        stamina: "Spells",
+        spirit: "Spells",
+        off: "Free Tool Calls",
+      },
+    };
+    return labels[category]?.[style] || category;
+  }
+
+  private getRpgResourceLabel(style: RpgThemeStyle): string {
+    const labels: Record<RpgThemeStyle, string> = {
+      health: "Life",
+      mana: "Mana",
+      stamina: "Energy",
+      spirit: "Spirit",
+      off: "Requests",
+    };
+    return labels[style] || "Requests";
   }
 
   /**
@@ -337,37 +385,33 @@ export class UsageIndicator {
    * - Renews At: timestamp
    * - Time Remaining: duration
    */
-  private buildCategoryTooltip(name: string, category: CategoryUsageInfo): string {
+  private buildCategoryTooltip(name: string, category: CategoryUsageInfo, style: RpgThemeStyle): string {
     const percentageUsed = category.percentageUsed.toFixed(1);
     const percentageRemaining = (100 - category.percentageUsed).toFixed(1);
     const timeRemaining = this.calculateTimeRemaining(category.renewAt);
 
-    // Check if this is a mana-based quota (has regenRate field)
     const isManaBased = category.regenRate !== undefined;
+    const resourceLabel = isManaBased ? this.getRpgResourceLabel(style) : "Requests";
 
     let section = `## ${name}\n`;
 
     if (isManaBased) {
-      // Mana-based display: show mana terminology
-      // remaining = balance, limit = maxBalance
       const currentMana = category.remaining;
       const maxMana = category.limit;
-      section += `Mana: ${currentMana.toLocaleString()} / ${maxMana.toLocaleString()} (${percentageUsed}%)\n`;
-      section += `Remaining: ${category.remaining.toLocaleString()} (${percentageRemaining}%)\n`;
-      section += `Regeneration Rate: +${category.regenRate} mana/min\n`;
+      section += `${resourceLabel}: ${currentMana.toLocaleString()} / ${maxMana.toLocaleString()} (${percentageUsed}%)\n`;
+      section += `Available: ${category.remaining.toLocaleString()} (${percentageRemaining}%)\n`;
+      section += `Regen: +${category.regenRate} per min\n`;
 
-      // Show next regeneration tick if available
       if (category.nextRegen !== undefined && category.nextRegen > 0) {
-        section += `Next Tick: ${category.nextRegen}s\n`;
+        section += `Next: ${category.nextRegen}s\n`;
       }
     } else {
-      // Legacy display: show request terminology
-      section += `Requests: ${category.requests.toLocaleString()} / ${category.limit.toLocaleString()} (${percentageUsed}%)\n`;
+      section += `${resourceLabel}: ${category.requests.toLocaleString()} / ${category.limit.toLocaleString()} (${percentageUsed}%)\n`;
       section += `Remaining: ${category.remaining.toLocaleString()} (${percentageRemaining}%)\n`;
     }
 
-    section += `Renews At: ${category.renewAtString}\n`;
-    section += `Time Remaining: ${timeRemaining}\n`;
+    section += `Renews: ${category.renewAtString}\n`;
+    section += `Time: ${timeRemaining}\n`;
     section += `${this.buildAsciiProgressBar(category.percentageUsed)}\n\n`;
 
     return section;
