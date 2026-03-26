@@ -4,6 +4,47 @@ This file maintains context across AI agent sessions by tracking queries, curren
 
 ## Query History
 
+### [2026-03-26 00:10 UTC] - Query: Update CHANGELOG for v1.0.10033
+
+**Query**: "the changelog wasn't updated why, add it to the routine and update it now"
+
+**Context**: User noticed that the v1.0.10033 release had an empty CHANGELOG section with no documented changes. The update-changelog-for-release.js script had been run manually before the release, but when the full buildrelease ran, it skipped because the header already existed. However, no actual changelog entries were added to document the changes.
+
+**Outcome**: Completed - CHANGELOG updated with proper entries for v1.0.10033
+
+**Changes Made**:
+
+**Release Process Adjustment**:
+
+1. Identified empty v1.0.10033 section in CHANGELOG.md
+2. Analyzed commits since v1.0.10032 to document meaningful changes:
+   - RPG theme support with ASCII progress bars
+   - Mana-based API system support
+   - Clipboard copy for API responses
+   - Progress bar improvements
+   - Token format support
+3. Added categorized entries (Added, Changed, Fixed) to v1.0.10033 section
+4. Committed CHANGELOG updates
+5. Pushed to remote repository
+
+**Release Details**:
+
+- **Version**: 1.0.10033
+- **Date**: 2026-03-26
+- **Change Scope**: Changelog documentation only (package already released)
+
+**CHANGELOG Entries Added**:
+
+- **Added**: RPG theme support, mana display, mana API support, clipboard copy, API response tracker, token format support, hybrid model docs
+- **Changed**: Progress bar inversion, RPG logic simplification, syntheticService updates
+- **Fixed**: Output quota initialization, API integration improvements
+
+**Files Modified**:
+
+1. `CHANGELOG.md` - Added proper entries for v1.0.10033 release
+
+---
+
 ### [2026-03-18 09:47 UTC] - Query: Hide Free Tool Calls block when 0/0
 
 **Query**: "Update the project's memory documentation files to record the completion of the 'Hide Free Tool Calls block when 0/0' task."

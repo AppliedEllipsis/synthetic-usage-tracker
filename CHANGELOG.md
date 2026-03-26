@@ -15,6 +15,24 @@ Nothing yet
 
 ## [1.0.10033] - 2026-03-26
 
+### Added
+- RPG theme support for quota display with ASCII progress bars
+- Mana regeneration display in status bar
+- Support for Synthetic.new mana-based API system
+- Clipboard copy functionality for last API response
+- Raw API response tracker
+- Support for new simplified token format
+- Documentation for hybrid mana and quota API model
+
+### Changed
+- Inverted progress bar and reordered usage display
+- Simplified RPG theme conditional logic
+- Updated syntheticService with improved quota handling
+
+### Fixed
+- Fixed output quota initialization
+- Various API integration improvements
+
 ## [1.0.10032] - 2026-03-18
 
 ### Changed
