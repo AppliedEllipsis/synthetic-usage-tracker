@@ -38,6 +38,32 @@ A VSCode extension that monitors your Synthetic.new API usage and quotas directl
 - **Smart Refresh Button**: Reloads popup content when clicked instead of closing
 - **Cross-Window Synchronization**: API key state automatically syncs across multiple VSCode windows
 
+## Screenshots
+
+### Status Bar & Tooltip
+
+The status bar displays your current usage, and hovering over it shows detailed information including quota limits and renewal dates.
+
+![Status Bar with Tooltip](image/screens/statusbar-tooltip.jpg)
+
+### Warning State
+
+When your usage approaches the warning threshold (default: 80%), the status bar changes color to alert you. (Sorry, old screenshot)
+
+![Warning State](image/screens/warning.jpg)
+
+### Usage Details
+
+Click on the status bar item to view a detailed breakdown of your API usage, including raw numbers and quota information.
+
+![Usage Details](image/screens/details.jpg)
+
+### Commands
+
+Access all extension commands through the Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P`):
+
+![Commands](image/screens/commands.jpg)
+
 ## Installation
 
 ### From VSCode Marketplace
@@ -201,27 +227,29 @@ Hover over the status bar to see detailed category breakdowns with visual progre
 ### Synthetic.new Usage Details
 
 ## ⚡ Energy
-Requests: 192 / 600 (32.0% remaining)
-Used: 408 (68.0%)
-Renews: 3/27/2026, 5:00:55 AM
-Time: 2h 4m from now
-⚡[███░░░░░░░] 32%
+Requests: 443.111 / 600 (73.8% used)
+Remaining: 156.889 (26.2%)
+Renews: 3/27/2026, 5:00:54 AM
+Time: 1h 27m from now
+⚡[███░░░░░░░] 26%
 
 ## 🔮 Guidance (hourly)
-Searches: 250 / 250 (100.0% remaining)
-Used: 0 (0.0%)
-Renews: 3/27/2026, 3:56:07 AM
+Searches: 0 / 250 (0.0% used)
+Remaining: 250 (100.0%)
+Renews: 3/27/2026, 4:33:04 AM
 Time: 59m from now
 🔮[██████████] 100%
 
+## 🧪 Mana
 ### 🧪 Mana (token)
-Remaining: 76.849 / 100 (76.8%)
-Used: 23.151 (23.2%)
-🧪[████████░░] 77%
-
+Used: 24.439 / 100 (24.4%)
+Remaining: 75.561 (75.6%)
+🧪[████████░░] 76%
+Renews: 3/27/2026, 4:38:50 AM
+Time: 1h 5m from now
 ━━━━━━━━━━━━━━━━
 API Key: syn_****************************4eb6
-Timestamp: 2026-03-27T06:56:41.448Z
+Timestamp: 2026-03-27T07:33:37.709Z
 ```
 
 - `█` (filled block): Represents used quota
@@ -292,32 +320,6 @@ The extension starts silently without automatically popping up usage details win
 ### Smart Refresh Button
 
 When viewing the usage details popup, clicking the **Refresh** button reloads the data and shows the updated information in the same popup instead of closing it. This makes it easy to monitor your usage in real-time.
-
-## Screenshots
-
-### Status Bar & Tooltip
-
-The status bar displays your current usage, and hovering over it shows detailed information including quota limits and renewal dates.
-
-![Status Bar with Tooltip](image/screens/statusbar-tooltip.jpg)
-
-### Warning State
-
-When your usage approaches the warning threshold (default: 80%), the status bar changes color to alert you.
-
-![Warning State](image/screens/warning.jpg)
-
-### Usage Details
-
-Click on the status bar item to view a detailed breakdown of your API usage, including raw numbers and quota information.
-
-![Usage Details](image/screens/details.jpg)
-
-### Commands
-
-Access all extension commands through the Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P`):
-
-![Commands](image/screens/commands.jpg)
 
 ## Configuration
 
