@@ -12,6 +12,14 @@ where patch versions start at 10000 instead of 0. This is compatible with SemVer
 
 Nothing yet
 
+## [1.0.10037] - 2026-03-27
+
+### Other
+- ~ [ reorder readme sections and update data ]:
+- ~ [ fix usage date formatting ]:
+- ~ [ display weekly token time remaining ]:
+- ~ [ refactor usage text labels ]:
+
 ## [1.0.10036] - 2026-03-27
 
 ### Other
