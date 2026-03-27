@@ -268,6 +268,103 @@ export class UsageIndicator {
     return tooltip;
   }
 
+  buildFormattedUsageText(usage: UsageInfo, config: Config, maskedKey: string): string {
+    const subscription = usage.subscription;
+    const search = usage.search;
+    const toolCalls = usage.toolCalls;
+    const weeklyTokens = usage.weeklyTokens;
+
+    const style = config.rpgThemeStyle ?? "mana";
+
+    let message = "### Synthetic.new Usage Details\n\n";
+
+    const subLabel = this.getRpgLabel("subscription", style);
+    message += this.buildCategoryText(subLabel, subscription, style, "subscription");
+
+    if (!(search.requests === 0 && search.limit === 0)) {
+      const searchLabel = this.getRpgLabel("search", style);
+      message += this.buildCategoryText(`${searchLabel} (hourly)`, search, style, "search");
+    }
+
+    if (!(toolCalls.requests === 0 && toolCalls.limit === 0)) {
+      const toolLabel = this.getRpgLabel("toolCalls", style);
+      message += this.buildCategoryText(`${toolLabel} (daily)`, toolCalls, style, "toolCalls");
+    }
+
+    if (weeklyTokens && (weeklyTokens.input.limit > 0 || weeklyTokens.output.limit > 0)) {
+      const tokensLabel = this.getRpgLabel("weeklyTokens", style);
+      if (weeklyTokens.input.limit > 0) {
+        message += this.buildTokenText(`${tokensLabel} (token)`, weeklyTokens.input);
+      }
+      if (weeklyTokens.output.limit > 0) {
+        message += this.buildTokenText(`${tokensLabel} (token)`, weeklyTokens.output);
+      }
+    }
+
+    message += `━━━━━━━━━━━━━━━━\nAPI Key: ${maskedKey}`;
+
+    return message;
+  }
+
+  private buildCategoryText(name: string, category: CategoryUsageInfo, style: RpgThemeStyle, categoryType?: "subscription" | "search" | "toolCalls" | "weeklyTokens"): string {
+    const percentageUsed = category.percentageUsed.toFixed(1);
+    const percentageRemaining = (100 - category.percentageUsed).toFixed(1);
+
+    const isManaBased = category.regenRate !== undefined;
+    const resourceLabel = isManaBased ? this.getRpgResourceLabel(style) : "Requests";
+
+    let icon = "⚡";
+    let progressType: "energy" | "mana" = "energy";
+    if (categoryType === "search") {
+      icon = "🔮";
+      progressType = "mana";
+    } else if (categoryType === "weeklyTokens") {
+      icon = "🧪";
+      progressType = "mana";
+    }
+
+    let section = `## ${icon} ${name}\n`;
+
+    if (isManaBased) {
+      const currentMana = category.remaining;
+      const maxMana = category.limit;
+      section += `${resourceLabel}: ${category.remaining.toLocaleString()} / ${maxMana.toLocaleString()} (${percentageRemaining}% remaining)\n`;
+      section += `Available: ${currentMana.toLocaleString()}\n`;
+      section += `Regen: +${category.regenRate} per min\n`;
+
+      if (category.nextRegen !== undefined && category.nextRegen > 0) {
+        section += `Next: ${category.nextRegen}s\n`;
+      }
+    } else {
+      section += `${resourceLabel}: ${category.remaining.toLocaleString()} / ${category.limit.toLocaleString()} (${percentageRemaining}% remaining)\n`;
+      section += `Used: ${category.requests.toLocaleString()} (${percentageUsed}%)\n`;
+    }
+
+    section += `Renews: ${category.renewAtString}\n`;
+    section += `Time: ${this.calculateTimeRemaining(category.renewAt)}\n`;
+    section += `${this.buildAsciiProgressBar(100 - category.percentageUsed, progressType)}\n\n`;
+
+    return section;
+  }
+
+  private buildTokenText(name: string, tokenInfo: TokenUsageInfo): string {
+    const percentageUsed = tokenInfo.percentageUsed.toFixed(1);
+    const percentageRemaining = (100 - tokenInfo.percentageUsed).toFixed(1);
+
+    const formattedCurrent = this.formatTokenNumber(tokenInfo.current);
+    const formattedLimit = this.formatTokenNumber(tokenInfo.limit);
+    const formattedRemaining = this.formatTokenNumber(tokenInfo.remaining);
+
+    const remainingPercentage = 100 - tokenInfo.percentageUsed;
+
+    let section = `### 🧪 ${name}\n`;
+    section += `Remaining: ${formattedRemaining} / ${formattedLimit} (${percentageRemaining}%)\n`;
+    section += `Used: ${formattedCurrent} (${percentageUsed}%)\n`;
+    section += `${this.buildAsciiProgressBar(remainingPercentage, "mana")}\n\n`;
+
+    return section;
+  }
+
   /**
    * Build tooltip section for token usage
    *
