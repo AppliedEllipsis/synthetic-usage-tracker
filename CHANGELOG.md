@@ -12,6 +12,12 @@ where patch versions start at 10000 instead of 0. This is compatible with SemVer
 
 Nothing yet
 
+## [1.0.10039] - 2026-03-27
+
+### Other
+- ~ [ update regeneration text display format ]:
+- ~ [ Update renewal text format ]:
+
 ## [1.0.10038] - 2026-03-27
 
 ### Other
