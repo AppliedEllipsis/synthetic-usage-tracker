@@ -431,13 +431,13 @@ export class SyntheticUsageTrackerExtension {
     // Check critical threshold
     if (subscriptionUsage.percentageUsed >= config.criticalThreshold) {
       vscode.window.showWarningMessage(
-        `Critical: ${subscriptionUsage.percentageUsed.toFixed(0)}% API quota used. ${subscriptionUsage.remaining} Searches remaining.`,
+        `Critical: ${subscriptionUsage.percentageUsed.toFixed(0)}% API quota used. ${subscriptionUsage.remaining} requests remaining.`,
       );
     }
     // Check warning threshold (but don't show if critical was already shown)
     else if (subscriptionUsage.percentageUsed >= config.warningThreshold) {
       vscode.window.showInformationMessage(
-        `Warning: ${subscriptionUsage.percentageUsed.toFixed(0)}% API quota used. ${subscriptionUsage.remaining} Searches remaining.`,
+        `Warning: ${subscriptionUsage.percentageUsed.toFixed(0)}% API quota used. ${subscriptionUsage.remaining} requests remaining.`,
       );
     }
   }
