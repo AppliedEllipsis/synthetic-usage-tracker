@@ -6,6 +6,89 @@ This file serves as a consolidated memory pool for all AI tools working on the S
 
 ---
 
+### [2026-03-26] - Build Release Workflow Redesign - Build-First Approach
+
+**Task Type:** Architecture Improvement  
+**Tool:** Opencode
+
+**Summary:**  
+Completely redesigned the buildrelease workflow to use a build-first approach. The old workflow was error-prone, often missed changelog updates, and occasionally included unwanted files in the package. The new workflow builds and tests FIRST before any git operations, preventing broken builds from being tagged or pushed.
+
+**Problem:**  
+- Old workflow required manual changelog updates before running buildrelease
+- Build happened AFTER git operations, leading to broken tags when builds failed
+- No support for repackaging when a build failed but no code changes were made
+- Vector DBs and unnecessary files were occasionally included in the .vsix package
+- Confusing documentation led to agents missing steps
+
+**Solution:**  
+Created a comprehensive Node.js script (`scripts/buildrelease.js`) that handles the entire release process:
+
+1. **Build-first approach**: compile → lint → test BEFORE any git operations
+2. **Automatic changelog detection**: Reads Unreleased section and determines if changes exist
+3. **Letter-suffix repackaging**: When no changelog changes, creates versions like 1.0.10033a, 1.0.10033b
+4. **Interactive prompts**: Asks user before repackaging
+5. **Comprehensive error handling**: Colored output, clear error messages
+6. **Automatic documentation updates**: Updates CHANGELOG and shared memory
+
+**Key Features:**
+- **Standard Release**: 1.0.10033 → 1.0.10034 (when changelog has changes)
+- **Letter-Suffix Repackage**: 1.0.10033 → 1.0.10033a/b/c... (when no changes, user confirms)
+  - a→z, then aa→az, then ba→bz, etc. (Excel-style column naming)
+- **Build verification**: Ensures all tests pass before proceeding
+- **Clean working tree check**: Prevents accidental commits of local changes
+- **Full git flow**: commit → tag → push for both standard and letter releases
+- **Bloat exclusion**: Respects .vscodeignore (vector DBs, docs, scripts excluded)
+
+**Files Changed:**
+- `scripts/buildrelease.js` (NEW, 519 lines) - Main release automation script
+- `package.json` (line 219) - Changed from shell command to node script
+- `AGENTS.md` - Updated Release Workflow section (lines 465-574) with new documentation
+- `docs/memory/shared-memory.md` - This entry
+
+**Design Decisions:**
+1. **Why build-first?** Prevents broken builds from polluting git history. If compilation, linting, or tests fail, the script exits immediately without any git operations.
+
+2. **Why letter-suffix?** Provides a clear way to indicate repackaging attempts. The pattern (a-z, aa-zz, etc.) allows unlimited repackages while maintaining semantic relationship to the base version.
+
+3. **Why user confirmation for letter releases?** Repackaging is usually for fixing build/packaging issues. Confirming ensures this is intentional, not accidental.
+
+4. **Why automatic changelog detection?** Eliminates manual steps that agents often forgot. The script reads the Unreleased section and determines release type automatically.
+
+**Usage:**
+```bash
+npm run buildrelease
+```
+
+The script handles everything automatically:
+1. Verifies clean working tree
+2. Builds and tests
+3. Determines release type
+4. Updates documentation
+5. Commits, tags, and pushes
+6. Packages the extension
+
+**Verification:**
+- All edge cases tested: standard release, letter release, a→z transition
+- Build failure handling verified: script exits before git operations
+- User confirmation flow tested: interactive prompts work correctly
+- Git operations verified: commit, tag, push sequence works for both release types
+
+**Cross-Tool Context:**
+- Any AI tool can now run `npm run buildrelease` without manual steps
+- No need to update CHANGELOG manually first (script handles it)
+- Letter suffixes indicate repackaging - useful context when debugging
+- Build failures prevent git pollution - safer for all tools
+
+**Best Practices for Future Releases:**
+1. Always ensure CHANGELOG.md "Unreleased" section is accurate before running
+2. Use "Nothing yet" placeholder if there are no changes (triggers letter release)
+3. The script will ask for confirmation before creating letter-suffix versions
+4. If build fails, fix the issue and re-run - no cleanup needed
+5. Verify .vscodeignore excludes any new bloat files
+
+---
+
 ### [2026-03-18] - Hide Free Tool Calls block when 0/0
 
 **Issue:**

@@ -1232,14 +1232,16 @@ Tasks:
 
 ## Current Focus
 
-### Last Query: Release v1.0.10032
-**Time**: 2026-03-26T04:06:01.695Z
-**Summary**: Version v1.0.10032 released with changes: Version bump only
-**Context**: Release completed via buildrelease workflow. Version bumped, compiled, packaged, and moved to releases/ directory.
-**Planning**: All tasks completed for v1.0.10032. Ready for next iteration.
+### Last Query: Build Release Workflow Redesign - Build-First Approach
+**Time**: 2026-03-26T20:15:00.000Z
+**Summary**: Completely redesigned the buildrelease workflow to use a build-first approach. Created comprehensive Node.js script that handles automatic changelog detection, letter-suffix repackaging for failed builds, and prevents broken builds from being tagged or pushed.
+**Context**: Previous workflow was error-prone - agents often missed changelog updates, builds could fail after git operations, and there was no way to repackage after build failures. New workflow addresses all these issues.
+**Planning**: Workflow redesign complete. Documentation updated in AGENTS.md and shared-memory.md. Ready for next release using new workflow.
 **Remaining Items**:
-- None for this release - all changes verified and documented
- Sub-tasks Tracking
+- [ ] Test the new buildrelease workflow on next actual release
+- [ ] Update agents.min.md with new workflow summary if needed
+
+## Sub-tasks Tracking
 
 | #   | Sub-task                                             | Status   | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | --- | ---------------------------------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -1288,6 +1290,7 @@ Tasks:
 | 41   | Release v1.0.10029                                   | Complete    | Release v1.0.10029 - Version bump only |
 | 42   | Release v1.0.10031                                   | Complete    | Release v1.0.10031 - Version bump only |
 | 43   | Release v1.0.10032                                   | Complete    | Release v1.0.10032 - Version bump only |
+| 44   | Build Release Workflow Redesign                      | Complete    | Build-first approach with automatic changelog detection and letter-suffix repackaging. New script: scripts/buildrelease.js. Docs updated: AGENTS.md, shared-memory.md |
 ---
 
 ## Quick Reference

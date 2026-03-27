@@ -464,76 +464,111 @@ This command:
 
 ### Release Workflow
 
-The `buildrelease` command automates the complete release process, from CHANGELOG updates to git push and packaging. Use this workflow when preparing a new release for distribution.
+The `buildrelease` command automates the complete release process with a **build-first approach** to ensure only successful builds are tagged and pushed. This prevents broken builds from polluting the git history.
 
-#### Critical: LLM Agent Workflow for "buildrelease" Command
+#### Overview
 
-**When the user says "buildrelease", follow this exact sequence:**
+The release process now uses a single comprehensive script (`scripts/buildrelease.js`) that:
+- Builds and tests FIRST before any git operations
+- Automatically detects changelog changes and determines release type
+- Supports standard version bumps OR letter-suffix repackaging
+- Handles all git operations (commit, tag, push) in one flow
 
-1. **Update CHANGELOG with predicted version**:
-   ```bash
-   node scripts/update-changelog-for-release.js
-   ```
-   - This script reads package.json current version (e.g., 1.0.10023)
-   - Predicts next version by incrementing patch (e.g., 1.0.10024)
-   - Moves "Unreleased" section to `## [1.0.10024] - YYYY-MM-DD`
-   - Creates new empty "Unreleased" section
+#### Usage
 
-2. **Verify CHANGELOG update**:
-   - Check that the version header matches what `npm version patch` will create
-   - The script uses the same prediction logic as `npm version patch`
-   - Current version + 1 patch = predicted version in CHANGELOG
-
-3. **Ensure working tree is clean before continuing**
-
-4. **Run buildrelease**:
-   ```bash
-   npm run buildrelease
-   ```
-   - This confirms the CHANGELOG (already updated)
-   - Runs memory update
-   - Runs `npm version patch` (increments to predicted version)
-   - Pushes commits and tags
-   - Compiles and packages
-
-5. **Handle version mismatches if they occur**:
-   - If `npm version patch` fails or needs to run again
-   - You may need to manually update the CHANGELOG version to match
-   - Example: If patch increments again to 1.0.10025, update changelog header
-
-**Why this workflow exists**:
-- The LLM agent explicitly updates the CHANGELOG before running buildrelease
-- This ensures the CHANGELOG version matches the package.json version after bump
-- The `update-changelog-for-release.js` script predicts the same version `npm version patch` will create
-- This gives the agent control over the process and allows for manual intervention if needed
-
-#### Building a Release
-
-Execute the release workflow:
-
+**Simple usage - just run:**
 ```bash
-# Step 1: Update CHANGELOG (LLM agent does this first)
-node scripts/update-changelog-for-release.js
-
-# Step 2: Verify the version prediction
-# Check that the CHANGELOG shows the correct next version
-
-# Step 3: Run buildrelease
 npm run buildrelease
 ```
 
-This command performs the following steps in sequence:
+That's it. The script handles everything:
+1. Verifies clean working tree
+2. Builds and tests (compile + lint + test)
+3. Checks for changelog changes
+4. Updates CHANGELOG if needed
+5. Commits and tags with appropriate version
+6. Pushes to remote
+7. Packages the extension
 
-1. **Confirm CHANGELOG changes**: Adds CHANGELOG.md to staging
-2. **Commit CHANGELOG**: Creates a git commit for the CHANGELOG update
-3. **Update memory**: Runs memory update script to document the release
-4. **Commit memory**: Creates a git commit for the memory update
-5. **Bump version**: Runs `npm version patch` to increment the patch version (e.g., 1.0.10023 → 1.0.10024)
-6. **Create git tag**: Tags the version commit with the version number
-7. **Push to remote**: Pushes commits and tags to the remote repository
-8. **Compile TypeScript**: Builds the extension
-9. **Package extension**: Creates the `.vsix` file
-10. **Move to releases**: Moves the `.vsix` file to the [`releases/`](releases/) directory
+#### Release Types
+
+**Standard Release** (when Unreleased section has actual changes):
+- Version bump: `1.0.10033` → `1.0.10034`
+- CHANGELOG is updated with new version header
+- Creates git commit and tag (v1.0.10034)
+- Pushes commits and tags
+
+**Letter-Suffix Repackage** (when no changelog changes exist):
+- Version bump: `1.0.10033` → `1.0.10033a` (or b, c, etc.)
+- Uses same CHANGELOG version (no new entry)
+- Creates git commit and tag (v1.0.10033a)
+- Pushes commits and tags
+- Designed for repackaging after build failures
+
+#### Workflow Details
+
+**The buildrelease script performs these steps:**
+
+1. **Verify working tree is clean**
+   - Ensures no uncommitted changes before starting
+
+2. **Build and Test** (CRITICAL - happens BEFORE git operations)
+   - `npm run compile` - TypeScript compilation
+   - `npm run lint` - Code quality checks
+   - `npm run test` - Test suite
+   - If any step fails, the script exits with error (no git changes made)
+
+3. **Check Changelog**
+   - Reads CHANGELOG.md Unreleased section
+   - Determines if there are actual changes (not just "Nothing yet")
+
+4. **Determine Release Type**
+   - **Has changes**: Standard release with version bump
+   - **No changes**: Letter-suffix repackage (with user confirmation)
+
+5. **Update Documentation**
+   - Updates CHANGELOG.md (if standard release)
+   - Updates docs/memory/shared-memory.md with release entry
+
+6. **Git Operations**
+   - Commits CHANGELOG and memory updates
+   - Bumps version in package.json (npm version)
+   - Creates git tag (vX.Y.Z or vX.Y.Za)
+   - Pushes commits and tags to remote
+
+7. **Package Extension**
+   - Creates .vsix file using vsce
+   - Moves to releases/ directory
+   - Excludes vector DBs, docs, scripts, and other bloat per .vscodeignore
+
+#### Letter-Suffix Logic
+
+When repackaging without changelog changes:
+- `1.0.10033` → `1.0.10033a` (first repackage)
+- `1.0.10033a` → `1.0.10033b` (second repackage)
+- `1.0.10033z` → `1.0.10033aa` (continues beyond z)
+- `1.0.10033az` → `1.0.10033ba` (increments like Excel columns)
+
+**Why letter suffixes?**
+- Indicates a repackage of the same version
+- Useful when a previous build/packaging failed
+- Maintains clear relationship to base version
+- Allows unlimited repackages (a-z, aa-zz, aaa-zzz, etc.)
+
+#### Important Changes from Previous Workflow
+
+**OLD workflow (confusing and error-prone):**
+- Agent had to manually run update-changelog-for-release.js first
+- Agent had to verify version prediction
+- Build happened AFTER version bump and git operations
+- No support for repackaging
+
+**NEW workflow (simple and robust):**
+- Single command: `npm run buildrelease`
+- Build happens FIRST (prevents broken tags)
+- Automatic changelog detection
+- Built-in letter-suffix support
+- All git operations handled automatically
 
 #### Pre-Release Requirements
 
@@ -542,10 +577,9 @@ Before running the release workflow:
 1. **Update CHANGELOG.md**: Add all changes to the "Unreleased" section with proper categorization (Added, Changed, Fixed, Removed)
    - Use "Nothing yet" placeholder if there are no changes
 2. **Ensure working tree is clean**: All changes should be committed or stashed
-3. **Verify tests pass**: `npm run test`
-4. **Verify compilation**: `npm run compile`
-5. **Verify linting**: `npm run lint`
-6. **Update user-facing documentation**: Update [`README.md`](README.md) if user-facing changes were made
+3. **Update user-facing documentation**: Update [`README.md`](README.md) if user-facing changes were made
+
+**Note**: Tests, compilation, and linting are now run automatically by the buildrelease script BEFORE any git operations.
 
 #### Version Incrementing
 
