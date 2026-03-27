@@ -293,12 +293,15 @@ export class UsageIndicator {
 
     if (weeklyTokens && (weeklyTokens.input.limit > 0 || weeklyTokens.output.limit > 0)) {
       const tokensLabel = this.getRpgLabel("weeklyTokens", style);
+      message += `## ${tokensLabel}\n`;
       if (weeklyTokens.input.limit > 0) {
         message += this.buildTokenText(`${tokensLabel} (token)`, weeklyTokens.input);
       }
       if (weeklyTokens.output.limit > 0) {
         message += this.buildTokenText(`${tokensLabel} (token)`, weeklyTokens.output);
       }
+      message += `Renews: ${weeklyTokens.renewAtString}\n`;
+      message += `Time: ${this.calculateTimeRemaining(weeklyTokens.renewAt)}\n\n`;
     }
 
     message += `━━━━━━━━━━━━━━━━\nAPI Key: ${maskedKey}`;
