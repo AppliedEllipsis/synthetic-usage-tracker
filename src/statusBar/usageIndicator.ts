@@ -311,7 +311,7 @@ export class UsageIndicator {
     const percentageRemaining = (100 - category.percentageUsed).toFixed(1);
 
     const isManaBased = category.regenRate !== undefined;
-    const resourceLabel = isManaBased ? this.getRpgResourceLabel(style) : "Requests";
+    const resourceLabel = isManaBased ? this.getRpgResourceLabel(style) : "Searches";
 
     let icon = "⚡";
     let progressType: "energy" | "mana" = "energy";
@@ -487,7 +487,7 @@ export class UsageIndicator {
     const timeRemaining = this.calculateTimeRemaining(category.renewAt);
 
     const isManaBased = category.regenRate !== undefined;
-    const resourceLabel = isManaBased ? this.getRpgResourceLabel(style) : "Requests";
+    const resourceLabel = isManaBased ? this.getRpgResourceLabel(style) : "Searches";
 
     let icon = "⚡";
     let progressType: "energy" | "mana" = "energy";
