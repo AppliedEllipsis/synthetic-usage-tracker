@@ -302,7 +302,7 @@ export class UsageIndicator {
       message += `Time: ${this.calculateTimeRemaining(weeklyTokens.renewAt)}\n`;
     }
 
-    message += `━━━━━━━━━━━━━━━━\nAPI Key: ${maskedKey}`;
+    message += `\n━━━━━━━━━━━━━━━━\nAPI Key: ${maskedKey}`;
 
     return message;
   }
