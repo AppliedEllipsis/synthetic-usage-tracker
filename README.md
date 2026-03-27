@@ -4,8 +4,6 @@
 
 A VSCode extension that monitors your Synthetic.new API usage and quotas directly from the status bar.
 
-> **Icon Note**: The extension icon features a **chemistry flask** (🧪), representing the experimental and innovative nature of Synthetic.new's AI platform. The flask symbolizes the blending of creativity and science in AI-assisted development.
-
 [![VSCode Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/Ellipsis.synthetic-usage-tracker?logo=visual-studio-code&label=VSCode%20Marketplace&cacheSeconds=3600&logoColor=white&style=flat-square)](https://marketplace.visualstudio.com/items?itemName=Ellipsis.synthetic-usage-tracker)
 [![VSCode Marketplace Installs](https://img.shields.io/visual-studio-marketplace/i/Ellipsis.synthetic-usage-tracker?logo=visual-studio-code&color=007acc&cacheSeconds=3600&logoColor=white&style=flat-square)](https://marketplace.visualstudio.com/items?itemName=Ellipsis.synthetic-usage-tracker)
 [![VSCode Marketplace Rating](https://img.shields.io/visual-studio-marketplace/stars/Ellipsis.synthetic-usage-tracker?logo=visual-studio-code&color=007acc&cacheSeconds=3600&logoColor=white&style=flat-square)](https://marketplace.visualstudio.com/items?itemName=Ellipsis.synthetic-usage-tracker)
