@@ -293,7 +293,8 @@ export class UsageIndicator {
 
     if (weeklyTokens && (weeklyTokens.input.limit > 0 || weeklyTokens.output.limit > 0)) {
       const tokensLabel = this.getRpgLabel("weeklyTokens", style);
-      message += `## ${tokensLabel}\n`;
+      const icon = "🧪";
+      message += `## ${icon} ${tokensLabel}\n`;
       if (weeklyTokens.input.limit > 0) {
         message += this.buildTokenText(`${tokensLabel} (token)`, weeklyTokens.input);
       }
@@ -301,7 +302,7 @@ export class UsageIndicator {
         message += this.buildTokenText(`${tokensLabel} (token)`, weeklyTokens.output);
       }
       message += `Renews: ${weeklyTokens.renewAtString}\n`;
-      message += `Time: ${this.calculateTimeRemaining(weeklyTokens.renewAt)}\n\n`;
+      message += `Time: ${this.calculateTimeRemaining(weeklyTokens.renewAt)}\n`;
     }
 
     message += `━━━━━━━━━━━━━━━━\nAPI Key: ${maskedKey}`;
@@ -371,7 +372,7 @@ export class UsageIndicator {
     let section = `### 🧪 ${name}\n`;
     section += `Used: ${formattedCurrent} / ${formattedLimit} (${percentageUsed}%)\n`;
     section += `Remaining: ${formattedRemaining} (${percentageRemaining}%)\n`;
-    section += `${this.buildAsciiProgressBar(remainingPercentage, "mana")}\n\n`;
+    section += `${this.buildAsciiProgressBar(remainingPercentage, "mana")}\n`;
 
     return section;
   }

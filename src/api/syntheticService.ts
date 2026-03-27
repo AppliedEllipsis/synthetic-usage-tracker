@@ -408,6 +408,11 @@ export class SyntheticService {
       const percentageUsed = 100 - weeklyTokenLimit.percentRemaining;
       const renewsAt = weeklyTokenLimit.nextRegenAt || weeklyTokenLimit.renewsAt;
 
+      const renewAt = renewsAt ? new Date(renewsAt) : new Date();
+      const renewAtString = isNaN(renewAt.getTime())
+        ? "Unknown"
+        : renewAt.toLocaleString();
+
       return {
         input: {
           current: percentageUsed,
@@ -421,8 +426,8 @@ export class SyntheticService {
           remaining: 0,
           percentageUsed: 0,
         },
-        renewAt: renewsAt ? new Date(renewsAt) : new Date(),
-        renewAtString: renewsAt || new Date().toISOString(),
+        renewAt,
+        renewAtString,
       };
     }
 
@@ -441,6 +446,10 @@ export class SyntheticService {
           : 0;
 
       const renewsAt = weeklyTokenLimit.renewsAt || new Date().toISOString();
+      const renewAt = new Date(renewsAt);
+      const renewAtString = isNaN(renewAt.getTime())
+        ? "Unknown"
+        : renewAt.toLocaleString();
 
       return {
         input: {
@@ -455,8 +464,8 @@ export class SyntheticService {
           remaining: outputRemaining,
           percentageUsed: outputPercentageUsed,
         },
-        renewAt: new Date(renewsAt),
-        renewAtString: renewsAt,
+        renewAt,
+        renewAtString,
       };
     }
 
