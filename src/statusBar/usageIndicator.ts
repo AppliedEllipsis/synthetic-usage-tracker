@@ -350,7 +350,7 @@ export class UsageIndicator {
 
     section += `Renews: ${category.renewAtString}\n`;
     section += `Time: ${this.calculateTimeRemaining(category.renewAt)}\n`;
-    section += `${this.buildAsciiProgressBar(100 - category.percentageUsed, progressType)}\n\n`;
+    section += `${this.buildAsciiProgressBar(100 - category.percentageUsed, progressType, icon)}\n\n`;
 
     return section;
   }
@@ -534,7 +534,7 @@ export class UsageIndicator {
 
     section += `Renews: ${category.renewAtString}\n`;
     section += `Time: ${timeRemaining}\n`;
-    section += `${this.buildAsciiProgressBar(100 - category.percentageUsed, progressType)}\n\n`;
+    section += `${this.buildAsciiProgressBar(100 - category.percentageUsed, progressType, icon)}\n\n`;
 
     return section;
   }
@@ -616,11 +616,11 @@ export class UsageIndicator {
    *
    * Public method to allow extension.ts to reuse for popup display.
    */
-  buildAsciiProgressBar(percentage: number, type?: "energy" | "mana"): string {
+  buildAsciiProgressBar(percentage: number, type?: "energy" | "mana", customIcon?: string): string {
     const totalSegments = 10;
     const filledSegments = Math.round((percentage / 100) * totalSegments);
     const emptySegments = totalSegments - filledSegments;
-    const icon = type === "energy" ? "⚡" : type === "mana" ? "🧪" : "";
+    const icon = customIcon ?? (type === "energy" ? "⚡" : type === "mana" ? "🧪" : "");
     return `${icon}[${"█".repeat(filledSegments)}${"░".repeat(emptySegments)}] ${percentage.toFixed(0)}%`;
   }
 
