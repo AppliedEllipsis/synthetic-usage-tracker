@@ -352,7 +352,9 @@ export class UsageIndicator {
       section += `Remaining: ${category.remaining.toLocaleString()} (${percentageRemaining}%)\n`;
     }
 
-    section += `2% Regen @ ${category.renewAtString}\n`;
+    section += isManaBased
+      ? `2% Regen @ ${category.renewAtString}\n`
+      : `Resets @ ${category.renewAtString}\n`;
     section += `Time: ${this.calculateTimeRemaining(category.renewAt)}\n`;
     section += `${this.buildAsciiProgressBar(100 - category.percentageUsed, progressType, icon)}\n\n`;
 
@@ -536,7 +538,9 @@ export class UsageIndicator {
       section += `Remaining: ${category.remaining.toLocaleString()} (${percentageRemaining}%)\n`;
     }
 
-    section += `2% Regen @ ${category.renewAtString}\n`;
+    section += isManaBased
+      ? `2% Regen @ ${category.renewAtString}\n`
+      : `Resets @ ${category.renewAtString}\n`;
     section += `Time: ${timeRemaining}\n`;
     section += `${this.buildAsciiProgressBar(100 - category.percentageUsed, progressType, icon)}\n\n`;
 
