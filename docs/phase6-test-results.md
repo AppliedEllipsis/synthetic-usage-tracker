@@ -223,7 +223,7 @@ The following manual testing items require user verification by launching the ex
 | Item | Status | Notes |
 |------|--------|-------|
 | Extension activates without errors | ⏳ PENDING | Requires F5 launch |
-| Status bar displays correctly with new icon (`$(api)`) | ⏳ PENDING | Verify icon in status bar |
+| Status bar displays correctly with chemistry flask icon | ⏳ PENDING | Verify chemistry flask (🧪) icon in status bar |
 
 ### 5.2 API Key Configuration
 
@@ -275,7 +275,7 @@ The following manual testing items require user verification by launching the ex
    - Verify the key is stored securely
 
 3. **Test Usage Display**:
-   - Observe the status bar for the new `$(api)` icon
+   - Observe the status bar for the chemistry flask (🧪) icon
    - Hover over the status bar item to see the tooltip
    - Verify ASCII progress bars for all three quotas
    - Verify masked API key display

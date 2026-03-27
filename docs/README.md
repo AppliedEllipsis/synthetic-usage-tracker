@@ -2,6 +2,10 @@
 
 Welcome to the comprehensive documentation for the Synthetic.new Usage Tracker VSCode extension.
 
+![Extension Icon](../image/icon/icon_128.png)
+
+The extension icon features a **chemistry flask** (🧪), representing the experimental and innovative nature of Synthetic.new's AI platform.
+
 ## Table of Contents
 
 - [Installation Guide](installation.md) - How to install the extension

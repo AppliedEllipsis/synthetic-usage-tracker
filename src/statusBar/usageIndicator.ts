@@ -324,7 +324,7 @@ export class UsageIndicator {
     let icon = "⚡";
     let progressType: "energy" | "mana" = "energy";
     if (categoryType === "search") {
-      icon = "🧪";
+      icon = "🔮";
       progressType = "mana";
     } else if (categoryType === "weeklyTokens") {
       icon = "🧪";
@@ -508,7 +508,7 @@ export class UsageIndicator {
     let icon = "⚡";
     let progressType: "energy" | "mana" = "energy";
     if (categoryType === "search") {
-      icon = "🧪";
+      icon = "🔮";
       progressType = "mana";
     } else if (categoryType === "weeklyTokens") {
       icon = "🧪";

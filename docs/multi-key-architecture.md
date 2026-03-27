@@ -522,7 +522,7 @@ async migrateLegacyKey(): Promise<void> {
 ```
 
 **Status Bar Components**:
-- **Icon**: Synthetic.new icon
+- **Icon**: Chemistry flask (🧪) icon representing Synthetic.new
 - **Usage**: Current usage percentage (85%)
 - **Key Index**: Active key position (1/3 means key 1 of 3)
 - **Label**: User-provided label for active key (truncated if too long)
