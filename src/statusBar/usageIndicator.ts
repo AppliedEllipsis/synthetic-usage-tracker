@@ -259,8 +259,8 @@ export class UsageIndicator {
         const outputLabel = this.getRpgLabel("weeklyTokens", style);
         tooltip += this.buildTokenTooltip(`${outputLabel} (token)`, weeklyTokens.output);
       }
-      tooltip += `Renews At: ${weeklyTokens.renewAtString}\n`;
-      tooltip += `Time Remaining: ${this.calculateTimeRemaining(weeklyTokens.renewAt)}\n\n`;
+      tooltip += `Renews: ${weeklyTokens.renewAtString}\n`;
+      tooltip += `Time: ${this.calculateTimeRemaining(weeklyTokens.renewAt)}\n\n`;
     }
 
     tooltip += `━━━━━━━━━━━━━━━━\nAPI Key: ${maskedKey}`;
@@ -336,16 +336,16 @@ export class UsageIndicator {
     if (isManaBased) {
       const currentMana = category.remaining;
       const maxMana = category.limit;
-      section += `${resourceLabel}: ${category.remaining.toLocaleString()} / ${maxMana.toLocaleString()} (${percentageRemaining}% remaining)\n`;
-      section += `Available: ${currentMana.toLocaleString()}\n`;
+      section += `${resourceLabel}: ${category.requests.toLocaleString()} / ${maxMana.toLocaleString()} (${percentageUsed}% used)\n`;
+      section += `Remaining: ${currentMana.toLocaleString()}\n`;
       section += `Regen: +${category.regenRate} per min\n`;
 
       if (category.nextRegen !== undefined && category.nextRegen > 0) {
         section += `Next: ${category.nextRegen}s\n`;
       }
     } else {
-      section += `${resourceLabel}: ${category.remaining.toLocaleString()} / ${category.limit.toLocaleString()} (${percentageRemaining}% remaining)\n`;
-      section += `Used: ${category.requests.toLocaleString()} (${percentageUsed}%)\n`;
+      section += `${resourceLabel}: ${category.requests.toLocaleString()} / ${category.limit.toLocaleString()} (${percentageUsed}% used)\n`;
+      section += `Remaining: ${category.remaining.toLocaleString()} (${percentageRemaining}%)\n`;
     }
 
     section += `Renews: ${category.renewAtString}\n`;
@@ -366,8 +366,8 @@ export class UsageIndicator {
     const remainingPercentage = 100 - tokenInfo.percentageUsed;
 
     let section = `### 🧪 ${name}\n`;
-    section += `Remaining: ${formattedRemaining} / ${formattedLimit} (${percentageRemaining}%)\n`;
-    section += `Used: ${formattedCurrent} (${percentageUsed}%)\n`;
+    section += `Used: ${formattedCurrent} / ${formattedLimit} (${percentageUsed}%)\n`;
+    section += `Remaining: ${formattedRemaining} (${percentageRemaining}%)\n`;
     section += `${this.buildAsciiProgressBar(remainingPercentage, "mana")}\n\n`;
 
     return section;
@@ -391,8 +391,8 @@ export class UsageIndicator {
     const remainingPercentage = 100 - tokenInfo.percentageUsed;
 
     let section = `### 🧪 ${name}\n`;
-    section += `Remaining: ${formattedRemaining} / ${formattedLimit} (${percentageRemaining}%)\n`;
-    section += `Used: ${formattedCurrent} (${percentageUsed}%)\n`;
+    section += `Used: ${formattedCurrent} / ${formattedLimit} (${percentageUsed}%)\n`;
+    section += `Remaining: ${formattedRemaining} (${percentageRemaining}%)\n`;
     section += `${this.buildAsciiProgressBar(remainingPercentage, "mana")}\n`;
 
     return section;
@@ -520,16 +520,16 @@ export class UsageIndicator {
     if (isManaBased) {
       const currentMana = category.remaining;
       const maxMana = category.limit;
-      section += `${resourceLabel}: ${category.remaining.toLocaleString()} / ${maxMana.toLocaleString()} (${percentageRemaining}% remaining)\n`;
-      section += `Available: ${currentMana.toLocaleString()}\n`;
+      section += `${resourceLabel}: ${category.requests.toLocaleString()} / ${maxMana.toLocaleString()} (${percentageUsed}% used)\n`;
+      section += `Remaining: ${currentMana.toLocaleString()}\n`;
       section += `Regen: +${category.regenRate} per min\n`;
 
       if (category.nextRegen !== undefined && category.nextRegen > 0) {
         section += `Next: ${category.nextRegen}s\n`;
       }
     } else {
-      section += `${resourceLabel}: ${category.remaining.toLocaleString()} / ${category.limit.toLocaleString()} (${percentageRemaining}% remaining)\n`;
-      section += `Used: ${category.requests.toLocaleString()} (${percentageUsed}%)\n`;
+      section += `${resourceLabel}: ${category.requests.toLocaleString()} / ${category.limit.toLocaleString()} (${percentageUsed}% used)\n`;
+      section += `Remaining: ${category.remaining.toLocaleString()} (${percentageRemaining}%)\n`;
     }
 
     section += `Renews: ${category.renewAtString}\n`;
