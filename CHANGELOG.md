@@ -12,6 +12,22 @@ where patch versions start at 10000 instead of 0. This is compatible with SemVer
 
 Nothing yet
 
+## [1.0.10035] - 2026-03-27
+
+### Changed
+- [refactor] always increment patch version and auto-generate changelog from git history
+
+### Other
+- ~ [ update UI screenshot references ]:
+- ~ [ swap magic crystal icon for chemistry flask ]:
+- ~ [ fix usage indicator label determination logic ]:
+- ~ [ update usage label from requests to searches ]:
+- ~ [ add copy raw api response command ]:
+- ~ [ extract usage message formatting logic ]:
+- ~ [ dynamic labels for usage metrics based on theme ]:
+- ~ [ update weekly limits section header ]:
+- ~ [Change tooltip labels from 'Input/Output Tokens' to 'Mana (token)']:
+
 ## [1.0.10034] - 2026-03-27
 
 ### Notes
