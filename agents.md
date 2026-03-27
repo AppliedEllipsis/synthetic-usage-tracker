@@ -555,6 +555,8 @@ When repackaging without changelog changes:
 - Maintains clear relationship to base version
 - Allows unlimited repackages (a-z, aa-zz, aaa-zzz, etc.)
 
+**⚠️ VSCE Limitation**: VS Code Extension CLI (`vsce`) requires strict SemVer format (X.Y.Z) and rejects versions with letter suffixes (e.g., `1.0.10033a`). When repackaging is needed, use a standard patch increment instead.
+
 #### Important Changes from Previous Workflow
 
 **OLD workflow (confusing and error-prone):**

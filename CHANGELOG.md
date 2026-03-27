@@ -10,7 +10,8 @@ where patch versions start at 10000 instead of 0. This is compatible with SemVer
 
 ## Unreleased
 
-Nothing yet
+### Notes
+- Incrementing version for repackage (VSCE requires strict SemVer, letter-suffix not supported)
 
 
 ## [1.0.10033] - 2026-03-26
