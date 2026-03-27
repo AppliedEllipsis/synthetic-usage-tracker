@@ -196,9 +196,30 @@ The extension provides several visual indicators in the status bar to help you q
 Hover over the status bar to see detailed category breakdowns with visual progress bars for each quota type:
 
 ```
-Subscription:    ████████████░░░░░░░ 850/1000 (85%)
-Search (hourly): ████████████████░░ 16/20 (80%) 🔍
-Tool Calls:      ████████████░░░░░░░ 120/200 (60%) 🔧
+### Synthetic.new Usage Details
+
+## ⚡ Energy
+Requests: 248.667 / 600 (41.4% remaining)
+Used: 351.333 (58.6%)
+Renews: 3/27/2026, 5:00:55 AM
+Time: 2h 22m from now
+⚡[████░░░░░░] 41%
+
+## 🧪 Guidance (hourly)
+Searches: 250 / 250 (100.0% remaining)
+Used: 0 (0.0%)
+Renews: 3/27/2026, 3:38:43 AM
+Time: 59m from now
+🧪[██████████] 100%
+
+### 🧪 Mana (token)
+Remaining: 78.709 / 100 (78.7%)
+Used: 21.291 (21.3%)
+🧪[████████░░] 79%
+
+━━━━━━━━━━━━━━━━
+API Key: syn_****************************4eb6
+Timestamp: 2026-03-27T06:38:48.256Z
 ```
 
 - `█` (filled block): Represents used quota
