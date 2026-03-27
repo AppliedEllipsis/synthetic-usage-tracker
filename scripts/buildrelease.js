@@ -7,27 +7,21 @@
  * 1. Verify clean working tree
  * 2. Build and test (compile + lint + test)
  * 3. Check CHANGELOG for Unreleased content
- * 4. If changelog has changes:
- *    - Update CHANGELOG with predicted version
- *    - Update MEMORY.md
- *    - Commit both
- *    - Bump version (npm version patch)
- *    - Push and tag
- *    - Package
- * 5. If no changelog changes:
- *    - Prompt for letter-suffix repackage (a, b, c...)
- *    - Update package.json with letter version
- *    - Commit and tag
- *    - Push
- *    - Package
+ * 4. If no unreleased content exists:
+ *    - Generate changelog from git commits since last tag
+ * 5. Update CHANGELOG with new version
+ * 6. Update MEMORY.md
+ * 7. Commit both
+ * 8. Bump version (npm version patch)
+ * 9. Push and tag
+ * 10. Package
  *
- * This ensures broken builds never get tagged, and repackages are clearly versioned.
+ * This ensures builds are always tagged with incrementing patch versions.
  */
 
 const fs = require('fs');
 const path = require('path');
-const { execSync, spawnSync } = require('child_process');
-const readline = require('readline');
+const { execSync } = require('child_process');
 
 const projectRoot = path.resolve(__dirname, '..');
 
@@ -144,6 +138,186 @@ async function buildAndTest() {
 }
 
 /**
+ * Get the latest git tag
+ */
+function getLatestTag() {
+  try {
+    const tag = exec('git tag --sort=-creatordate', { silent: true });
+    return tag?.trim().split('\n')[0] || null;
+  } catch (err) {
+    return null;
+  }
+}
+
+/**
+ * Get commits since the last tag
+ */
+function getCommitsSinceTag(tag) {
+  if (!tag) {
+    // Get all commits if no tag exists
+    try {
+      const commits = exec('git log --oneline --no-merges', { silent: true });
+      return commits?.trim() || '';
+    } catch (err) {
+      return '';
+    }
+  }
+
+  try {
+    const commits = exec(`git log ${tag}..HEAD --oneline --no-merges`, { silent: true });
+    return commits?.trim() || '';
+  } catch (err) {
+    return '';
+  }
+}
+
+/**
+ * Parse conventional commits and categorize them
+ */
+function parseCommits(commitsStr) {
+  if (!commitsStr) return null;
+
+  const lines = commitsStr.split('\n').filter(line => line.trim());
+
+  const categories = {
+    added: [],
+    changed: [],
+    fixed: [],
+    removed: [],
+    other: []
+  };
+
+  for (const line of lines) {
+    // Parse commit message: "hash type(scope): message" or "hash type: message"
+    const match = line.match(/^\s*[a-f0-9]+\s+(?:(\w+)(?:\([^)]+\))?:\s*)?(.+)$/i);
+    if (!match) {
+      categories.other.push(line.replace(/^\s*[a-f0-9]+\s+/, ''));
+      continue;
+    }
+
+    const [, type, message] = match;
+    const cleanMessage = message.trim();
+
+    if (!type) {
+      categories.other.push(cleanMessage);
+      continue;
+    }
+
+    const lowerType = type.toLowerCase();
+
+    switch (lowerType) {
+      case 'feat':
+      case 'feature':
+        categories.added.push(cleanMessage);
+        break;
+      case 'fix':
+        categories.fixed.push(cleanMessage);
+        break;
+      case 'docs':
+      case 'refactor':
+      case 'perf':
+      case 'style':
+      case 'chore':
+      case 'test':
+      case 'build':
+      case 'ci':
+        categories.changed.push(`[${lowerType}] ${cleanMessage}`);
+        break;
+      case 'revert':
+        categories.fixed.push(`(Reverted) ${cleanMessage}`);
+        break;
+      case 'remove':
+      case 'delete':
+        categories.removed.push(cleanMessage);
+        break;
+      default:
+        categories.other.push(cleanMessage);
+    }
+  }
+
+  return categories;
+}
+
+/**
+ * Generate changelog content from git commits
+ */
+function generateChangelogFromCommits() {
+  log('\n📝 Generating changelog from git history...', 'bright');
+
+  const latestTag = getLatestTag();
+  info(`Latest tag: ${latestTag || 'none'}`);
+
+  const commits = getCommitsSinceTag(latestTag);
+
+  if (!commits) {
+    warn('No commits found since last tag');
+    return null;
+  }
+
+  const categories = parseCommits(commits);
+
+  if (!categories) {
+    warn('Could not parse commits');
+    return null;
+  }
+
+  // Build changelog content
+  let content = '';
+
+  if (categories.added.length > 0) {
+    content += '### Added\n';
+    for (const item of categories.added) {
+      content += `- ${item}\n`;
+    }
+    content += '\n';
+  }
+
+  if (categories.changed.length > 0) {
+    content += '### Changed\n';
+    for (const item of categories.changed) {
+      content += `- ${item}\n`;
+    }
+    content += '\n';
+  }
+
+  if (categories.fixed.length > 0) {
+    content += '### Fixed\n';
+    for (const item of categories.fixed) {
+      content += `- ${item}\n`;
+    }
+    content += '\n';
+  }
+
+  if (categories.removed.length > 0) {
+    content += '### Removed\n';
+    for (const item of categories.removed) {
+      content += `- ${item}\n`;
+    }
+    content += '\n';
+  }
+
+  if (categories.other.length > 0) {
+    content += '### Other\n';
+    for (const item of categories.other) {
+      content += `- ${item}\n`;
+    }
+    content += '\n';
+  }
+
+  if (!content) {
+    warn('No categorizable commits found');
+    return null;
+  }
+
+  success(`Generated changelog with ${
+    categories.added.length + categories.changed.length +
+    categories.fixed.length + categories.removed.length + categories.other.length
+  } entries`);
+
+  return content.trim();
+}
+
+/**
  * Check if CHANGELOG has unreleased content
  */
 function checkChangelog() {
@@ -196,79 +370,15 @@ function predictNextVersion(currentVersion) {
 }
 
 /**
- * Get the next letter suffix version (e.g., 1.0.10033 -> 1.0.10033a, 1.0.10033a -> 1.0.10033b)
- */
-function getNextLetterVersion(currentVersion) {
-  // Check if version already has a letter suffix
-  const match = currentVersion.match(/^([\d.]+)([a-z]*)$/);
-  if (!match) {
-    return `${currentVersion}a`;
-  }
-
-  const [, baseVersion, currentLetter] = match;
-
-  if (!currentLetter) {
-    return `${baseVersion}a`;
-  }
-
-  // Increment letter (a -> b, b -> c, etc.)
-  const lastChar = currentLetter.slice(-1);
-  const charCode = lastChar.charCodeAt(0);
-
-  if (charCode >= 122) { // 'z'
-    // If at 'z', go to 'aa', 'ab', etc.
-    return `${baseVersion}${currentLetter}a`;
-  }
-
-  const nextLetter = String.fromCharCode(charCode + 1);
-  return `${baseVersion}${currentLetter.slice(0, -1)}${nextLetter}`;
-}
-
-/**
- * Prompt user for input
- */
-function prompt(question) {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
-
-  return new Promise((resolve) => {
-    rl.question(question, (answer) => {
-      rl.close();
-      resolve(answer.trim());
-    });
-  });
-}
-
-/**
  * Update CHANGELOG for release
  */
-function updateChangelog(version) {
+function updateChangelog(version, unreleasedContent) {
   log(`\n📝 Updating CHANGELOG for version ${version}...`, 'bright');
 
   const changelogPath = path.join(projectRoot, 'CHANGELOG.md');
   let content = fs.readFileSync(changelogPath, 'utf8');
 
   const today = new Date().toISOString().split('T')[0];
-
-  // Extract unreleased content
-  const unreleasedMatch = content.match(/## Unreleased\s*\n([\s\S]*?)(?=\n## \[|$)/);
-  if (!unreleasedMatch) {
-    throw new Error('Could not find Unreleased section');
-  }
-
-  let unreleasedContent = unreleasedMatch[1].trim();
-
-  // Clean up "Nothing yet"
-  unreleasedContent = unreleasedContent
-    .replace(/^Nothing yet\.?\s*$/mi, '')
-    .replace(/^\s*[\r\n]+/, '')
-    .trim();
-
-  if (!unreleasedContent) {
-    throw new Error('No content in Unreleased section');
-  }
 
   // Create new version section
   const newVersionSection = `## [${version}] - ${today}\n\n${unreleasedContent}\n`;
@@ -359,16 +469,14 @@ function updatePackageJson(version) {
 /**
  * Perform git operations for release
  */
-function gitOperations(version, isLetterRelease = false) {
+function gitOperations(version) {
   log(`\n🚀 Performing git operations for v${version}...`, 'bright');
 
   // Add files
   exec('git add CHANGELOG.md docs/MEMORY.md package.json');
 
   // Commit message
-  const commitMessage = isLetterRelease
-    ? `chore(release): repackage v${version}`
-    : `chore(release): v${version}`;
+  const commitMessage = `chore(release): v${version}`;
 
   exec(`git commit -m "${commitMessage}"`);
   success('Changes committed');
@@ -415,17 +523,36 @@ function packageExtension(version) {
 }
 
 /**
- * Handle standard release with changelog changes
+ * Main release handler
  */
-async function handleStandardRelease() {
+async function handleRelease() {
   const currentVersion = getCurrentVersion();
   const nextVersion = predictNextVersion(currentVersion);
 
   info(`Current version: ${currentVersion}`);
   info(`Next version: ${nextVersion}`);
 
+  // Check if changelog has content
+  const changelogStatus = checkChangelog();
+
+  let unreleasedContent;
+
+  if (changelogStatus.hasChanges) {
+    unreleasedContent = changelogStatus.content;
+    info('Using existing CHANGELOG content');
+  } else {
+    // Generate from git commits
+    unreleasedContent = generateChangelogFromCommits();
+
+    if (!unreleasedContent) {
+      warn('No changelog content and no commits to generate from');
+      info('Creating empty release entry');
+      unreleasedContent = '- Version bump';
+    }
+  }
+
   // Update CHANGELOG
-  updateChangelog(nextVersion);
+  updateChangelog(nextVersion, unreleasedContent);
 
   // Update MEMORY.md
   updateMemory(nextVersion, 'See CHANGELOG for details');
@@ -434,50 +561,13 @@ async function handleStandardRelease() {
   updatePackageJson(nextVersion);
 
   // Git operations
-  gitOperations(nextVersion, false);
+  gitOperations(nextVersion);
 
   // Package
   packageExtension(nextVersion);
 
   log(`\n✨ Release v${nextVersion} completed successfully!`, 'green');
   info(`Package location: releases/synthetic-usage-tracker-${nextVersion}.vsix`);
-}
-
-/**
- * Handle letter-suffix repackage
- */
-async function handleLetterRepackage() {
-  const currentVersion = getCurrentVersion();
-  const letterVersion = getNextLetterVersion(currentVersion);
-
-  warn(`\nNo changelog changes detected for new release.`);
-  info(`Current version: ${currentVersion}`);
-  info(`This will create a repackage: ${letterVersion}`);
-
-  const answer = await prompt('\nDo you want to repackage with letter suffix? [Y/n/a(bort)]: ');
-
-  if (answer.toLowerCase() === 'a' || answer.toLowerCase() === 'abort') {
-    info('Aborted by user');
-    process.exit(0);
-  }
-
-  if (answer.toLowerCase() === 'n' || answer.toLowerCase() === 'no') {
-    info('Please update CHANGELOG.md Unreleased section with your changes, then run buildrelease again.');
-    process.exit(0);
-  }
-
-  // Proceed with letter release
-  updatePackageJson(letterVersion);
-
-  // Git operations for letter release
-  gitOperations(letterVersion, true);
-
-  // Package
-  packageExtension(letterVersion);
-
-  log(`\n✨ Repackage v${letterVersion} completed successfully!`, 'green');
-  info(`Package location: releases/synthetic-usage-tracker-${letterVersion}.vsix`);
-  info('Note: This is a repackage - no changelog changes were made');
 }
 
 /**
@@ -494,15 +584,8 @@ async function main() {
     // Step 2: Build and test
     await buildAndTest();
 
-    // Step 3: Check changelog
-    const changelogStatus = checkChangelog();
-
-    // Step 4: Handle release based on changelog status
-    if (changelogStatus.hasChanges) {
-      await handleStandardRelease();
-    } else {
-      await handleLetterRepackage();
-    }
+    // Step 3: Handle release (includes changelog check and generation)
+    await handleRelease();
 
     log('\n✅ Buildrelease completed!', 'green');
 
