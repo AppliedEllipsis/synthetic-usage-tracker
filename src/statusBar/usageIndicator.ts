@@ -176,32 +176,29 @@ export class UsageIndicator {
     // Build warning symbol for categories
     const warningSymbol = this.buildCategoryWarningSymbols(usage, config);
 
-    // Calculate mana values from subscription quota
-    // Design decision: Use remaining/limit for mana display since the API
-    // maps mana data to these legacy fields (balance -> remaining, maxBalance -> limit)
+    // Calculate energy values from subscription quota (showing remaining percentage)
     const subscription = usage.subscription;
     const currentMana = subscription.remaining;
     const maxMana = subscription.limit;
-    const manaPercentage = maxMana > 0 ? (currentMana / maxMana) * 100 : 0;
+    const manaPercentageRemaining = maxMana > 0 ? (currentMana / maxMana) * 100 : 0;
 
-    // Calculate token percentage - use the highest of input/output if available
-    let tokenPercentage: number | null = null;
+    // Calculate token percentage remaining - use the highest of input/output if available
+    let tokenPercentageRemaining: number | null = null;
     if (usage.weeklyTokens) {
       const tokenPercentages: number[] = [];
       if (usage.weeklyTokens.input.limit > 0) {
-        tokenPercentages.push(usage.weeklyTokens.input.percentageUsed);
+        tokenPercentages.push(100 - usage.weeklyTokens.input.percentageUsed);
       }
       if (usage.weeklyTokens.output.limit > 0) {
-        tokenPercentages.push(usage.weeklyTokens.output.percentageUsed);
+        tokenPercentages.push(100 - usage.weeklyTokens.output.percentageUsed);
       }
       if (tokenPercentages.length > 0) {
-        tokenPercentage = Math.max(...tokenPercentages);
+        tokenPercentageRemaining = Math.min(...tokenPercentages);
       }
     }
 
-    // Build mana display with ⧗ symbol: ⧗ percentage%  token%
-    const tokenDisplay = tokenPercentage !== null ? `${tokenPercentage.toFixed(0)}%` : "-";
-    let text = `$(synthetic-status-icon) ⧗ ${manaPercentage.toFixed(0)}%  ${tokenDisplay}`;
+    const tokenDisplay = tokenPercentageRemaining !== null ? `🧪${tokenPercentageRemaining.toFixed(0)}%` : "-";
+    let text = `$(synthetic-status-icon) ⚡${manaPercentageRemaining.toFixed(0)}%  ${tokenDisplay}`;
 
     if (config.showRawNumbers) {
       text += ` (${currentMana}/${maxMana})`;
@@ -239,16 +236,16 @@ export class UsageIndicator {
     let tooltip = "### Synthetic.new Usage\n\n";
 
     const subLabel = this.getRpgLabel("subscription", style);
-    tooltip += this.buildCategoryTooltip(subLabel, subscription, style);
+    tooltip += this.buildCategoryTooltip(subLabel, subscription, style, "subscription");
 
     if (!(search.requests === 0 && search.limit === 0)) {
       const searchLabel = this.getRpgLabel("search", style);
-      tooltip += this.buildCategoryTooltip(`${searchLabel} (hourly)`, search, style);
+      tooltip += this.buildCategoryTooltip(`${searchLabel} (hourly)`, search, style, "search");
     }
 
     if (!(toolCalls.requests === 0 && toolCalls.limit === 0)) {
       const toolLabel = this.getRpgLabel("toolCalls", style);
-      tooltip += this.buildCategoryTooltip(`${toolLabel} (daily)`, toolCalls, style);
+      tooltip += this.buildCategoryTooltip(`${toolLabel} (daily)`, toolCalls, style, "toolCalls");
     }
 
     if (weeklyTokens && (weeklyTokens.input.limit > 0 || weeklyTokens.output.limit > 0)) {
@@ -288,7 +285,7 @@ export class UsageIndicator {
 
     const remainingPercentage = 100 - tokenInfo.percentageUsed;
 
-    let section = `### 🔮 ${name}\n`;
+    let section = `### 🧪 ${name}\n`;
     section += `Remaining: ${formattedRemaining} / ${formattedLimit} (${percentageRemaining}%)\n`;
     section += `Used: ${formattedCurrent} (${percentageUsed}%)\n`;
     section += `${this.buildAsciiProgressBar(remainingPercentage, "mana")}\n`;
@@ -387,7 +384,7 @@ export class UsageIndicator {
    * - Renews At: timestamp
    * - Time Remaining: duration
    */
-  private buildCategoryTooltip(name: string, category: CategoryUsageInfo, style: RpgThemeStyle): string {
+  private buildCategoryTooltip(name: string, category: CategoryUsageInfo, style: RpgThemeStyle, categoryType?: "subscription" | "search" | "toolCalls" | "weeklyTokens"): string {
     const percentageUsed = category.percentageUsed.toFixed(1);
     const percentageRemaining = (100 - category.percentageUsed).toFixed(1);
     const timeRemaining = this.calculateTimeRemaining(category.renewAt);
@@ -395,8 +392,15 @@ export class UsageIndicator {
     const isManaBased = category.regenRate !== undefined;
     const resourceLabel = isManaBased ? this.getRpgResourceLabel(style) : "Requests";
 
-    // Add Energy icon for subscription/mana-based categories
-    const icon = isManaBased ? "⚡" : "";
+    let icon = "⚡";
+    let progressType: "energy" | "mana" = "energy";
+    if (categoryType === "search") {
+      icon = "🔮";
+      progressType = "mana";
+    } else if (categoryType === "weeklyTokens") {
+      icon = "🧪";
+      progressType = "mana";
+    }
 
     let section = `## ${icon} ${name}\n`;
 
@@ -417,7 +421,7 @@ export class UsageIndicator {
 
     section += `Renews: ${category.renewAtString}\n`;
     section += `Time: ${timeRemaining}\n`;
-    section += `${this.buildAsciiProgressBar(100 - category.percentageUsed, "energy")}\n\n`;
+    section += `${this.buildAsciiProgressBar(100 - category.percentageUsed, progressType)}\n\n`;
 
     return section;
   }
