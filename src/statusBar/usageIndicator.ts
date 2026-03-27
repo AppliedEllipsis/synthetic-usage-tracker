@@ -288,10 +288,10 @@ export class UsageIndicator {
 
     const remainingPercentage = 100 - tokenInfo.percentageUsed;
 
-    let section = `### ${name}\n`;
+    let section = `### 🔮 ${name}\n`;
     section += `Remaining: ${formattedRemaining} / ${formattedLimit} (${percentageRemaining}%)\n`;
     section += `Used: ${formattedCurrent} (${percentageUsed}%)\n`;
-    section += `${this.buildAsciiProgressBar(remainingPercentage)}\n`;
+    section += `${this.buildAsciiProgressBar(remainingPercentage, "mana")}\n`;
 
     return section;
   }
@@ -395,7 +395,10 @@ export class UsageIndicator {
     const isManaBased = category.regenRate !== undefined;
     const resourceLabel = isManaBased ? this.getRpgResourceLabel(style) : "Requests";
 
-    let section = `## ${name}\n`;
+    // Add Energy icon for subscription/mana-based categories
+    const icon = isManaBased ? "⚡" : "";
+
+    let section = `## ${icon} ${name}\n`;
 
     if (isManaBased) {
       const currentMana = category.remaining;
@@ -414,7 +417,7 @@ export class UsageIndicator {
 
     section += `Renews: ${category.renewAtString}\n`;
     section += `Time: ${timeRemaining}\n`;
-    section += `${this.buildAsciiProgressBar(100 - category.percentageUsed)}\n\n`;
+    section += `${this.buildAsciiProgressBar(100 - category.percentageUsed, "energy")}\n\n`;
 
     return section;
   }
@@ -496,11 +499,12 @@ export class UsageIndicator {
    *
    * Public method to allow extension.ts to reuse for popup display.
    */
-  buildAsciiProgressBar(percentage: number): string {
+  buildAsciiProgressBar(percentage: number, type?: "energy" | "mana"): string {
     const totalSegments = 10;
     const filledSegments = Math.round((percentage / 100) * totalSegments);
     const emptySegments = totalSegments - filledSegments;
-    return `[${"█".repeat(filledSegments)}${"░".repeat(emptySegments)}] ${percentage.toFixed(0)}%`;
+    const icon = type === "energy" ? "⚡" : type === "mana" ? "🔮" : "";
+    return `${icon}[${"█".repeat(filledSegments)}${"░".repeat(emptySegments)}] ${percentage.toFixed(0)}%`;
   }
 
   /**

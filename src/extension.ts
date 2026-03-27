@@ -578,46 +578,46 @@ export class SyntheticUsageTrackerExtension {
     // Build the base message
     let message = `### Synthetic.new Usage Details
 
-## Subscription
+## ⚡ Subscription
 Requests: ${sub.requests.toLocaleString()} / ${sub.limit.toLocaleString()} (${sub.percentageUsed.toFixed(1)}%)
 Remaining: ${sub.remaining.toLocaleString()} (${(100 - sub.percentageUsed).toFixed(1)}%)
 Renews At: ${sub.renewAtString}
 Time Remaining: ${formatTimeRemaining(sub.renewAt)}
-${this.usageIndicator.buildAsciiProgressBar(sub.percentageUsed)}
+${this.usageIndicator.buildAsciiProgressBar(100 - sub.percentageUsed, "energy")}
 
-## Search (hourly)
+## ⚡ Search (hourly)
 Requests: ${search.requests.toLocaleString()} / ${search.limit.toLocaleString()} (${search.percentageUsed.toFixed(1)}%)
 Remaining: ${search.remaining.toLocaleString()} (${(100 - search.percentageUsed).toFixed(1)}%)
 Renews At: ${search.renewAtString}
 Time Remaining: ${formatTimeRemaining(search.renewAt)}
-${this.usageIndicator.buildAsciiProgressBar(search.percentageUsed)}
+${this.usageIndicator.buildAsciiProgressBar(100 - search.percentageUsed, "energy")}
 
-## Free Tool Calls (daily)
+## ⚡ Free Tool Calls (daily)
 Requests: ${toolCalls.requests.toLocaleString()} / ${toolCalls.limit.toLocaleString()} (${toolCalls.percentageUsed.toFixed(1)}%)
 Remaining: ${toolCalls.remaining.toLocaleString()} (${(100 - toolCalls.percentageUsed).toFixed(1)}%)
 Renews At: ${toolCalls.renewAtString}
 Time Remaining: ${formatTimeRemaining(toolCalls.renewAt)}
-${this.usageIndicator.buildAsciiProgressBar(toolCalls.percentageUsed)}`;
+${this.usageIndicator.buildAsciiProgressBar(100 - toolCalls.percentageUsed, "energy")}`;
 
     // Only show token section if at least one limit is > 0
     const hasTokenLimits = weeklyTokens &&
       (weeklyTokens.input.limit > 0 || weeklyTokens.output.limit > 0);
 
     if (hasTokenLimits) {
-      message += "\n\n## Weekly Token Limits";
+      message += "\n\n## 🔮 Weekly Token Limits";
 
       // Input Tokens section (only if limit > 0)
       if (weeklyTokens.input.limit > 0) {
         message += `\nInput Tokens: ${formatTokenNumber(weeklyTokens.input.current)} / ${formatTokenNumber(weeklyTokens.input.limit)} (${weeklyTokens.input.percentageUsed.toFixed(1)}%)`;
         message += `\nRemaining: ${formatTokenNumber(weeklyTokens.input.remaining)} (${(100 - weeklyTokens.input.percentageUsed).toFixed(1)}%)`;
-        message += `\n${this.usageIndicator.buildAsciiProgressBar(weeklyTokens.input.percentageUsed)}`;
+        message += `\n${this.usageIndicator.buildAsciiProgressBar(100 - weeklyTokens.input.percentageUsed, "mana")}`;
       }
 
       // Output Tokens section (only if limit > 0)
       if (weeklyTokens.output.limit > 0) {
         message += `\nOutput Tokens: ${formatTokenNumber(weeklyTokens.output.current)} / ${formatTokenNumber(weeklyTokens.output.limit)} (${weeklyTokens.output.percentageUsed.toFixed(1)}%)`;
         message += `\nRemaining: ${formatTokenNumber(weeklyTokens.output.remaining)} (${(100 - weeklyTokens.output.percentageUsed).toFixed(1)}%)`;
-        message += `\n${this.usageIndicator.buildAsciiProgressBar(weeklyTokens.output.percentageUsed)}`;
+        message += `\n${this.usageIndicator.buildAsciiProgressBar(100 - weeklyTokens.output.percentageUsed, "mana")}`;
       }
 
       // Add renewal time information for tokens
