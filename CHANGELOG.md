@@ -12,6 +12,12 @@ where patch versions start at 10000 instead of 0. This is compatible with SemVer
 
 Nothing yet
 
+## [1.0.10040] - 2026-03-27
+
+### Other
+- Update README and usage indicator
+- ~ [ replace GNU license with GLWTS license ]:
+
 ## [1.0.10039] - 2026-03-27
 
 ### Other
