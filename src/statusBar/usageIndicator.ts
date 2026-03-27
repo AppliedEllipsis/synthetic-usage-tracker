@@ -259,7 +259,7 @@ export class UsageIndicator {
         const outputLabel = this.getRpgLabel("weeklyTokens", style);
         tooltip += this.buildTokenTooltip(`${outputLabel} (token)`, weeklyTokens.output);
       }
-      tooltip += `Renews: ${weeklyTokens.renewAtString}\n`;
+      tooltip += `2% Regen @ ${weeklyTokens.renewAtString}\n`;
       tooltip += `Time: ${this.calculateTimeRemaining(weeklyTokens.renewAt)}\n\n`;
     }
 
@@ -301,7 +301,7 @@ export class UsageIndicator {
       if (weeklyTokens.output.limit > 0) {
         message += this.buildTokenText(`${tokensLabel} (token)`, weeklyTokens.output);
       }
-      message += `Renews: ${weeklyTokens.renewAtString}\n`;
+      message += `2% Regen @ ${weeklyTokens.renewAtString}\n`;
       message += `Time: ${this.calculateTimeRemaining(weeklyTokens.renewAt)}\n`;
     }
 
@@ -352,7 +352,7 @@ export class UsageIndicator {
       section += `Remaining: ${category.remaining.toLocaleString()} (${percentageRemaining}%)\n`;
     }
 
-    section += `Renews: ${category.renewAtString}\n`;
+    section += `2% Regen @ ${category.renewAtString}\n`;
     section += `Time: ${this.calculateTimeRemaining(category.renewAt)}\n`;
     section += `${this.buildAsciiProgressBar(100 - category.percentageUsed, progressType, icon)}\n\n`;
 
@@ -536,7 +536,7 @@ export class UsageIndicator {
       section += `Remaining: ${category.remaining.toLocaleString()} (${percentageRemaining}%)\n`;
     }
 
-    section += `Renews: ${category.renewAtString}\n`;
+    section += `2% Regen @ ${category.renewAtString}\n`;
     section += `Time: ${timeRemaining}\n`;
     section += `${this.buildAsciiProgressBar(100 - category.percentageUsed, progressType, icon)}\n\n`;
 
