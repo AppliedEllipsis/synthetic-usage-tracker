@@ -324,7 +324,7 @@ export class UsageIndicator {
     let icon = "⚡";
     let progressType: "energy" | "mana" = "energy";
     if (categoryType === "search") {
-      icon = "🔮";
+      icon = "🧪";
       progressType = "mana";
     } else if (categoryType === "weeklyTokens") {
       icon = "🧪";
@@ -508,7 +508,7 @@ export class UsageIndicator {
     let icon = "⚡";
     let progressType: "energy" | "mana" = "energy";
     if (categoryType === "search") {
-      icon = "🔮";
+      icon = "🧪";
       progressType = "mana";
     } else if (categoryType === "weeklyTokens") {
       icon = "🧪";
@@ -620,7 +620,7 @@ export class UsageIndicator {
     const totalSegments = 10;
     const filledSegments = Math.round((percentage / 100) * totalSegments);
     const emptySegments = totalSegments - filledSegments;
-    const icon = type === "energy" ? "⚡" : type === "mana" ? "🔮" : "";
+    const icon = type === "energy" ? "⚡" : type === "mana" ? "🧪" : "";
     return `${icon}[${"█".repeat(filledSegments)}${"░".repeat(emptySegments)}] ${percentage.toFixed(0)}%`;
   }
 
