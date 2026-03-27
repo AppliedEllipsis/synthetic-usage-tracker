@@ -201,33 +201,31 @@ Hover over the status bar to see detailed category breakdowns with visual progre
 ### Synthetic.new Usage Details
 
 ## ⚡ Energy
-Requests: 248.667 / 600 (41.4% remaining)
-Used: 351.333 (58.6%)
+Requests: 192 / 600 (32.0% remaining)
+Used: 408 (68.0%)
 Renews: 3/27/2026, 5:00:55 AM
-Time: 2h 22m from now
-⚡[████░░░░░░] 41%
+Time: 2h 4m from now
+⚡[███░░░░░░░] 32%
 
-## 🧪 Guidance (hourly)
+## 🔮 Guidance (hourly)
 Searches: 250 / 250 (100.0% remaining)
 Used: 0 (0.0%)
-Renews: 3/27/2026, 3:38:43 AM
+Renews: 3/27/2026, 3:56:07 AM
 Time: 59m from now
-🧪[██████████] 100%
+🔮[██████████] 100%
 
 ### 🧪 Mana (token)
-Remaining: 78.709 / 100 (78.7%)
-Used: 21.291 (21.3%)
-🧪[████████░░] 79%
+Remaining: 76.849 / 100 (76.8%)
+Used: 23.151 (23.2%)
+🧪[████████░░] 77%
 
 ━━━━━━━━━━━━━━━━
 API Key: syn_****************************4eb6
-Timestamp: 2026-03-27T06:38:48.256Z
+Timestamp: 2026-03-27T06:56:41.448Z
 ```
 
 - `█` (filled block): Represents used quota
 - `░` (empty block): Represents remaining quota
-- `🔍` (search emoji): Appears when search.hourly quota exceeds 80%
-- `🔧` (wrench emoji): Appears when free tool calls quota exceeds 80%
 
 ### Quota Warning Symbols
 
