@@ -12,6 +12,14 @@ where patch versions start at 10000 instead of 0. This is compatible with SemVer
 
 Nothing yet
 
+## [1.0.10036] - 2026-03-27
+
+### Other
+- ~ [ update readme with usage guides and screenshots ]:
+- ~ [ add custom icon support for usage bars ]:
+- ~ [ Update documentation for chemistry flask icon ]:
+- ~ [ update readme with synthetic new usage details ]:
+
 ## [1.0.10035] - 2026-03-27
 
 ### Changed
