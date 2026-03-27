@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import * as fs from "fs";
-import { ConfigurationManager, RpgThemeStyle } from "./config/configuration";
+import { ConfigurationManager, RpgThemeStyle, Configuration } from "./config/configuration";
 import { KeyManager } from "./config/keyManager";
 import { UsageIndicator } from "./statusBar/usageIndicator";
 import { SyntheticService } from "./api/syntheticService";
@@ -487,7 +487,8 @@ export class SyntheticUsageTrackerExtension {
       ? `${apiKey.substring(0, 4)}${"*".repeat(apiKey.length - 8)}${apiKey.substring(apiKey.length - 4)}`
       : "Not configured";
 
-    const message = this.buildDetailedUsageMessage(usage, maskedKey);
+    const config = this.configManager.getConfig();
+    const message = this.buildDetailedUsageMessage(usage, maskedKey, config);
 
     // Check if there are multiple keys to show appropriate button
     const allKeys = await this.keyManager.getAllKeys();
@@ -536,11 +537,19 @@ export class SyntheticUsageTrackerExtension {
   private buildDetailedUsageMessage(
     usage: APIUsageInfo,
     maskedKey: string,
+    config: Configuration,
   ): string {
     const sub = usage.subscription;
     const search = usage.search;
     const toolCalls = usage.toolCalls;
     const weeklyTokens = usage.weeklyTokens;
+
+    // Get RPG theme labels
+    const style = config.rpgThemeStyle ?? "mana";
+    const energyLabel = this.getRpgLabel("subscription", style);
+    const guidanceLabel = this.getRpgLabel("search", style);
+    const spellsLabel = this.getRpgLabel("toolCalls", style);
+    const manaLabel = this.getRpgLabel("weeklyTokens", style);
 
     // Helper function to calculate time remaining
     const formatTimeRemaining = (renewAt: Date): string => {
@@ -578,21 +587,21 @@ export class SyntheticUsageTrackerExtension {
     // Build the base message
     let message = `### Synthetic.new Usage Details
 
-## ⚡ Subscription
+## ⚡ ${energyLabel}
 Requests: ${sub.requests.toLocaleString()} / ${sub.limit.toLocaleString()} (${sub.percentageUsed.toFixed(1)}%)
 Remaining: ${sub.remaining.toLocaleString()} (${(100 - sub.percentageUsed).toFixed(1)}%)
 Renews At: ${sub.renewAtString}
 Time Remaining: ${formatTimeRemaining(sub.renewAt)}
 ${this.usageIndicator.buildAsciiProgressBar(100 - sub.percentageUsed, "energy")}
 
-## ⚡ Search (hourly)
+## ⚡ ${guidanceLabel} (hourly)
 Requests: ${search.requests.toLocaleString()} / ${search.limit.toLocaleString()} (${search.percentageUsed.toFixed(1)}%)
 Remaining: ${search.remaining.toLocaleString()} (${(100 - search.percentageUsed).toFixed(1)}%)
 Renews At: ${search.renewAtString}
 Time Remaining: ${formatTimeRemaining(search.renewAt)}
 ${this.usageIndicator.buildAsciiProgressBar(100 - search.percentageUsed, "energy")}
 
-## ⚡ Free Tool Calls (daily)
+## ⚡ ${spellsLabel} (daily)
 Requests: ${toolCalls.requests.toLocaleString()} / ${toolCalls.limit.toLocaleString()} (${toolCalls.percentageUsed.toFixed(1)}%)
 Remaining: ${toolCalls.remaining.toLocaleString()} (${(100 - toolCalls.percentageUsed).toFixed(1)}%)
 Renews At: ${toolCalls.renewAtString}
@@ -604,25 +613,29 @@ ${this.usageIndicator.buildAsciiProgressBar(100 - toolCalls.percentageUsed, "ene
       (weeklyTokens.input.limit > 0 || weeklyTokens.output.limit > 0);
 
     if (hasTokenLimits) {
-      message += "\n\n## Mana";
-
       // Input Tokens section (only if limit > 0)
       if (weeklyTokens.input.limit > 0) {
-        message += `\nMana (token): ${formatTokenNumber(weeklyTokens.input.current)} / ${formatTokenNumber(weeklyTokens.input.limit)} (${weeklyTokens.input.percentageUsed.toFixed(1)}%)`;
-        message += `\nRemaining: ${formatTokenNumber(weeklyTokens.input.remaining)} (${(100 - weeklyTokens.input.percentageUsed).toFixed(1)}%)`;
-        message += `\n${this.usageIndicator.buildAsciiProgressBar(100 - weeklyTokens.input.percentageUsed, "mana")}`;
+        const inputPercentageUsed = weeklyTokens.input.percentageUsed.toFixed(1);
+        const inputPercentageRemaining = (100 - weeklyTokens.input.percentageUsed).toFixed(1);
+        message += `\n### 🧪 ${manaLabel} (token)\n`;
+        message += `Remaining: ${formatTokenNumber(weeklyTokens.input.remaining)} / ${formatTokenNumber(weeklyTokens.input.limit)} (${inputPercentageRemaining}%)\n`;
+        message += `Used: ${formatTokenNumber(weeklyTokens.input.current)} (${inputPercentageUsed}%)\n`;
+        message += `${this.usageIndicator.buildAsciiProgressBar(100 - weeklyTokens.input.percentageUsed, "mana")}\n`;
+        message += `Renews At: ${weeklyTokens.renewAtString}\n`;
+        message += `Time Remaining: ${formatTimeRemaining(weeklyTokens.renewAt)}`;
       }
 
       // Output Tokens section (only if limit > 0)
       if (weeklyTokens.output.limit > 0) {
-        message += `\nMana (token): ${formatTokenNumber(weeklyTokens.output.current)} / ${formatTokenNumber(weeklyTokens.output.limit)} (${weeklyTokens.output.percentageUsed.toFixed(1)}%)`;
-        message += `\nRemaining: ${formatTokenNumber(weeklyTokens.output.remaining)} (${(100 - weeklyTokens.output.percentageUsed).toFixed(1)}%)`;
-        message += `\n${this.usageIndicator.buildAsciiProgressBar(100 - weeklyTokens.output.percentageUsed, "mana")}`;
+        const outputPercentageUsed = weeklyTokens.output.percentageUsed.toFixed(1);
+        const outputPercentageRemaining = (100 - weeklyTokens.output.percentageUsed).toFixed(1);
+        message += `\n### 🧪 ${manaLabel} (token)\n`;
+        message += `Remaining: ${formatTokenNumber(weeklyTokens.output.remaining)} / ${formatTokenNumber(weeklyTokens.output.limit)} (${outputPercentageRemaining}%)\n`;
+        message += `Used: ${formatTokenNumber(weeklyTokens.output.current)} (${outputPercentageUsed}%)\n`;
+        message += `${this.usageIndicator.buildAsciiProgressBar(100 - weeklyTokens.output.percentageUsed, "mana")}\n`;
+        message += `Renews At: ${weeklyTokens.renewAtString}\n`;
+        message += `Time Remaining: ${formatTimeRemaining(weeklyTokens.renewAt)}`;
       }
-
-      // Add renewal time information for tokens
-      message += `\nRenews At: ${weeklyTokens.renewAtString}`;
-      message += `\nTime Remaining: ${formatTimeRemaining(weeklyTokens.renewAt)}`;
     }
 
     message += `\n\n━━━━━━━━━━━━━━━━\nAPI Key: ${maskedKey}`;
@@ -847,8 +860,9 @@ ${this.usageIndicator.buildAsciiProgressBar(100 - toolCalls.percentageUsed, "ene
       ? `${apiKey.substring(0, 4)}${"*".repeat(apiKey.length - 8)}${apiKey.substring(apiKey.length - 4)}`
       : "Not configured";
 
+    const config = this.configManager.getConfig();
     const text =
-      this.buildDetailedUsageMessage(usage, maskedKey) +
+      this.buildDetailedUsageMessage(usage, maskedKey, config) +
       `\nTimestamp: ${new Date().toISOString()}`;
 
     try {
@@ -1333,6 +1347,40 @@ ${this.usageIndicator.buildAsciiProgressBar(100 - toolCalls.percentageUsed, "ene
     this.configManager.dispose();
     this.keyManager.dispose();
     this.sharedStateWatcherDisposable?.dispose();
+  }
+
+  private getRpgLabel(category: string, style: RpgThemeStyle): string {
+    const labels: Record<string, Record<RpgThemeStyle, string>> = {
+      subscription: {
+        health: "Energy",
+        mana: "Energy",
+        stamina: "Energy",
+        spirit: "Energy",
+        off: "Subscription",
+      },
+      weeklyTokens: {
+        health: "Mana",
+        mana: "Mana",
+        stamina: "Mana",
+        spirit: "Mana",
+        off: "Weekly Tokens",
+      },
+      search: {
+        health: "Guidance",
+        mana: "Guidance",
+        stamina: "Guidance",
+        spirit: "Guidance",
+        off: "Search",
+      },
+      toolCalls: {
+        health: "Spells",
+        mana: "Spells",
+        stamina: "Spells",
+        spirit: "Spells",
+        off: "Free Tool Calls",
+      },
+    };
+    return labels[category]?.[style] || category;
   }
 }
 
