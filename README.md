@@ -116,6 +116,56 @@ Access all extension commands through the Command Palette (`Ctrl+Shift+P` or `Cm
    - Search for "Synthetic Usage Tracker"
    - Adjust settings to your preference
 
+### ASCII Progress Bars in Tooltips
+
+Hover over the status bar to see detailed category breakdowns with visual progress bars for each quota type:
+
+```
+### Synthetic.new Usage Details
+
+## ⚡ Energy
+Requests: 449.778 / 600 (75.0% used)
+Remaining: 150.222 (25.0%)
+2% Regen @ 3/27/2026, 5:00:54 AM
+Time: 1h 6m from now
+⚡[███░░░░░░░] 25%
+
+## 🔮 Guidance (hourly)
+Searches: 0 / 250 (0.0% used)
+Remaining: 250 (100.0%)
+2% Regen @ 3/27/2026, 4:54:43 AM
+Time: 59m from now
+🔮[██████████] 100%
+
+## 🧪 Mana
+### 🧪 Mana (token)
+Used: 24.636 / 100 (24.6%)
+Remaining: 75.364 (75.4%)
+🧪[████████░░] 75%
+2% Regen @ 3/27/2026, 4:38:50 AM
+Time: 43m from now
+━━━━━━━━━━━━━━━━
+API Key: syn_****************************4eb6
+Timestamp: 2026-03-27T07:54:53.052Z
+```
+
+- `█` (filled block): Represents used quota
+- `░` (empty block): Represents remaining quota
+
+### Quota Warning Symbols
+
+The status bar displays visual warning symbols based on your usage thresholds:
+
+- **⚠️ (Warning)**: Appears when usage reaches the warning threshold (default: 80%)
+- **🔴 (Critical)**: Appears when usage reaches the critical threshold (default: 90%)
+
+**Category-specific warnings**: When individual quotas exceed 80%, specific warning symbols appear:
+
+- **🔍 (search icon)**: Appears when Search (hourly) quota exceeds 80%
+- **🔧 (wrench icon)**: Appears when Tool Calls quota exceeds 80%
+
+The extension displays a maximum of 2 category warnings and 3 total symbols to keep the status bar readable.
+
 ## Multi-Key Management
 
 The extension supports managing multiple API keys for flexibility and redundancy. All keys are stored securely in VSCode's encrypted SecretStorage.
@@ -203,7 +253,7 @@ All API keys are stored using VSCode's SecretStorage API:
 
 The extension automatically migrates from legacy single-key format (stored as `syntheticApiKey`) to the new multi-key format (stored as `syntheticApiKeys`). Your existing single key is preserved during migration.
 
-## Three-Quota Structure
+## Three-Quota Structure (outdated with new rpg system)
 
 The Synthetic.new API provides three separate quota types that are tracked independently:
 
@@ -216,56 +266,6 @@ Each quota type has its own limit, usage count, and renewal schedule. The extens
 ## Status Bar Features
 
 The extension provides several visual indicators in the status bar to help you quickly understand your API usage status.
-
-### ASCII Progress Bars in Tooltips
-
-Hover over the status bar to see detailed category breakdowns with visual progress bars for each quota type:
-
-```
-### Synthetic.new Usage Details
-
-## ⚡ Energy
-Requests: 443.111 / 600 (73.8% used)
-Remaining: 156.889 (26.2%)
-Renews: 3/27/2026, 5:00:54 AM
-Time: 1h 27m from now
-⚡[███░░░░░░░] 26%
-
-## 🔮 Guidance (hourly)
-Searches: 0 / 250 (0.0% used)
-Remaining: 250 (100.0%)
-Renews: 3/27/2026, 4:33:04 AM
-Time: 59m from now
-🔮[██████████] 100%
-
-## 🧪 Mana
-### 🧪 Mana (token)
-Used: 24.439 / 100 (24.4%)
-Remaining: 75.561 (75.6%)
-🧪[████████░░] 76%
-Renews: 3/27/2026, 4:38:50 AM
-Time: 1h 5m from now
-━━━━━━━━━━━━━━━━
-API Key: syn_****************************4eb6
-Timestamp: 2026-03-27T07:33:37.709Z
-```
-
-- `█` (filled block): Represents used quota
-- `░` (empty block): Represents remaining quota
-
-### Quota Warning Symbols
-
-The status bar displays visual warning symbols based on your usage thresholds:
-
-- **⚠️ (Warning)**: Appears when usage reaches the warning threshold (default: 80%)
-- **🔴 (Critical)**: Appears when usage reaches the critical threshold (default: 90%)
-
-**Category-specific warnings**: When individual quotas exceed 80%, specific warning symbols appear:
-
-- **🔍 (search icon)**: Appears when Search (hourly) quota exceeds 80%
-- **🔧 (wrench icon)**: Appears when Tool Calls quota exceeds 80%
-
-The extension displays a maximum of 2 category warnings and 3 total symbols to keep the status bar readable.
 
 ### API Key Suffix Display
 
@@ -323,6 +323,7 @@ When viewing the usage details popup, clicking the **Refresh** button reloads th
 
 The extension can be configured through VSCode settings:
 
+> **Note**: This info might be outdated.
 > **Note**: Some configuration changes may not be reflected until the next refresh of usage data. You can manually refresh by clicking the status bar item or using the "Synthetic Usage Tracker: Refresh Usage" command.
 
 | Setting                                     | Type    | Default                        | Description                                           |
