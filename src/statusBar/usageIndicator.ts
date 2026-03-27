@@ -250,14 +250,11 @@ export class UsageIndicator {
 
     if (weeklyTokens && (weeklyTokens.input.limit > 0 || weeklyTokens.output.limit > 0)) {
       const tokensLabel = this.getRpgLabel("weeklyTokens", style);
-      tooltip += `## ${tokensLabel}\n`;
       if (weeklyTokens.input.limit > 0) {
-        const inputLabel = this.getRpgLabel("weeklyTokens", style);
-        tooltip += this.buildTokenTooltip(`${inputLabel} (token)`, weeklyTokens.input);
+        tooltip += this.buildTokenTooltip(`${tokensLabel} (token)`, weeklyTokens.input);
       }
       if (weeklyTokens.output.limit > 0) {
-        const outputLabel = this.getRpgLabel("weeklyTokens", style);
-        tooltip += this.buildTokenTooltip(`${outputLabel} (token)`, weeklyTokens.output);
+        tooltip += this.buildTokenTooltip(`${tokensLabel} (token)`, weeklyTokens.output);
       }
       tooltip += `2% Regen @ ${weeklyTokens.renewAtString}\n`;
       tooltip += `Time: ${this.calculateTimeRemaining(weeklyTokens.renewAt)}\n\n`;
