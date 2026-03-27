@@ -124,29 +124,29 @@ Hover over the status bar to see detailed category breakdowns with visual progre
 ### Synthetic.new Usage Details
 
 ## ⚡ Energy
-Requests: 449.778 / 600 (75.0% used)
-Remaining: 150.222 (25.0%)
-2% Regen @ 3/27/2026, 5:00:54 AM
-Time: 1h 6m from now
-⚡[███░░░░░░░] 25%
+Requests: 450.222 / 600 (75.0% used)
+Remaining: 149.778 (25.0%)
+Resets @ 3/27/2026, 5:00:55 AM
+Time: 44m from now
+⚡[██░░░░░░░░] 25%
 
 ## 🔮 Guidance (hourly)
 Searches: 0 / 250 (0.0% used)
 Remaining: 250 (100.0%)
-2% Regen @ 3/27/2026, 4:54:43 AM
+Resets @ 3/27/2026, 5:16:11 AM
 Time: 59m from now
 🔮[██████████] 100%
 
 ## 🧪 Mana
 ### 🧪 Mana (token)
-Used: 24.636 / 100 (24.6%)
-Remaining: 75.364 (75.4%)
+Used: 24.643 / 100 (24.6%)
+Remaining: 75.357 (75.4%)
 🧪[████████░░] 75%
 2% Regen @ 3/27/2026, 4:38:50 AM
-Time: 43m from now
+Time: 21m from now
 ━━━━━━━━━━━━━━━━
 API Key: syn_****************************4eb6
-Timestamp: 2026-03-27T07:54:53.052Z
+Timestamp: 2026-03-27T08:16:54.932Z
 ```
 
 - `█` (filled block): Represents used quota
