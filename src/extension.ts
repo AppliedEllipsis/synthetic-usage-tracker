@@ -589,6 +589,11 @@ export class SyntheticUsageTrackerExtension {
         command: "syntheticUsageTracker.copyUsage",
       },
       {
+        label: "$(code) Copy Raw API Response",
+        description: "Copy last raw API response JSON to clipboard",
+        command: "syntheticUsageTracker.copyLastApiResponse",
+      },
+      {
         label: "$(info) Show Usage Details",
         description: "Display detailed usage information",
         command: "syntheticUsageTracker.showUsage",
