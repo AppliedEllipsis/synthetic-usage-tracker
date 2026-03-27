@@ -12,6 +12,13 @@ where patch versions start at 10000 instead of 0. This is compatible with SemVer
 
 Nothing yet
 
+## [1.0.10038] - 2026-03-27
+
+### Other
+- ~ [ restructure readme sections for progress bars ]:
+- ~ [ update statusbar renewal text labels ]:
+- Ai got creative with it's symbolism
+
 ## [1.0.10037] - 2026-03-27
 
 ### Other
