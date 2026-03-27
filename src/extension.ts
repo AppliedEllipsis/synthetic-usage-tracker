@@ -604,7 +604,7 @@ ${this.usageIndicator.buildAsciiProgressBar(100 - toolCalls.percentageUsed, "ene
       (weeklyTokens.input.limit > 0 || weeklyTokens.output.limit > 0);
 
     if (hasTokenLimits) {
-      message += "\n\n## 🧪 Weekly Token Limits";
+      message += "\n\n## Mana";
 
       // Input Tokens section (only if limit > 0)
       if (weeklyTokens.input.limit > 0) {
