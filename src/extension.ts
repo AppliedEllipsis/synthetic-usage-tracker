@@ -608,14 +608,14 @@ ${this.usageIndicator.buildAsciiProgressBar(100 - toolCalls.percentageUsed, "ene
 
       // Input Tokens section (only if limit > 0)
       if (weeklyTokens.input.limit > 0) {
-        message += `\nInput Tokens: ${formatTokenNumber(weeklyTokens.input.current)} / ${formatTokenNumber(weeklyTokens.input.limit)} (${weeklyTokens.input.percentageUsed.toFixed(1)}%)`;
+        message += `\nMana (token): ${formatTokenNumber(weeklyTokens.input.current)} / ${formatTokenNumber(weeklyTokens.input.limit)} (${weeklyTokens.input.percentageUsed.toFixed(1)}%)`;
         message += `\nRemaining: ${formatTokenNumber(weeklyTokens.input.remaining)} (${(100 - weeklyTokens.input.percentageUsed).toFixed(1)}%)`;
         message += `\n${this.usageIndicator.buildAsciiProgressBar(100 - weeklyTokens.input.percentageUsed, "mana")}`;
       }
 
       // Output Tokens section (only if limit > 0)
       if (weeklyTokens.output.limit > 0) {
-        message += `\nOutput Tokens: ${formatTokenNumber(weeklyTokens.output.current)} / ${formatTokenNumber(weeklyTokens.output.limit)} (${weeklyTokens.output.percentageUsed.toFixed(1)}%)`;
+        message += `\nMana (token): ${formatTokenNumber(weeklyTokens.output.current)} / ${formatTokenNumber(weeklyTokens.output.limit)} (${weeklyTokens.output.percentageUsed.toFixed(1)}%)`;
         message += `\nRemaining: ${formatTokenNumber(weeklyTokens.output.remaining)} (${(100 - weeklyTokens.output.percentageUsed).toFixed(1)}%)`;
         message += `\n${this.usageIndicator.buildAsciiProgressBar(100 - weeklyTokens.output.percentageUsed, "mana")}`;
       }

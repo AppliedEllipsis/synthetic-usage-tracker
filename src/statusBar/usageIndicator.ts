@@ -253,11 +253,11 @@ export class UsageIndicator {
       tooltip += `## ${tokensLabel}\n`;
       if (weeklyTokens.input.limit > 0) {
         const inputLabel = this.getRpgLabel("weeklyTokens", style);
-        tooltip += this.buildTokenTooltip(`${inputLabel} (Input)`, weeklyTokens.input);
+        tooltip += this.buildTokenTooltip(`${inputLabel} (token)`, weeklyTokens.input);
       }
       if (weeklyTokens.output.limit > 0) {
         const outputLabel = this.getRpgLabel("weeklyTokens", style);
-        tooltip += this.buildTokenTooltip(`${outputLabel} (Output)`, weeklyTokens.output);
+        tooltip += this.buildTokenTooltip(`${outputLabel} (token)`, weeklyTokens.output);
       }
       tooltip += `Renews At: ${weeklyTokens.renewAtString}\n`;
       tooltip += `Time Remaining: ${this.calculateTimeRemaining(weeklyTokens.renewAt)}\n\n`;
